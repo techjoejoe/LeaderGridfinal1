@@ -6,6 +6,7 @@ import { Vote, Check } from "lucide-react";
 import type { PicVoteImage } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { GlitterSparkles } from "./glitter-sparkles";
 
 type ImageCardProps = {
   image: PicVoteImage;
@@ -35,8 +36,20 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank }: ImageCard
     }),
   };
 
+  const getPodiumColor = () => {
+    switch (rank) {
+      case 0: return "hsl(var(--gold))";
+      case 1: return "hsl(var(--silver))";
+      case 2: return "hsl(var(--bronze))";
+      default: return "";
+    }
+  }
+
   return (
     <div className={cn("flex flex-col items-center gap-3 transition-all hover:-translate-y-1 relative", isPodium ? podiumClasses.container : "")}>
+      {isPodium && (
+        <GlitterSparkles color={getPodiumColor()} />
+      )}
       {rank === 0 && (
         <span className="absolute -top-12 text-7xl transform -rotate-12 animate-float z-20" role="img" aria-label="crown">👑</span>
       )}
