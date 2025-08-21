@@ -39,7 +39,6 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank }: ImageCard
       "border-transparent": rank === 0,
       "border-silver": rank === 1,
       "border-bronze": rank === 2,
-      "border-card": rank > 2,
     }),
   };
 
@@ -52,7 +51,7 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank }: ImageCard
   return (
     <div className={cn("flex flex-col items-center gap-3 transition-all hover:-translate-y-1 relative", isPodium ? podiumClasses.container : "")}>
       {rank === 0 && (
-        <span className="absolute -top-4 text-7xl transform -rotate-12 animate-float z-20" role="img" aria-label="crown">👑</span>
+        <span className="absolute -top-6 text-8xl transform -rotate-12 animate-float z-20" role="img" aria-label="crown">👑</span>
       )}
       <div 
         className={cn(
