@@ -43,7 +43,7 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank }: ImageCard
   };
 
   const nonPodiumClasses = {
-      imageContainer: "w-24 h-24 md:w-32 md:h-32 rounded-full shadow-md p-1",
+      imageContainer: "w-28 h-28 md:w-36 md:h-36 rounded-full shadow-md p-1",
       imageBorder: "border-4 border-card rounded-full w-full h-full"
   };
 
@@ -51,7 +51,7 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank }: ImageCard
   return (
     <div className={cn("flex flex-col items-center gap-3 transition-all hover:-translate-y-1 relative", isPodium ? podiumClasses.container : "")}>
       {rank === 0 && (
-        <span className="absolute -top-28 text-9xl transform -rotate-12 animate-float z-20" role="img" aria-label="crown">👑</span>
+        <span className="absolute -top-36 text-8xl transform -rotate-12 animate-float z-20" role="img" aria-label="crown">👑</span>
       )}
       <div 
         className={cn(
