@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -53,11 +53,13 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
       }
       setFile(selectedFile);
       setError("");
-      setZoom(1);
-      setCrop({ x: 0, y: 0 });
+      
       const reader = new FileReader();
       reader.addEventListener("load", () => {
         setImageSrc(reader.result as string);
+        // Reset crop/zoom when new image is loaded
+        setZoom(1);
+        setCrop({ x: 0, y: 0 });
       });
       reader.readAsDataURL(selectedFile);
     }
@@ -71,23 +73,31 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
     const ctx = canvas.getContext("2d");
 
     if (!ctx) return null;
-
-    canvas.width = CROP_DIMENSION;
-    canvas.height = CROP_DIMENSION;
     
-    const scale = image.naturalWidth / image.width;
-    const finalZoom = 1 / zoom;
+    // Set canvas to a higher resolution for better quality
+    const outputSize = 512;
+    canvas.width = outputSize;
+    canvas.height = outputSize;
 
-    const sourceSize = Math.min(image.naturalWidth, image.naturalHeight) * finalZoom;
-    const sourceX = (image.naturalWidth - sourceSize) / 2 + (crop.x * scale);
-    const sourceY = (image.naturalHeight - sourceSize) / 2 + (crop.y * scale);
+    const scaleX = image.naturalWidth / image.width;
+    const scaleY = image.naturalHeight / image.height;
+    
+    // The effective source size on the original image, adjusted for zoom
+    const sourceSize = Math.min(image.naturalWidth, image.naturalHeight) / zoom;
+    
+    // The source coordinates on the original image, adjusted for panning
+    const sourceX = (image.naturalWidth - sourceSize) / 2 + (crop.x * scaleX);
+    const sourceY = (image.naturalHeight - sourceSize) / 2 + (crop.y * scaleY);
     
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
+    // Create circular clipping path
     ctx.beginPath();
-    ctx.arc(CROP_DIMENSION / 2, CROP_DIMENSION / 2, CROP_DIMENSION / 2, 0, Math.PI * 2, true);
+    ctx.arc(outputSize / 2, outputSize / 2, outputSize / 2, 0, Math.PI * 2, true);
+    ctx.closePath();
     ctx.clip();
 
+    // Draw the image
     ctx.drawImage(
       image,
       sourceX,
@@ -96,8 +106,8 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
       sourceSize,
       0,
       0,
-      CROP_DIMENSION,
-      CROP_DIMENSION
+      outputSize,
+      outputSize
     );
 
     return canvas.toDataURL("image/png");
@@ -150,11 +160,13 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
 
   // Mouse event handlers for panning
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+    e.preventDefault();
     setIsDragging(true);
     setDragStart({ x: e.clientX, y: e.clientY });
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+    e.preventDefault();
     if (isDragging) {
       const deltaX = e.clientX - dragStart.x;
       const deltaY = e.clientY - dragStart.y;
@@ -166,16 +178,18 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
     }
   };
 
-  const handleMouseUp = () => {
+  const handleMouseUp = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+    e.preventDefault();
     setIsDragging(false);
   };
   
-  const handleMouseLeave = () => {
+  const handleMouseLeave = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+    e.preventDefault();
     setIsDragging(false);
   };
 
-  const handleZoomIn = () => setZoom(z => Math.min(z + 0.1, 3));
-  const handleZoomOut = () => setZoom(z => Math.max(z - 0.1, 0.5));
+  const handleZoomIn = () => setZoom(z => Math.max(z - 0.1, 0.2));
+  const handleZoomOut = () => setZoom(z => Math.min(z + 0.1, 2));
 
 
   return (
@@ -209,7 +223,7 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
             {imageSrc && (
                  <div className="flex flex-col items-center gap-4 my-4">
                     <div
-                        className="relative overflow-hidden rounded-full cursor-move"
+                        className="relative overflow-hidden rounded-full cursor-grab active:cursor-grabbing"
                         style={{ width: CROP_DIMENSION, height: CROP_DIMENSION }}
                         onMouseDown={handleMouseDown}
                         onMouseMove={handleMouseMove}
@@ -220,18 +234,19 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
                           ref={imgRef}
                           src={imageSrc} 
                           alt="Crop preview" 
+                          className="pointer-events-none"
                           style={{
                             width: '100%',
                             height: 'auto',
-                            transform: `scale(${zoom}) translate(${crop.x}px, ${crop.y}px)`,
+                            transform: `scale(${1/zoom}) translate(${crop.x}px, ${crop.y}px)`,
                             transition: isDragging ? 'none' : 'transform 0.1s ease-out',
                           }}
                         />
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button variant="outline" size="icon" onClick={handleZoomOut}><Minus className="h-4 w-4"/></Button>
+                      <Button variant="outline" size="icon" onClick={handleZoomIn}><Minus className="h-4 w-4"/></Button>
                       <Label>Zoom</Label>
-                      <Button variant="outline" size="icon" onClick={handleZoomIn}><Plus className="h-4 w-4"/></Button>
+                      <Button variant="outline" size="icon" onClick={handleZoomOut}><Plus className="h-4 w-4"/></Button>
                     </div>
                  </div>
             )}
