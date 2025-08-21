@@ -20,11 +20,12 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank }: ImageCard
 
   const podiumClasses = {
     container: cn({
-        "scale-125 z-10": rank === 0,
-        "scale-100": rank === 1,
-        "scale-100": rank === 2,
-        "self-start": rank === 1 || rank === 2,
-        "relative top-8": rank === 1 || rank === 2,
+      "scale-125 z-10": rank === 0,
+      "scale-110": rank === 1,
+      "scale-100": rank === 2,
+      "relative": isPodium,
+      "self-end": rank === 1 || rank === 2,
+      "bottom-4": rank === 1 || rank === 2,
     }),
     imageBorder: cn({
       "border-gold": rank === 0,
@@ -37,7 +38,7 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank }: ImageCard
   return (
     <div className={cn("flex flex-col items-center gap-3 transition-all hover:-translate-y-1 relative", isPodium ? podiumClasses.container : "")}>
       {rank === 0 && (
-        <span className="absolute -top-10 text-5xl transform -rotate-12" role="img" aria-label="crown">👑</span>
+        <span className="absolute -top-10 text-5xl transform -rotate-12 animate-float z-20" role="img" aria-label="crown">👑</span>
       )}
       <div 
         className={cn(

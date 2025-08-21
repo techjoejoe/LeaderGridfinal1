@@ -176,6 +176,16 @@ export default function Home() {
   const podiumImages = sortedImages.slice(0, 3);
   const otherImages = sortedImages.slice(3);
 
+  const displayedPodium = useMemo(() => {
+    if (podiumImages.length < 3) return podiumImages.map((image, index) => ({ image, rank: index }));
+    const podiumMap = [
+      { image: podiumImages[1], rank: 1 }, // 2nd place
+      { image: podiumImages[0], rank: 0 }, // 1st place
+      { image: podiumImages[2], rank: 2 }, // 3rd place
+    ];
+    return podiumMap;
+  }, [podiumImages]);
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Header onUploadClick={() => setUploadOpen(true)} />
@@ -202,12 +212,12 @@ export default function Home() {
                 {images.length > 0 ? (
                     <div className="flex flex-col gap-8">
                       {podiumImages.length > 0 && (
-                          <div className="flex justify-center items-center gap-4 md:gap-8 mb-8 border-b pb-8 pt-12 min-h-[320px]">
-                          {podiumImages.map((image, index) => (
+                          <div className="flex justify-center items-end gap-4 md:gap-8 mb-8 border-b pb-8 pt-12 min-h-[320px]">
+                          {displayedPodium.map(({ image, rank }) => (
                               <ImageCard
                               key={image.id}
                               image={image}
-                              rank={index}
+                              rank={rank}
                               onVote={handleVote}
                               disabled={dailyVoteInfo.votesLeft <= 0 || hasVotedForImage(image.id)}
                               hasVoted={hasVotedForImage(image.id)}
