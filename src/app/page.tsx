@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { collection, onSnapshot, doc, updateDoc, setDoc, addDoc } from "firebase/firestore";
+import { collection, onSnapshot, doc, updateDoc, setDoc } from "firebase/firestore";
 import { ref, uploadString, getDownloadURL } from "firebase/storage";
 import { db, storage } from "@/lib/firebase";
 import type { PicVoteImage } from "@/lib/types";
