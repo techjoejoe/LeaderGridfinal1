@@ -173,6 +173,9 @@ export default function Home() {
 
   const hasVotedForImage = (id: string) => dailyVoteInfo.votedImageIds.includes(id);
 
+  const podiumImages = sortedImages.slice(0, 3);
+  const otherImages = sortedImages.slice(3);
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Header onUploadClick={() => setUploadOpen(true)} />
@@ -197,17 +200,35 @@ export default function Home() {
             ) : (
                 <>
                 {images.length > 0 ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 items-end">
-                    {sortedImages.map((image, index) => (
-                        <ImageCard
-                        key={image.id}
-                        image={image}
-                        rank={index}
-                        onVote={handleVote}
-                        disabled={dailyVoteInfo.votesLeft <= 0 || hasVotedForImage(image.id)}
-                        hasVoted={hasVotedForImage(image.id)}
-                        />
-                    ))}
+                    <div className="flex flex-col gap-8">
+                      {podiumImages.length > 0 && (
+                          <div className="flex justify-center items-end gap-4 md:gap-8 mb-8 border-b pb-8">
+                          {podiumImages.map((image, index) => (
+                              <ImageCard
+                              key={image.id}
+                              image={image}
+                              rank={index}
+                              onVote={handleVote}
+                              disabled={dailyVoteInfo.votesLeft <= 0 || hasVotedForImage(image.id)}
+                              hasVoted={hasVotedForImage(image.id)}
+                              />
+                          ))}
+                          </div>
+                      )}
+                      {otherImages.length > 0 && (
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 items-end">
+                          {otherImages.map((image, index) => (
+                              <ImageCard
+                              key={image.id}
+                              image={image}
+                              rank={index + 3}
+                              onVote={handleVote}
+                              disabled={dailyVoteInfo.votesLeft <= 0 || hasVotedForImage(image.id)}
+                              hasVoted={hasVotedForImage(image.id)}
+                              />
+                          ))}
+                          </div>
+                      )}
                     </div>
                 ) : (
                     <div className="text-center py-16 border-2 border-dashed rounded-lg">
