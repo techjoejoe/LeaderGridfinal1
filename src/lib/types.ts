@@ -3,4 +3,5 @@ export type PicVoteImage = {
   name: string;
   url: string;
   votes: number;
+  userName: string;
 };

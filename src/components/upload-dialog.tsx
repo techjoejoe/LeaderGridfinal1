@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,116 +13,181 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "@/hooks/use-toast";
-import { Upload } from "lucide-react";
+import { Crop } from "lucide-react";
 
 type UploadDialogProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onUpload: (name: string, file: File) => void;
+  onUpload: (userName: string, imageName: string, dataUrl: string) => void;
 };
 
+const CROP_DIMENSION = 256;
+
 export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogProps) {
-  const [name, setName] = useState("");
+  const [userName, setUserName] = useState("");
+  const [imageName, setImageName] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState("");
+  const [imageSrc, setImageSrc] = useState<string | null>(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const imgRef = useRef<HTMLImageElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (selectedFile) {
-        if(selectedFile.size > 5 * 1024 * 1024) { // 5MB limit
-            setError("File size cannot exceed 5MB.");
-            setFile(null);
-        } else if (!['image/jpeg', 'image/png', 'image/gif'].includes(selectedFile.type)) {
-            setError("Invalid file type. Please upload a JPG, PNG, or GIF.");
-            setFile(null);
-        }
-        else {
-            setFile(selectedFile);
-            setError("");
-        }
+  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const selectedFile = e.target.files[0];
+      if (selectedFile.size > 5 * 1024 * 1024) { // 5MB limit
+        setError("File size cannot exceed 5MB.");
+        return;
+      }
+      if (!['image/jpeg', 'image/png', 'image/gif'].includes(selectedFile.type)) {
+        setError("Invalid file type. Please upload a JPG, PNG, or GIF.");
+        return;
+      }
+      setFile(selectedFile);
+      setError("");
+      const reader = new FileReader();
+      reader.addEventListener("load", () => {
+        setImageSrc(reader.result as string);
+      });
+      reader.readAsDataURL(selectedFile);
     }
   };
 
-  const handleSubmit = () => {
-    if (!name.trim()) {
+  const getCroppedImg = useCallback(async () => {
+    if (!imgRef.current || !canvasRef.current || !imageSrc) return;
+
+    const image = imgRef.current;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+
+    if (!ctx) return;
+
+    const scaleX = image.naturalWidth / image.width;
+    const scaleY = image.naturalHeight / image.height;
+
+    const pixelCrop = {
+      x: crop.x * scaleX,
+      y: crop.y * scaleY,
+      width: CROP_DIMENSION * scaleX * zoom,
+      height: CROP_DIMENSION * scaleY * zoom,
+    };
+    
+    // Ensure the crop area is a square based on the smallest dimension
+    const cropSize = Math.min(image.naturalWidth, image.naturalHeight);
+    const cropX = (image.naturalWidth - cropSize) / 2;
+    const cropY = (image.naturalHeight - cropSize) / 2;
+
+    canvas.width = CROP_DIMENSION;
+    canvas.height = CROP_DIMENSION;
+
+    ctx.beginPath();
+    ctx.arc(CROP_DIMENSION / 2, CROP_DIMENSION / 2, CROP_DIMENSION / 2, 0, Math.PI * 2, true);
+    ctx.clip();
+    ctx.drawImage(
+      image,
+      cropX,
+      cropY,
+      cropSize,
+      cropSize,
+      0,
+      0,
+      CROP_DIMENSION,
+      CROP_DIMENSION
+    );
+
+    return canvas.toDataURL("image/png");
+  }, [imageSrc, crop, zoom]);
+  
+  const handleSubmit = async () => {
+    if (!userName.trim()) {
+      setError("Your name is required.");
+      return;
+    }
+    if (!imageName.trim()) {
       setError("Image name is required.");
       return;
     }
-    if (!file) {
+    if (!file || !imageSrc) {
       setError("Please select an image file.");
       return;
     }
-    
+
     setError("");
-    onUpload(name, file);
-    setName("");
-    setFile(null);
-    if(fileInputRef.current) {
-        fileInputRef.current.value = "";
+    
+    const croppedDataUrl = await getCroppedImg();
+    if (croppedDataUrl) {
+        onUpload(userName, imageName, croppedDataUrl);
+        resetState();
+    } else {
+        setError("Could not process the image. Please try again.");
     }
   };
+  
+  const resetState = () => {
+      setUserName("");
+      setImageName("");
+      setFile(null);
+      setImageSrc(null);
+      setError("");
+      setCrop({ x: 0, y: 0 });
+      setZoom(1);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+  }
 
   const handleClose = (open: boolean) => {
     if (!open) {
-      setName("");
-      setFile(null);
-      setError("");
-      if(fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+      resetState();
     }
     onOpenChange(open);
   }
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="font-headline">Upload an Image</DialogTitle>
           <DialogDescription>
-            Add a new image to the competition. Give it a name and select a file from your computer.
+            Add a new image to the competition. Your image will be cropped to a circle.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="name" className="text-right">
-              Name
-            </Label>
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="col-span-3"
-              placeholder="e.g., 'Majestic Mountains'"
-            />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="file" className="text-right">
-              Image
-            </Label>
-            <div className="col-span-3">
-              <Input
-                id="file"
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                className="hidden"
-                accept="image/png, image/jpeg, image/gif"
-              />
-              <Button variant="outline" onClick={() => fileInputRef.current?.click()} className="w-full">
-                <Upload className="mr-2 h-4 w-4" />
-                {file ? file.name : 'Choose a file'}
-              </Button>
+            <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="userName" className="text-right">Your Name</Label>
+                <Input id="userName" value={userName} onChange={(e) => setUserName(e.target.value)} className="col-span-3" placeholder="e.g., 'Jane Doe'"/>
             </div>
-          </div>
-          {error && <p className="col-span-4 text-center text-sm text-destructive">{error}</p>}
+            <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="imageName" className="text-right">Image Name</Label>
+                <Input id="imageName" value={imageName} onChange={(e) => setImageName(e.target.value)} className="col-span-3" placeholder="e.g., 'Majestic Mountains'"/>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="file" className="text-right">Image</Label>
+                <div className="col-span-3">
+                    <Input id="file" type="file" ref={fileInputRef} onChange={onFileChange} className="hidden" accept="image/png, image/jpeg, image/gif"/>
+                    <Button variant="outline" onClick={() => fileInputRef.current?.click()} className="w-full">
+                        <Crop className="mr-2 h-4 w-4" />
+                        {file ? file.name : 'Choose a file'}
+                    </Button>
+                </div>
+            </div>
+            {imageSrc && (
+                 <div className="flex justify-center my-4">
+                    <div className="relative" style={{ width: CROP_DIMENSION, height: CROP_DIMENSION }}>
+                       <img ref={imgRef} src={imageSrc} alt="Crop preview" className="rounded-full object-cover w-full h-full" />
+                    </div>
+                 </div>
+            )}
+             <canvas ref={canvasRef} style={{ display: 'none' }} />
+             {error && <p className="col-span-4 text-center text-sm text-destructive">{error}</p>}
         </div>
         <DialogFooter>
-          <Button onClick={handleSubmit} className="bg-accent text-accent-foreground hover:bg-accent/90">
-            Upload
-          </Button>
+            <Button onClick={handleSubmit} disabled={!imageSrc} className="bg-accent text-accent-foreground hover:bg-accent/90">
+                Upload
+            </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

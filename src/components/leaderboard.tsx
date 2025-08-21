@@ -60,7 +60,10 @@ export function Leaderboard({ images }: LeaderboardProps) {
                            data-ai-hint={image.name.toLowerCase().split(' ').slice(0, 2).join(' ')}
                         />
                       </div>
-                      <span className="truncate font-medium">{image.name}</span>
+                      <div>
+                        <p className="truncate font-medium">{image.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">by {image.userName || 'Anonymous'}</p>
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell className="text-right font-bold text-primary">

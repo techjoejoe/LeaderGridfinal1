@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { collection, onSnapshot, doc, updateDoc, addDoc, writeBatch, getDocs, query } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { ref, uploadString, getDownloadURL } from "firebase/storage";
 import { db, storage } from "@/lib/firebase";
 import type { PicVoteImage } from "@/lib/types";
 import { INITIAL_IMAGES } from "@/lib/mock-data";
@@ -99,7 +99,7 @@ export default function Home() {
     }
   };
 
-  const handleUpload = async (name: string, file: File) => {
+  const handleUpload = async (userName: string, imageName: string, dataUrl: string) => {
     setUploadOpen(false);
     toast({
       title: "Uploading Image...",
@@ -107,12 +107,13 @@ export default function Home() {
     });
 
     try {
-      const storageRef = ref(storage, `images/${file.name}-${Date.now()}`);
-      const snapshot = await uploadBytes(storageRef, file);
+      const storageRef = ref(storage, `images/${imageName.replace(/\s+/g, '-')}-${Date.now()}.png`);
+      const snapshot = await uploadString(storageRef, dataUrl, 'data_url');
       const downloadURL = await getDownloadURL(snapshot.ref);
 
-      const newImage = {
-        name,
+      const newImage: Omit<PicVoteImage, 'id'> = {
+        name: imageName,
+        userName,
         url: downloadURL,
         votes: 0,
       };
@@ -121,7 +122,7 @@ export default function Home() {
 
       toast({
         title: "Image Uploaded!",
-        description: `${name} is now in the running.`,
+        description: `${imageName} is now in the running.`,
       });
     } catch (error) {
       console.error("Error uploading image:", error);
@@ -153,7 +154,9 @@ export default function Home() {
             {loading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
                 {[...Array(6)].map((_, i) => (
-                  <div key={i} className="rounded-lg border bg-card text-card-foreground shadow-sm aspect-square"></div>
+                  <div key={i} className="rounded-lg border bg-card text-card-foreground shadow-sm aspect-square">
+                     <div className="w-full h-full bg-muted animate-pulse rounded-full"></div>
+                  </div>
                 ))}
               </div>
             ) : (

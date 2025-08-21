@@ -1,6 +1,6 @@
 
 import Image from "next/image";
-import { Heart } from "lucide-react";
+import { Heart, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PicVoteImage } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
+  CardDescription
 } from "@/components/ui/card";
 
 type ImageCardProps = {
@@ -24,19 +25,23 @@ export function ImageCard({ image, onVote, disabled }: ImageCardProps) {
   return (
     <Card className="overflow-hidden group transition-all duration-300 hover:shadow-xl hover:scale-105">
       <CardHeader className="p-0">
-        <div className="aspect-square relative overflow-hidden rounded-full">
+        <div className="aspect-square relative overflow-hidden">
           <Image
             src={image.url}
             alt={image.name}
             fill
-            className="object-cover transition-transform duration-300 group-hover:scale-110"
+            className="object-cover transition-transform duration-300 group-hover:scale-110 rounded-full"
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             data-ai-hint={dataAiHint}
           />
         </div>
       </CardHeader>
-      <CardContent className="p-4">
+      <CardContent className="p-4 text-center">
         <CardTitle className="font-headline text-xl truncate">{image.name}</CardTitle>
+        <CardDescription className="flex items-center justify-center gap-1 text-muted-foreground mt-1">
+            <User className="h-4 w-4" />
+            <span className="truncate">{image.userName || 'Anonymous'}</span>
+        </CardDescription>
       </CardContent>
       <CardFooter className="flex justify-between items-center p-4 pt-0">
         <div className="text-lg font-bold text-primary">
