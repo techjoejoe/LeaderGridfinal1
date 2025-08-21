@@ -10,6 +10,7 @@ import { Header } from "@/components/header";
 import { ImageCard } from "@/components/image-card";
 import { UploadDialog } from "@/components/upload-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { generateUsername } from "@/ai/flows/username-flow";
 
 const DAILY_VOTE_LIMIT = 4;
 
@@ -126,7 +127,7 @@ export default function Home() {
     }
   };
 
-  const handleUpload = async (userName: string, imageName: string, dataUrl: string) => {
+  const handleUpload = async (imageName: string, dataUrl: string) => {
     setUploadOpen(false);
     toast({
       title: "Uploading Image...",
@@ -139,7 +140,11 @@ export default function Home() {
 
       const storageRef = ref(storage, `images/${newImageId}.png`);
       
-      const snapshot = await uploadString(storageRef, dataUrl, 'data_url');
+      const [snapshot, userName] = await Promise.all([
+        uploadString(storageRef, dataUrl, 'data_url'),
+        generateUsername(imageName)
+      ]);
+      
       const downloadURL = await getDownloadURL(snapshot.ref);
       
       const newImage: PicVoteImage = {
