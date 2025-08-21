@@ -96,20 +96,26 @@ export default function Home() {
     });
 
     try {
-      const storageRef = ref(storage, `images/${imageName.replace(/\s+/g, '-')}-${Date.now()}.png`);
+      // 1. Get a new document reference with a unique ID
+      const newImageRef = doc(collection(db, "images"));
+      const newImageId = newImageRef.id;
+
+      // 2. Upload the image to storage with the unique ID as part of the name
+      const storageRef = ref(storage, `images/${newImageId}-${imageName.replace(/\s+/g, '-')}.png`);
       const snapshot = await uploadString(storageRef, dataUrl, 'data_url');
       const downloadURL = await getDownloadURL(snapshot.ref);
       
-      const docRef = doc(collection(db, "images"));
-
-      const newImage: Omit<PicVoteImage, 'id'> = {
+      // 3. Create the new image object with the ID
+      const newImage: PicVoteImage = {
+        id: newImageId,
         name: imageName,
         userName,
         url: downloadURL,
         votes: 0,
       };
 
-      await setDoc(doc(db, "images", docRef.id), { ...newImage, id: docRef.id });
+      // 4. Save the document to Firestore using the same unique ID
+      await setDoc(newImageRef, newImage);
 
 
       toast({
