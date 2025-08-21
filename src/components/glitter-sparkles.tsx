@@ -37,7 +37,7 @@ export function GlitterSparkles({ count = 20, color }: GlitterSparklesProps) {
       {sparkles.map((sparkle) => (
         <span
           key={sparkle.id}
-          className="absolute w-2 h-2 rounded-full sparkle"
+          className="absolute w-1 h-1 sparkle"
           style={sparkle.style}
         />
       ))}
