@@ -15,18 +15,22 @@ type ImageCardProps = {
 };
 
 export function ImageCard({ image, onVote, disabled, hasVoted }: ImageCardProps) {
-  const [animationDelay, setAnimationDelay] = useState("0s");
+  const [shimmerStyle, setShimmerStyle] = useState({});
 
   useEffect(() => {
-    // Random delay between 0 and 5 seconds for each card
-    setAnimationDelay(`${Math.random() * 5}s`);
+    const delay = Math.random() * 5;
+    const angle = Math.random() * 180;
+    setShimmerStyle({
+      animationDelay: `${delay}s`,
+      '--shimmer-angle': `${angle}deg`
+    } as React.CSSProperties);
   }, []);
 
   return (
     <div className="flex flex-col items-center gap-3 transition-all hover:-translate-y-1">
         <div 
           className="relative aspect-square w-full rounded-full border-4 border-card shadow-md overflow-hidden shimmer-container"
-          style={{ animationDelay }}
+          style={shimmerStyle}
         >
             <Image
                 src={image.url}
