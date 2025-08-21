@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { collection, onSnapshot, doc, updateDoc, addDoc, writeBatch, getDocs, query } from "firebase/firestore";
+import { collection, onSnapshot, doc, updateDoc, addDoc, writeBatch, getDocs, query, setDoc } from "firebase/firestore";
 import { ref, uploadString, getDownloadURL } from "firebase/storage";
 import { db, storage } from "@/lib/firebase";
 import type { PicVoteImage } from "@/lib/types";
@@ -110,15 +110,18 @@ export default function Home() {
       const storageRef = ref(storage, `images/${imageName.replace(/\s+/g, '-')}-${Date.now()}.png`);
       const snapshot = await uploadString(storageRef, dataUrl, 'data_url');
       const downloadURL = await getDownloadURL(snapshot.ref);
+      
+      const docRef = doc(collection(db, "images"));
 
-      const newImage: Omit<PicVoteImage, 'id'> = {
+      const newImage: PicVoteImage = {
+        id: docRef.id,
         name: imageName,
         userName,
         url: downloadURL,
         votes: 0,
       };
 
-      await addDoc(collection(db, "images"), newImage);
+      await setDoc(docRef, newImage);
 
       toast({
         title: "Image Uploaded!",
