@@ -27,7 +27,7 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank }: ImageCard
         "self-end": rank === 1 || rank === 2,
     }),
     imageContainer: cn(
-        "relative aspect-square rounded-full border-4 shadow-md transition-all p-1",
+        "relative aspect-square rounded-full shadow-md transition-all p-1",
         {
             "w-48 h-48 md:w-60 md:h-60": rank === 0, // 1st place
             "w-36 h-36 md:w-44 md:h-44": rank === 1, // 2nd place
@@ -35,16 +35,17 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank }: ImageCard
             "overflow-visible": rank === 0,
         }
     ),
-    imageBorder: cn({
-      "border-transparent bg-clip-border bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-700": rank === 0,
+    imageBorder: cn("border-4 rounded-full w-full h-full", {
+      "border-transparent": rank === 0,
       "border-silver": rank === 1,
       "border-bronze": rank === 2,
+      "border-card": rank > 2,
     }),
   };
 
   const nonPodiumClasses = {
-      imageContainer: "w-24 h-24 md:w-32 md:h-32 rounded-full border-4 shadow-md",
-      imageBorder: "border-card"
+      imageContainer: "w-24 h-24 md:w-32 md:h-32 rounded-full shadow-md p-1",
+      imageBorder: "border-4 border-card rounded-full w-full h-full"
   };
 
 
@@ -57,19 +58,24 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank }: ImageCard
         className={cn(
           "relative",
           isPodium ? podiumClasses.imageContainer : nonPodiumClasses.imageContainer,
-          isPodium ? podiumClasses.imageBorder : nonPodiumClasses.imageBorder
         )}
       >
-        <div className={cn("w-full h-full rounded-full relative", { 'overflow-hidden': rank !== 0 })}>
-             {rank === 0 && <Sparkles />}
-             <Image
-                src={image.url}
-                alt={image.name ?? 'photo'}
-                fill
-                className="object-cover rounded-full"
-                sizes="(max-width: 768px) 30vw, 10vw"
-                data-ai-hint={image.name.toLowerCase().split(' ').slice(0, 2).join(' ')}
-             />
+        {rank === 0 && <div className="absolute inset-0 rounded-full bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-700" />}
+        <div className={cn(
+          "relative",
+           isPodium ? podiumClasses.imageBorder : nonPodiumClasses.imageBorder
+        )}>
+            <div className={cn("w-full h-full rounded-full relative bg-card", { 'overflow-hidden': rank !== 0 })}>
+                {rank === 0 && <Sparkles />}
+                <Image
+                    src={image.url}
+                    alt={image.name ?? 'photo'}
+                    fill
+                    className="object-cover rounded-full p-1"
+                    sizes="(max-width: 768px) 30vw, 10vw"
+                    data-ai-hint={image.name.toLowerCase().split(' ').slice(0, 2).join(' ')}
+                />
+            </div>
         </div>
       </div>
       <div className="text-center w-36">
