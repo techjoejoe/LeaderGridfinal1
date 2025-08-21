@@ -5,7 +5,6 @@ import Image from "next/image";
 import { Vote } from "lucide-react";
 import type { PicVoteImage } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 
 type ImageCardProps = {
   image: PicVoteImage;
@@ -15,9 +14,8 @@ type ImageCardProps = {
 
 export function ImageCard({ image, onVote, disabled }: ImageCardProps) {
   return (
-    <Card className="overflow-hidden border-0 shadow-md transition-all hover:shadow-xl hover:-translate-y-1">
-      <CardContent className="p-0">
-        <div className="relative aspect-square w-full">
+    <div className="flex flex-col items-center gap-3 transition-all hover:-translate-y-1">
+        <div className="relative aspect-square w-full rounded-full border-4 border-card shadow-md overflow-hidden">
             <Image
                 src={image.url}
                 alt={image.name ?? 'photo'}
@@ -27,7 +25,7 @@ export function ImageCard({ image, onVote, disabled }: ImageCardProps) {
                 data-ai-hint={image.name.toLowerCase().split(' ').slice(0, 2).join(' ')}
             />
         </div>
-        <div className="p-3">
+        <div className="text-center">
              <p className="font-bold truncate text-sm" title={image.name}>{image.name}</p>
             <p className="text-xs text-muted-foreground truncate" title={`by ${image.userName || 'Anonymous'}`}>by {image.userName || 'Anonymous'}</p>
             <Button onClick={() => onVote(image.id)} disabled={disabled} size="sm" className="w-full mt-2" variant="outline">
@@ -35,7 +33,6 @@ export function ImageCard({ image, onVote, disabled }: ImageCardProps) {
                 Vote ({image.votes})
             </Button>
         </div>
-      </CardContent>
-    </Card>
+    </div>
   );
 }
