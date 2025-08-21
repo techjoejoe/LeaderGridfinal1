@@ -8,7 +8,6 @@ import { db, storage } from "@/lib/firebase";
 import type { PicVoteImage } from "@/lib/types";
 import { Header } from "@/components/header";
 import { ImageCard } from "@/components/image-card";
-import { Leaderboard } from "@/components/leaderboard";
 import { UploadDialog } from "@/components/upload-dialog";
 import { useToast } from "@/hooks/use-toast";
 
@@ -178,50 +177,45 @@ export default function Home() {
     <div className="min-h-screen bg-background text-foreground">
       <Header onUploadClick={() => setUploadOpen(true)} />
       <main className="container mx-auto px-4 py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
-          <div className="lg:w-3/4">
+        <div className="w-full">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-3xl font-headline font-bold">Image Gallery</h2>
-               <p className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-md">
+                <h2 className="text-3xl font-headline font-bold">Image Gallery</h2>
+                <p className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-md">
                 Votes left today: <span className="font-bold text-primary">{dailyVoteInfo.votesLeft}</span>
-              </p>
+                </p>
             </div>
             {loading ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 {[...Array(5)].map((_, i) => (
-                  <div key={i} className="flex flex-col items-center gap-3">
+                    <div key={i} className="flex flex-col items-center gap-3">
                     <div className="rounded-full border-4 border-card shadow-md aspect-square w-full bg-muted animate-pulse"></div>
                     <div className="w-3/4 h-4 bg-muted animate-pulse rounded"></div>
-                     <div className="w-1/2 h-4 bg-muted animate-pulse rounded"></div>
-                  </div>
+                        <div className="w-1/2 h-4 bg-muted animate-pulse rounded"></div>
+                    </div>
                 ))}
-              </div>
+                </div>
             ) : (
-              <>
+                <>
                 {images.length > 0 ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                     {sortedImages.map((image) => (
-                      <ImageCard
+                        <ImageCard
                         key={image.id}
                         image={image}
                         onVote={handleVote}
                         disabled={dailyVoteInfo.votesLeft <= 0 || hasVotedForImage(image.id)}
                         hasVoted={hasVotedForImage(image.id)}
-                      />
+                        />
                     ))}
-                  </div>
+                    </div>
                 ) : (
-                  <div className="text-center py-16 border-2 border-dashed rounded-lg">
+                    <div className="text-center py-16 border-2 border-dashed rounded-lg">
                     <h3 className="text-2xl font-bold font-headline">No images yet!</h3>
                     <p className="text-muted-foreground mt-2">Be the first to upload a picture.</p>
-                  </div>
+                    </div>
                 )}
-              </>
+                </>
             )}
-          </div>
-          <aside className="lg:w-1/4">
-            <Leaderboard images={sortedImages} />
-          </aside>
         </div>
       </main>
       <UploadDialog
