@@ -67,6 +67,8 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank }: ImageCard
         )}>
             <div className={cn("w-full h-full rounded-full relative bg-card", { 'overflow-hidden': rank !== 0 })}>
                 {rank === 0 && <Sparkles />}
+                {rank === 1 && <Sparkles color="#C0C0C0" />}
+                {rank === 2 && <Sparkles color="#CD7F32" />}
                 <Image
                     src={image.url}
                     alt={image.name ?? 'photo'}
