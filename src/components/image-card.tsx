@@ -22,7 +22,8 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank }: ImageCard
 
   const podiumClasses = {
     container: cn({
-        "z-10": rank === 0,
+        "z-20": rank === 0,
+        "z-10": rank === 1,
         "self-end": rank === 1 || rank === 2,
     }),
     imageContainer: cn(
@@ -50,7 +51,7 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank }: ImageCard
   return (
     <div className={cn("flex flex-col items-center gap-3 transition-all hover:-translate-y-1 relative", isPodium ? podiumClasses.container : "")}>
       {rank === 0 && (
-        <span className="absolute -top-6 text-7xl transform -rotate-12 animate-float z-20" role="img" aria-label="crown">👑</span>
+        <span className="absolute -top-4 text-7xl transform -rotate-12 animate-float z-20" role="img" aria-label="crown">👑</span>
       )}
       <div 
         className={cn(
