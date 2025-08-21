@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -60,7 +61,7 @@ export const Sparkles = ({
   }, [count, color]);
 
   return (
-    <div className={cn("absolute inset-[-10px] pointer-events-none", className)} {...rest}>
+    <div className={cn("absolute inset-[-10px] pointer-events-none z-10", className)} {...rest}>
       {sparkles.map(sparkle => (
         <SparkleIcon
           key={sparkle.id}
