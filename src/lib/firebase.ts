@@ -6,7 +6,7 @@ import { getStorage } from 'firebase/storage';
 const firebaseConfig = {
   projectId: 'picvote-h2ow0',
   appId: '1:264559552753:web:e3296393a7b755d59da150',
-  storageBucket: 'picvote-h2ow0.appspot.com',
+  storageBucket: 'picvote-h2ow0.firebasestorage.app',
   apiKey: 'AIzaSyD9PJNtR7WLhjCbDbhdCgK0Zn3Y4_d8l3E',
   authDomain: 'picvote-h2ow0.firebaseapp.com',
   messagingSenderId: '264559552753',
