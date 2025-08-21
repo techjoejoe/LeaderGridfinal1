@@ -95,19 +95,20 @@ export default function Home() {
     });
 
     try {
-      // 1. Create the document reference first to get an ID.
+      // Create the document reference first to get a unique ID.
       const newImageDocRef = doc(collection(db, "images"));
       const newImageId = newImageDocRef.id;
 
-      // 2. Use the ID for the storage path.
+      // Use the new unique ID for the storage path.
       const storageRef = ref(storage, `images/${newImageId}.png`);
       
-      // 3. Upload the file.
+      // Upload the file to Firebase Storage.
       const snapshot = await uploadString(storageRef, dataUrl, 'data_url');
       const downloadURL = await getDownloadURL(snapshot.ref);
       
-      // 4. Create the document in Firestore with all the data.
-      const newImage: Omit<PicVoteImage, 'id'> = {
+      // Now, create the document in Firestore with all the data, including the ID.
+      const newImage: PicVoteImage = {
+        id: newImageId,
         name: imageName,
         userName,
         url: downloadURL,
@@ -116,7 +117,7 @@ export default function Home() {
 
       await setDoc(newImageDocRef, newImage);
       
-      // The onSnapshot listener will automatically update the UI.
+      // The onSnapshot listener will automatically update the UI with the new image.
 
       toast({
         title: "Image Uploaded!",
