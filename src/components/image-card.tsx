@@ -20,12 +20,14 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank }: ImageCard
 
   const podiumClasses = {
     container: cn({
-      "scale-150 z-10": rank === 0,
-      "scale-110": rank === 1,
-      "scale-100": rank === 2,
-      "relative": isPodium,
-      "self-end": rank === 1 || rank === 2,
-      "bottom-4": rank === 1 || rank === 2,
+        "z-10": rank === 0,
+        "self-end": rank === 1 || rank === 2,
+        "relative": isPodium,
+    }),
+    imageContainer: cn({
+        "w-48 h-48 md:w-60 md:h-60": rank === 0, // 1st place
+        "w-36 h-36 md:w-44 md:h-44": rank === 1, // 2nd place
+        "w-32 h-32 md:w-36 md:h-36": rank === 2, // 3rd place
     }),
     imageBorder: cn({
       "border-gold": rank === 0,
@@ -42,7 +44,8 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank }: ImageCard
       )}
       <div 
         className={cn(
-          "relative aspect-square w-24 md:w-32 rounded-full border-4 shadow-md overflow-hidden",
+          "relative aspect-square rounded-full border-4 shadow-md overflow-hidden transition-all",
+          isPodium ? podiumClasses.imageContainer : "w-24 h-24 md:w-32 md:h-32",
           podiumClasses.imageBorder
         )}
       >
@@ -55,11 +58,11 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank }: ImageCard
           data-ai-hint={image.name.toLowerCase().split(' ').slice(0, 2).join(' ')}
         />
       </div>
-      <div className="text-center">
+      <div className="text-center w-36">
         <p className="font-bold truncate text-sm" title={image.name}>{image.name}</p>
         <p className="text-xs text-muted-foreground truncate" title={`by ${image.userName || 'Anonymous'}`}>by {image.userName || 'Anonymous'}</p>
         <Button onClick={() => onVote(image.id)} disabled={disabled} size="sm" className="w-full mt-2" variant={hasVoted ? "secondary" : "outline"}>
-          {hasVoted ? <Check className="mr-2" /> : <Vote className="mr-2" />}
+          {hasVoted ? <Check /> : <Vote />}
           {hasVoted ? "Voted" : `Vote (${image.votes})`}
         </Button>
       </div>
