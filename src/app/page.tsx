@@ -6,7 +6,6 @@ import { collection, onSnapshot, doc, updateDoc, addDoc, writeBatch, getDocs, qu
 import { ref, uploadString, getDownloadURL } from "firebase/storage";
 import { db, storage } from "@/lib/firebase";
 import type { PicVoteImage } from "@/lib/types";
-import { INITIAL_IMAGES } from "@/lib/mock-data";
 import { Header } from "@/components/header";
 import { ImageCard } from "@/components/image-card";
 import { Leaderboard } from "@/components/leaderboard";
@@ -23,20 +22,10 @@ export default function Home() {
   useEffect(() => {
     const q = query(collection(db, "images"));
     const unsubscribe = onSnapshot(q, async (querySnapshot) => {
-      if (querySnapshot.empty) {
-        // Populate Firestore with initial data if it's empty
-        const batch = writeBatch(db);
-        INITIAL_IMAGES.forEach((image) => {
-          const docRef = doc(collection(db, "images"));
-          batch.set(docRef, { ...image, id: docRef.id });
-        });
-        await batch.commit();
-      } else {
-        const imagesData = querySnapshot.docs.map(
-          (doc) => ({ id: doc.id, ...doc.data() } as PicVoteImage)
-        );
-        setImages(imagesData);
-      }
+      const imagesData = querySnapshot.docs.map(
+        (doc) => ({ id: doc.id, ...doc.data() } as PicVoteImage)
+      );
+      setImages(imagesData);
       setLoading(false);
     }, (error) => {
       console.error("Error fetching images:", error);
@@ -163,16 +152,25 @@ export default function Home() {
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                {images.map((image) => (
-                  <ImageCard
-                    key={image.id}
-                    image={image}
-                    onVote={handleVote}
-                    disabled={hasVoted}
-                  />
-                ))}
-              </div>
+              <>
+                {images.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {images.map((image) => (
+                      <ImageCard
+                        key={image.id}
+                        image={image}
+                        onVote={handleVote}
+                        disabled={hasVoted}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-16 border-2 border-dashed rounded-lg">
+                    <h3 className="text-2xl font-bold font-headline">No images yet!</h3>
+                    <p className="text-muted-foreground mt-2">Be the first to upload a picture.</p>
+                  </div>
+                )}
+              </>
             )}
           </div>
           <aside className="lg:w-1/4">
