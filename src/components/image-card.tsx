@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Vote, Check } from "lucide-react";
 import type { PicVoteImage } from "@/lib/types";
 import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
 
 type ImageCardProps = {
   image: PicVoteImage;
@@ -14,9 +15,19 @@ type ImageCardProps = {
 };
 
 export function ImageCard({ image, onVote, disabled, hasVoted }: ImageCardProps) {
+  const [animationDelay, setAnimationDelay] = useState("0s");
+
+  useEffect(() => {
+    // Random delay between 0 and 5 seconds for each card
+    setAnimationDelay(`${Math.random() * 5}s`);
+  }, []);
+
   return (
     <div className="flex flex-col items-center gap-3 transition-all hover:-translate-y-1">
-        <div className="relative aspect-square w-full rounded-full border-4 border-card shadow-md overflow-hidden">
+        <div 
+          className="relative aspect-square w-full rounded-full border-4 border-card shadow-md overflow-hidden shimmer-container"
+          style={{ animationDelay }}
+        >
             <Image
                 src={image.url}
                 alt={image.name ?? 'photo'}
