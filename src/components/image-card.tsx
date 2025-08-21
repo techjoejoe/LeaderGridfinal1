@@ -5,7 +5,6 @@ import Image from "next/image";
 import { Vote, Check } from "lucide-react";
 import type { PicVoteImage } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { useEffect, useState } from "react";
 
 type ImageCardProps = {
   image: PicVoteImage;
@@ -15,23 +14,11 @@ type ImageCardProps = {
 };
 
 export function ImageCard({ image, onVote, disabled, hasVoted }: ImageCardProps) {
-  const [shimmerStyle, setShimmerStyle] = useState({});
-
-  useEffect(() => {
-    // These will only run on the client, after initial hydration
-    const delay = Math.random() * 5; // random delay between 0 and 5 seconds
-    const angle = Math.random() * 180; // random angle between 0 and 180 degrees
-    setShimmerStyle({
-      animationDelay: `${delay}s`,
-      '--shimmer-angle': `${angle}deg`
-    } as React.CSSProperties);
-  }, []);
 
   return (
     <div className="flex flex-col items-center gap-3 transition-all hover:-translate-y-1">
         <div 
-          className="relative aspect-square w-full rounded-full border-4 border-card shadow-md overflow-hidden shimmer-container"
-          style={shimmerStyle}
+          className="relative aspect-square w-full rounded-full border-4 border-card shadow-md overflow-hidden"
         >
             <Image
                 src={image.url}
