@@ -1,6 +1,10 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { collection, onSnapshot, doc, updateDoc, addDoc, writeBatch, getDocs, query } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { db, storage } from "@/lib/firebase";
 import type { PicVoteImage } from "@/lib/types";
 import { INITIAL_IMAGES } from "@/lib/mock-data";
 import { Header } from "@/components/header";
@@ -10,10 +14,42 @@ import { UploadDialog } from "@/components/upload-dialog";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Home() {
-  const [images, setImages] = useState<PicVoteImage[]>(INITIAL_IMAGES);
-  const [hasVoted, setHasVoted] = useState(true); // Default to true, check on mount
+  const [images, setImages] = useState<PicVoteImage[]>([]);
+  const [hasVoted, setHasVoted] = useState(true);
   const [isUploadOpen, setUploadOpen] = useState(false);
   const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const q = query(collection(db, "images"));
+    const unsubscribe = onSnapshot(q, async (querySnapshot) => {
+      if (querySnapshot.empty) {
+        // Populate Firestore with initial data if it's empty
+        const batch = writeBatch(db);
+        INITIAL_IMAGES.forEach((image) => {
+          const docRef = doc(collection(db, "images"));
+          batch.set(docRef, { ...image, id: docRef.id });
+        });
+        await batch.commit();
+      } else {
+        const imagesData = querySnapshot.docs.map(
+          (doc) => ({ id: doc.id, ...doc.data() } as PicVoteImage)
+        );
+        setImages(imagesData);
+      }
+      setLoading(false);
+    }, (error) => {
+      console.error("Error fetching images:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Could not fetch images from the database.",
+      });
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [toast]);
 
   useEffect(() => {
     const lastVoteDate = localStorage.getItem("picvote_last_vote");
@@ -29,7 +65,7 @@ export default function Home() {
     }
   }, []);
 
-  const handleVote = (id: string) => {
+  const handleVote = async (id: string) => {
     if (hasVoted) {
       toast({
         variant: "destructive",
@@ -39,36 +75,64 @@ export default function Home() {
       return;
     }
 
-    setImages((prevImages) =>
-      prevImages.map((img) =>
-        img.id === id ? { ...img, votes: img.votes + 1 } : img
-      )
-    );
+    const imageRef = doc(db, "images", id);
+    const image = images.find(img => img.id === id);
 
-    const today = new Date().toISOString().split("T")[0];
-    localStorage.setItem("picvote_last_vote", today);
-    setHasVoted(true);
-
-    toast({
-      title: "Vote Cast!",
-      description: "Your vote has been counted. Thank you!",
-    });
+    if (image) {
+      try {
+        await updateDoc(imageRef, { votes: image.votes + 1 });
+        const today = new Date().toISOString().split("T")[0];
+        localStorage.setItem("picvote_last_vote", today);
+        setHasVoted(true);
+        toast({
+          title: "Vote Cast!",
+          description: "Your vote has been counted. Thank you!",
+        });
+      } catch (error) {
+        console.error("Error updating votes:", error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Could not cast your vote. Please try again.",
+        });
+      }
+    }
   };
 
-  const handleUpload = (name: string, url: string) => {
-    const newImage: PicVoteImage = {
-      id: crypto.randomUUID(),
-      name,
-      url,
-      votes: 0,
-    };
-    setImages((prevImages) => [newImage, ...prevImages]);
+  const handleUpload = async (name: string, file: File) => {
     setUploadOpen(false);
     toast({
-      title: "Image Uploaded!",
-      description: `${name} is now in the running.`,
+      title: "Uploading Image...",
+      description: "Please wait while your image is being uploaded.",
     });
+
+    try {
+      const storageRef = ref(storage, `images/${file.name}-${Date.now()}`);
+      const snapshot = await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(snapshot.ref);
+
+      const newImage = {
+        name,
+        url: downloadURL,
+        votes: 0,
+      };
+
+      await addDoc(collection(db, "images"), newImage);
+
+      toast({
+        title: "Image Uploaded!",
+        description: `${name} is now in the running.`,
+      });
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      toast({
+        variant: "destructive",
+        title: "Upload Failed",
+        description: "Could not upload your image. Please try again.",
+      });
+    }
   };
+
 
   const sortedImages = useMemo(() => {
     return [...images].sort((a, b) => b.votes - a.votes);
@@ -86,16 +150,24 @@ export default function Home() {
                  <p className="text-sm text-muted-foreground bg-muted px-3 py-1.5 rounded-md">You've voted today. Come back tomorrow!</p>
               )}
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-              {images.map((image) => (
-                <ImageCard
-                  key={image.id}
-                  image={image}
-                  onVote={handleVote}
-                  disabled={hasVoted}
-                />
-              ))}
-            </div>
+            {loading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="rounded-lg border bg-card text-card-foreground shadow-sm aspect-square"></div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                {images.map((image) => (
+                  <ImageCard
+                    key={image.id}
+                    image={image}
+                    onVote={handleVote}
+                    disabled={hasVoted}
+                  />
+                ))}
+              </div>
+            )}
           </div>
           <aside className="lg:w-1/4">
             <Leaderboard images={sortedImages} />
