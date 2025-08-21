@@ -12,9 +12,16 @@ import { Leaderboard } from "@/components/leaderboard";
 import { UploadDialog } from "@/components/upload-dialog";
 import { useToast } from "@/hooks/use-toast";
 
+const DAILY_VOTE_LIMIT = 4;
+
+type DailyVoteInfo = {
+  votesLeft: number;
+  votedImageIds: string[];
+};
+
 export default function Home() {
   const [images, setImages] = useState<PicVoteImage[]>([]);
-  const [hasVoted, setHasVoted] = useState(true);
+  const [dailyVoteInfo, setDailyVoteInfo] = useState<DailyVoteInfo>({ votesLeft: DAILY_VOTE_LIMIT, votedImageIds: [] });
   const [isUploadOpen, setUploadOpen] = useState(false);
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -40,25 +47,47 @@ export default function Home() {
   }, [toast]);
 
   useEffect(() => {
-    const lastVoteDate = localStorage.getItem("picvote_last_vote");
-    if (lastVoteDate) {
-      const today = new Date().toISOString().split("T")[0];
-      if (lastVoteDate === today) {
-        setHasVoted(true);
-      } else {
-        setHasVoted(false);
+    const voteDataString = localStorage.getItem("picvote_daily_votes");
+    const today = new Date().toISOString().split("T")[0];
+
+    if (voteDataString) {
+      try {
+        const voteData = JSON.parse(voteDataString);
+        if (voteData.date === today) {
+          setDailyVoteInfo({
+            votesLeft: voteData.votesLeft,
+            votedImageIds: voteData.votedImageIds,
+          });
+        } else {
+          // New day, reset votes
+          localStorage.removeItem("picvote_daily_votes");
+          setDailyVoteInfo({ votesLeft: DAILY_VOTE_LIMIT, votedImageIds: [] });
+        }
+      } catch (e) {
+        // Corrupted data, reset
+         localStorage.removeItem("picvote_daily_votes");
+         setDailyVoteInfo({ votesLeft: DAILY_VOTE_LIMIT, votedImageIds: [] });
       }
     } else {
-      setHasVoted(false);
+        setDailyVoteInfo({ votesLeft: DAILY_VOTE_LIMIT, votedImageIds: [] });
     }
   }, []);
 
   const handleVote = async (id: string) => {
-    if (hasVoted) {
+    if (dailyVoteInfo.votesLeft <= 0) {
+      toast({
+        variant: "destructive",
+        title: "No Votes Left!",
+        description: "You have used all your votes for today. Come back tomorrow!",
+      });
+      return;
+    }
+
+    if (dailyVoteInfo.votedImageIds.includes(id)) {
       toast({
         variant: "destructive",
         title: "Already Voted!",
-        description: "You can only vote once per day. Come back tomorrow!",
+        description: "You have already voted for this image today.",
       });
       return;
     }
@@ -69,12 +98,23 @@ export default function Home() {
     if (image) {
       try {
         await updateDoc(imageRef, { votes: image.votes + 1 });
+        
+        const newVotesLeft = dailyVoteInfo.votesLeft - 1;
+        const newVotedImageIds = [...dailyVoteInfo.votedImageIds, id];
+        
         const today = new Date().toISOString().split("T")[0];
-        localStorage.setItem("picvote_last_vote", today);
-        setHasVoted(true);
+        const newVoteData = {
+          date: today,
+          votesLeft: newVotesLeft,
+          votedImageIds: newVotedImageIds
+        };
+        
+        localStorage.setItem("picvote_daily_votes", JSON.stringify(newVoteData));
+        setDailyVoteInfo({ votesLeft: newVotesLeft, votedImageIds: newVotedImageIds });
+        
         toast({
           title: "Vote Cast!",
-          description: "Your vote has been counted. Thank you!",
+          description: `Your vote has been counted. You have ${newVotesLeft} votes left today.`,
         });
       } catch (error) {
         console.error("Error updating votes:", error);
@@ -95,18 +135,14 @@ export default function Home() {
     });
 
     try {
-      // Create the document reference first to get a unique ID.
       const newImageDocRef = doc(collection(db, "images"));
       const newImageId = newImageDocRef.id;
 
-      // Use the new unique ID for the storage path.
       const storageRef = ref(storage, `images/${newImageId}.png`);
       
-      // Upload the file to Firebase Storage.
       const snapshot = await uploadString(storageRef, dataUrl, 'data_url');
       const downloadURL = await getDownloadURL(snapshot.ref);
       
-      // Now, create the document in Firestore with all the data, including the ID.
       const newImage: PicVoteImage = {
         id: newImageId,
         name: imageName,
@@ -117,8 +153,6 @@ export default function Home() {
 
       await setDoc(newImageDocRef, newImage);
       
-      // The onSnapshot listener will automatically update the UI with the new image.
-
       toast({
         title: "Image Uploaded!",
         description: `${imageName} is now in the running.`,
@@ -138,6 +172,8 @@ export default function Home() {
     return [...images].sort((a, b) => b.votes - a.votes);
   }, [images]);
 
+  const hasVotedForImage = (id: string) => dailyVoteInfo.votedImageIds.includes(id);
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Header onUploadClick={() => setUploadOpen(true)} />
@@ -146,15 +182,17 @@ export default function Home() {
           <div className="lg:w-3/4">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-3xl font-headline font-bold">Image Gallery</h2>
-              {hasVoted && (
-                 <p className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-md">You've voted today. Come back tomorrow!</p>
-              )}
+               <p className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-md">
+                Votes left today: <span className="font-bold text-primary">{dailyVoteInfo.votesLeft}</span>
+              </p>
             </div>
             {loading ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 {[...Array(5)].map((_, i) => (
-                  <div key={i} className="rounded-lg border bg-card text-card-foreground shadow-sm aspect-square">
-                     <div className="w-full h-full bg-muted animate-pulse rounded-lg"></div>
+                  <div key={i} className="flex flex-col items-center gap-3">
+                    <div className="rounded-full border-4 border-card shadow-md aspect-square w-full bg-muted animate-pulse"></div>
+                    <div className="w-3/4 h-4 bg-muted animate-pulse rounded"></div>
+                     <div className="w-1/2 h-4 bg-muted animate-pulse rounded"></div>
                   </div>
                 ))}
               </div>
@@ -167,7 +205,8 @@ export default function Home() {
                         key={image.id}
                         image={image}
                         onVote={handleVote}
-                        disabled={hasVoted}
+                        disabled={dailyVoteInfo.votesLeft <= 0 || hasVotedForImage(image.id)}
+                        hasVoted={hasVotedForImage(image.id)}
                       />
                     ))}
                   </div>

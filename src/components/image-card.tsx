@@ -2,7 +2,7 @@
 "use client";
 
 import Image from "next/image";
-import { Vote } from "lucide-react";
+import { Vote, Check } from "lucide-react";
 import type { PicVoteImage } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 
@@ -10,9 +10,10 @@ type ImageCardProps = {
   image: PicVoteImage;
   onVote: (id: string) => void;
   disabled: boolean;
+  hasVoted: boolean;
 };
 
-export function ImageCard({ image, onVote, disabled }: ImageCardProps) {
+export function ImageCard({ image, onVote, disabled, hasVoted }: ImageCardProps) {
   return (
     <div className="flex flex-col items-center gap-3 transition-all hover:-translate-y-1">
         <div className="relative aspect-square w-full rounded-full border-4 border-card shadow-md overflow-hidden">
@@ -28,9 +29,9 @@ export function ImageCard({ image, onVote, disabled }: ImageCardProps) {
         <div className="text-center">
              <p className="font-bold truncate text-sm" title={image.name}>{image.name}</p>
             <p className="text-xs text-muted-foreground truncate" title={`by ${image.userName || 'Anonymous'}`}>by {image.userName || 'Anonymous'}</p>
-            <Button onClick={() => onVote(image.id)} disabled={disabled} size="sm" className="w-full mt-2" variant="outline">
-                <Vote className="mr-2" />
-                Vote ({image.votes})
+            <Button onClick={() => onVote(image.id)} disabled={disabled} size="sm" className="w-full mt-2" variant={hasVoted ? "secondary" : "outline"}>
+                {hasVoted ? <Check className="mr-2" /> : <Vote className="mr-2" />}
+                {hasVoted ? "Voted" : `Vote (${image.votes})`}
             </Button>
         </div>
     </div>
