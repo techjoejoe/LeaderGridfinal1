@@ -102,15 +102,15 @@ export default function Home() {
       
       const docRef = doc(collection(db, "images"));
 
-      const newImage: PicVoteImage = {
-        id: docRef.id,
+      const newImage: Omit<PicVoteImage, 'id'> = {
         name: imageName,
         userName,
         url: downloadURL,
         votes: 0,
       };
 
-      await setDoc(docRef, newImage);
+      await setDoc(doc(db, "images", docRef.id), { ...newImage, id: docRef.id });
+
 
       toast({
         title: "Image Uploaded!",
@@ -140,7 +140,7 @@ export default function Home() {
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-3xl font-headline font-bold">Image Gallery</h2>
               {hasVoted && (
-                 <p className="text-sm text-muted-foreground bg-muted px-3 py-1.5 rounded-md">You've voted today. Come back tomorrow!</p>
+                 <p className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-md">You've voted today. Come back tomorrow!</p>
               )}
             </div>
             {loading ? (
