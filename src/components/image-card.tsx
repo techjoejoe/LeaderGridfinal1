@@ -51,7 +51,7 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank }: ImageCard
   return (
     <div className={cn("flex flex-col items-center gap-3 transition-all hover:-translate-y-1 relative", isPodium ? podiumClasses.container : "")}>
       {rank === 0 && (
-        <span className="absolute -top-16 text-9xl transform -rotate-12 animate-float z-20" role="img" aria-label="crown">👑</span>
+        <span className="absolute -top-28 text-9xl transform -rotate-12 animate-float z-20" role="img" aria-label="crown">👑</span>
       )}
       <div 
         className={cn(
