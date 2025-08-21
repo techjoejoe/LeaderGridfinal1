@@ -18,8 +18,9 @@ export function ImageCard({ image, onVote, disabled, hasVoted }: ImageCardProps)
   const [shimmerStyle, setShimmerStyle] = useState({});
 
   useEffect(() => {
-    const delay = Math.random() * 5;
-    const angle = Math.random() * 180;
+    // These will only run on the client, after initial hydration
+    const delay = Math.random() * 5; // random delay between 0 and 5 seconds
+    const angle = Math.random() * 180; // random angle between 0 and 180 degrees
     setShimmerStyle({
       animationDelay: `${delay}s`,
       '--shimmer-angle': `${angle}deg`
