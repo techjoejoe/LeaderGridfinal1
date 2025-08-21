@@ -51,7 +51,7 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank }: ImageCard
   return (
     <div className={cn("flex flex-col items-center gap-3 transition-all hover:-translate-y-1 relative", isPodium ? podiumClasses.container : "")}>
       {rank === 0 && (
-        <span className="absolute -top-40 text-9xl transform -rotate-12 animate-float z-20" role="img" aria-label="crown">👑</span>
+        <span className="absolute -top-20 text-9xl transform -rotate-12 animate-float z-20" role="img" aria-label="crown">👑</span>
       )}
       <div 
         className={cn(
@@ -64,7 +64,7 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank }: ImageCard
           "relative",
            isPodium ? podiumClasses.imageBorder : nonPodiumClasses.imageBorder
         )}>
-            <div className={cn("w-full h-full rounded-full relative bg-card", { 'overflow-hidden': rank !== 0 })}>
+            <div className={cn("w-full h-full rounded-full relative bg-card shadow-lg", { 'overflow-hidden': rank !== 0 })}>
                 {rank < 3 && (
                   <Sparkles
                     color={rank === 0 ? '#FFC700' : rank === 1 ? '#C0C0C0' : '#CD7F32'}
