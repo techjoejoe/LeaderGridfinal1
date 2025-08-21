@@ -126,7 +126,7 @@ export default function Home() {
     }
   };
 
-  const handleUpload = async (imageName: string, dataUrl: string) => {
+  const handleUpload = async (imageName: string, firstName: string, lastName: string, dataUrl: string) => {
     setUploadOpen(false);
     toast({
       title: "Uploading Image...",
@@ -142,10 +142,10 @@ export default function Home() {
       const snapshot = await uploadString(storageRef, dataUrl, 'data_url');
       const downloadURL = await getDownloadURL(snapshot.ref);
       
-      const newImage: PicVoteImage = {
-        id: newImageId,
+      const newImage: Omit<PicVoteImage, 'id'> = {
         name: imageName,
-        userName: "Anonymous",
+        firstName: firstName,
+        lastName: lastName,
         url: downloadURL,
         votes: 0,
       };

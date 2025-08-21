@@ -18,13 +18,15 @@ import { Crop, Minus, Plus } from "lucide-react";
 type UploadDialogProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onUpload: (imageName: string, dataUrl: string) => void;
+  onUpload: (imageName: string, firstName: string, lastName: string, dataUrl: string) => void;
 };
 
 const CROP_DIMENSION = 256;
 
 export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogProps) {
   const [imageName, setImageName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState("");
   const [imageSrc, setImageSrc] = useState<string | null>(null);
@@ -117,6 +119,10 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
       setError("Image name is required.");
       return;
     }
+     if (!firstName.trim() || !lastName.trim()) {
+      setError("First and last name are required.");
+      return;
+    }
     if (!file || !imageSrc) {
       setError("Please select an image file.");
       return;
@@ -126,7 +132,7 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
     
     const croppedDataUrl = getCroppedImg();
     if (croppedDataUrl) {
-        onUpload(imageName, croppedDataUrl);
+        onUpload(imageName, firstName, lastName, croppedDataUrl);
         resetState();
     } else {
         setError("Could not process the image. Please try again.");
@@ -135,6 +141,8 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
   
   const resetState = () => {
       setImageName("");
+      setFirstName("");
+      setLastName("");
       setFile(null);
       setImageSrc(null);
       setError("");
@@ -199,6 +207,14 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
             <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="imageName" className="text-right">Image Name</Label>
                 <Input id="imageName" value={imageName} onChange={(e) => setImageName(e.target.value)} className="col-span-3" placeholder="e.g., 'Majestic Mountains'"/>
+            </div>
+             <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="firstName" className="text-right">First Name</Label>
+                <Input id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} className="col-span-3" placeholder="e.g., 'Jane'"/>
+            </div>
+             <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="lastName" className="text-right">Last Name</Label>
+                <Input id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} className="col-span-3" placeholder="e.g., 'Doe'"/>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="file" className="text-right">Image</Label>

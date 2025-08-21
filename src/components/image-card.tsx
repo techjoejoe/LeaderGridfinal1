@@ -27,7 +27,7 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank }: ImageCard
         "self-end": rank === 1 || rank === 2,
     }),
     imageContainer: cn(
-        "relative aspect-square rounded-full shadow-xl transition-all p-1",
+        "relative aspect-square rounded-full shadow-2xl transition-all p-1",
         {
             "w-48 h-48 md:w-60 md:h-60": rank === 0, // 1st place
             "w-36 h-36 md:w-44 md:h-44": rank === 1, // 2nd place
@@ -43,15 +43,16 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank }: ImageCard
   };
 
   const nonPodiumClasses = {
-      imageContainer: "w-32 h-32 md:w-36 md:h-36 rounded-full shadow-xl p-1",
+      imageContainer: "w-32 h-32 md:w-36 md:h-36 rounded-full shadow-2xl p-1",
       imageBorder: "border-4 border-card rounded-full w-full h-full"
   };
 
+  const uploaderName = [image.firstName, image.lastName].filter(Boolean).join(" ") || "Anonymous";
 
   return (
     <div className={cn("flex flex-col items-center gap-3 transition-all hover:-translate-y-1 relative", isPodium ? podiumClasses.container : "")}>
       {rank === 0 && (
-        <span className="absolute -top-20 text-9xl transform -rotate-12 animate-float z-20" role="img" aria-label="crown">👑</span>
+        <span className="absolute -top-16 text-8xl transform -rotate-12 animate-float z-20" role="img" aria-label="crown">👑</span>
       )}
       <div 
         className={cn(
@@ -59,7 +60,12 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank }: ImageCard
           isPodium ? podiumClasses.imageContainer : nonPodiumClasses.imageContainer,
         )}
       >
-        {rank === 0 && <div className="absolute inset-0 rounded-full bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-700" />}
+        <div className="absolute inset-0 z-0">
+          <div className={cn(
+              "w-full h-full rounded-full",
+              { "bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-700": rank === 0 }
+          )} />
+        </div>
         <div className={cn(
           "relative",
            isPodium ? podiumClasses.imageBorder : nonPodiumClasses.imageBorder
@@ -83,7 +89,7 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank }: ImageCard
       </div>
       <div className="text-center w-36">
         <p className="font-bold truncate text-sm" title={image.name}>{image.name}</p>
-        <p className="text-xs text-muted-foreground truncate" title={`by ${image.userName || 'Anonymous'}`}>by {image.userName || 'Anonymous'}</p>
+        <p className="text-xs text-muted-foreground truncate" title={`by ${uploaderName}`}>by {uploaderName}</p>
         <Button onClick={() => onVote(image.id)} disabled={disabled} size="sm" className="w-full mt-2" variant={hasVoted ? "secondary" : "outline"}>
           {hasVoted ? <Check /> : <Vote />}
           {hasVoted ? "Voted" : `Vote (${image.votes})`}
