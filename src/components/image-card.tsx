@@ -20,7 +20,8 @@ type ImageCardProps = {
 };
 
 export function ImageCard({ image, onVote, disabled }: ImageCardProps) {
-  const dataAiHint = image.name.toLowerCase().split(' ').slice(0, 2).join(' ');
+  const imageName = image.name || 'Untitled Image';
+  const dataAiHint = imageName.toLowerCase().split(' ').slice(0, 2).join(' ');
 
   return (
     <Card className="overflow-hidden group transition-all duration-300 hover:shadow-xl hover:scale-105">
@@ -28,7 +29,7 @@ export function ImageCard({ image, onVote, disabled }: ImageCardProps) {
         <div className="aspect-square relative overflow-hidden rounded-t-lg">
           <Image
             src={image.url}
-            alt={image.name}
+            alt={imageName}
             fill
             className="object-cover transition-transform duration-300 group-hover:scale-110"
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -37,7 +38,7 @@ export function ImageCard({ image, onVote, disabled }: ImageCardProps) {
         </div>
       </CardHeader>
       <CardContent className="p-3 text-center">
-        <CardTitle className="font-headline text-lg truncate">{image.name}</CardTitle>
+        <CardTitle className="font-headline text-lg truncate">{imageName}</CardTitle>
         <CardDescription className="flex items-center justify-center gap-1 text-muted-foreground text-xs mt-1">
             <User className="h-3 w-3" />
             <span className="truncate">{image.userName || 'Anonymous'}</span>
@@ -58,7 +59,7 @@ export function ImageCard({ image, onVote, disabled }: ImageCardProps) {
             "active:scale-125",
             { "text-accent": disabled }
           )}
-          aria-label={`Vote for ${image.name}`}
+          aria-label={`Vote for ${imageName}`}
         >
           <Heart className={cn("h-5 w-5", { "fill-current": disabled })} />
         </Button>
