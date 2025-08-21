@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { collection, onSnapshot, doc, updateDoc, setDoc, query } from "firebase/firestore";
+import { collection, onSnapshot, doc, updateDoc, setDoc, addDoc } from "firebase/firestore";
 import { ref, uploadString, getDownloadURL } from "firebase/storage";
 import { db, storage } from "@/lib/firebase";
 import type { PicVoteImage } from "@/lib/types";
@@ -20,10 +20,9 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const q = query(collection(db, "images"));
-    const unsubscribe = onSnapshot(q, async (querySnapshot) => {
-      const imagesData = querySnapshot.docs.map(
-        (doc) => ({ id: doc.id, ...doc.data() } as PicVoteImage)
+    const unsubscribe = onSnapshot(collection(db, "images"), (snapshot) => {
+      const imagesData = snapshot.docs.map(
+        (doc) => ({ ...doc.data(), id: doc.id } as PicVoteImage)
       );
       setImages(imagesData);
       setLoading(false);
@@ -96,13 +95,18 @@ export default function Home() {
     });
 
     try {
-      const newImageRef = doc(collection(db, "images"));
-      const newImageId = newImageRef.id;
+      // 1. Create the document reference first to get an ID.
+      const newImageDocRef = doc(collection(db, "images"));
+      const newImageId = newImageDocRef.id;
 
-      const storageRef = ref(storage, `images/${newImageId}-${imageName.replace(/\s+/g, '-')}.png`);
+      // 2. Use the ID for the storage path.
+      const storageRef = ref(storage, `images/${newImageId}.png`);
+      
+      // 3. Upload the file.
       const snapshot = await uploadString(storageRef, dataUrl, 'data_url');
       const downloadURL = await getDownloadURL(snapshot.ref);
       
+      // 4. Create the document in Firestore with all the data.
       const newImage: Omit<PicVoteImage, 'id'> = {
         name: imageName,
         userName,
@@ -110,7 +114,9 @@ export default function Home() {
         votes: 0,
       };
 
-      await setDoc(newImageRef, newImage);
+      await setDoc(newImageDocRef, newImage);
+      
+      // The onSnapshot listener will automatically update the UI.
 
       toast({
         title: "Image Uploaded!",
@@ -147,7 +153,7 @@ export default function Home() {
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
                 {[...Array(6)].map((_, i) => (
                   <div key={i} className="rounded-lg border bg-card text-card-foreground shadow-sm aspect-square">
-                     <div className="w-full h-full bg-muted animate-pulse rounded-full"></div>
+                     <div className="w-full h-full bg-muted animate-pulse rounded-lg"></div>
                   </div>
                 ))}
               </div>
@@ -155,7 +161,7 @@ export default function Home() {
               <>
                 {images.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {images.map((image) => (
+                    {sortedImages.map((image) => (
                       <ImageCard
                         key={image.id}
                         image={image}

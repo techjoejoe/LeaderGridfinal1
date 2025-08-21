@@ -25,12 +25,12 @@ export function ImageCard({ image, onVote, disabled }: ImageCardProps) {
   return (
     <Card className="overflow-hidden group transition-all duration-300 hover:shadow-xl hover:scale-105">
       <CardHeader className="p-0">
-        <div className="aspect-square relative overflow-hidden">
+        <div className="aspect-square relative overflow-hidden rounded-t-lg">
           <Image
             src={image.url}
             alt={image.name}
             fill
-            className="object-cover transition-transform duration-300 group-hover:scale-110 rounded-full"
+            className="object-cover transition-transform duration-300 group-hover:scale-110"
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             data-ai-hint={dataAiHint}
           />
