@@ -26,11 +26,12 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank }: ImageCard
         "self-end": rank === 1 || rank === 2,
     }),
     imageContainer: cn(
-        "relative aspect-square rounded-full border-4 shadow-md overflow-visible transition-all",
+        "relative aspect-square rounded-full border-4 shadow-md transition-all",
         {
             "w-48 h-48 md:w-60 md:h-60": rank === 0, // 1st place
             "w-36 h-36 md:w-44 md:h-44": rank === 1, // 2nd place
             "w-32 h-32 md:w-36 md:h-36": rank === 2, // 3rd place
+            "overflow-visible": rank === 0,
         }
     ),
     imageBorder: cn({
@@ -44,7 +45,7 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank }: ImageCard
   return (
     <div className={cn("flex flex-col items-center gap-3 transition-all hover:-translate-y-1 relative", isPodium ? podiumClasses.container : "")}>
       {rank === 0 && (
-        <span className="absolute -top-16 text-9xl transform -rotate-12 animate-float z-20" role="img" aria-label="crown">👑</span>
+        <span className="absolute -top-20 text-9xl transform -rotate-12 animate-float z-20" role="img" aria-label="crown">👑</span>
       )}
       <div 
         className={cn(
@@ -52,7 +53,7 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank }: ImageCard
           isPodium ? podiumClasses.imageContainer : "w-24 h-24 md:w-32 md:h-32"
         )}
       >
-        <div className={cn("w-full h-full rounded-full", isPodium ? podiumClasses.imageBorder : "border-card", { 'overflow-hidden': rank !== 0 })}>
+        <div className={cn("w-full h-full rounded-full", podiumClasses.imageBorder, { 'overflow-hidden': rank !== 0 })}>
              {rank === 0 && <Sparkles />}
              <Image
                 src={image.url}
