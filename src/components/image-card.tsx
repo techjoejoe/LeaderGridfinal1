@@ -20,7 +20,7 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank }: ImageCard
 
   const podiumClasses = {
     container: cn({
-      "scale-125 z-10": rank === 0,
+      "scale-150 z-10": rank === 0,
       "scale-110": rank === 1,
       "scale-100": rank === 2,
       "relative": isPodium,
