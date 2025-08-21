@@ -38,23 +38,25 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank }: ImageCard
       "border-transparent bg-clip-border bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-700": rank === 0,
       "border-silver": rank === 1,
       "border-bronze": rank === 2,
-      "border-card": !isPodium,
     }),
   };
 
-  const nonPodiumClasses = "w-24 h-24 md:w-32 md:h-32 rounded-full border-4 shadow-md";
+  const nonPodiumClasses = {
+      imageContainer: "w-24 h-24 md:w-32 md:h-32 rounded-full border-4 shadow-md",
+      imageBorder: "border-card"
+  };
 
 
   return (
     <div className={cn("flex flex-col items-center gap-3 transition-all hover:-translate-y-1 relative", isPodium ? podiumClasses.container : "")}>
       {rank === 0 && (
-        <span className="absolute -top-6 text-9xl transform -rotate-12 animate-float z-20" role="img" aria-label="crown">👑</span>
+        <span className="absolute -top-6 text-7xl transform -rotate-12 animate-float z-20" role="img" aria-label="crown">👑</span>
       )}
       <div 
         className={cn(
           "relative",
-          isPodium ? podiumClasses.imageContainer : nonPodiumClasses,
-          podiumClasses.imageBorder
+          isPodium ? podiumClasses.imageContainer : nonPodiumClasses.imageContainer,
+          isPodium ? podiumClasses.imageBorder : nonPodiumClasses.imageBorder
         )}
       >
         <div className={cn("w-full h-full rounded-full relative", { 'overflow-hidden': rank !== 0 })}>
