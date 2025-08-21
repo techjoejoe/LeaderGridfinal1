@@ -36,7 +36,7 @@ const generateSparkle = (color) => {
     style: {
       top: randomNumber(0, 100) + '%',
       left: randomNumber(0, 100) + '%',
-      animationDelay: randomNumber(0, 1000) + 'ms',
+      animationDelay: randomNumber(0, 2000) + 'ms',
     },
   };
 };
@@ -51,14 +51,7 @@ export const Sparkles = ({
     return Array.from({ length: count }).map(() => generateSparkle(color));
   });
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-        // This creates a continuous effect by replacing old sparkles with new ones.
-        setSparkles(Array.from({ length: count }).map(() => generateSparkle(color)));
-    }, 1000); // Regenerate sparkles every second
-
-    return () => clearInterval(interval);
-  }, [count, color]);
+  // No need for an interval, the staggered animation delays will create a continuous effect.
 
   return (
     <div className={cn("absolute inset-[-10px] pointer-events-none z-10", className)} {...rest}>
