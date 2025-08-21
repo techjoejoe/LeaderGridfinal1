@@ -26,7 +26,7 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank }: ImageCard
         "self-end": rank === 1 || rank === 2,
     }),
     imageContainer: cn(
-        "relative aspect-square rounded-full border-4 shadow-md transition-all",
+        "relative aspect-square rounded-full border-4 shadow-md transition-all p-1",
         {
             "w-48 h-48 md:w-60 md:h-60": rank === 0, // 1st place
             "w-36 h-36 md:w-44 md:h-44": rank === 1, // 2nd place
@@ -35,7 +35,7 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank }: ImageCard
         }
     ),
     imageBorder: cn({
-      "border-gold": rank === 0,
+      "border-transparent bg-clip-border bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-700": rank === 0,
       "border-silver": rank === 1,
       "border-bronze": rank === 2,
       "border-card": !isPodium,
@@ -53,10 +53,11 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank }: ImageCard
       <div 
         className={cn(
           "relative",
-          isPodium ? podiumClasses.imageContainer : nonPodiumClasses
+          isPodium ? podiumClasses.imageContainer : nonPodiumClasses,
+          podiumClasses.imageBorder
         )}
       >
-        <div className={cn("w-full h-full rounded-full", podiumClasses.imageBorder, { 'overflow-hidden': rank !== 0 })}>
+        <div className={cn("w-full h-full rounded-full relative", { 'overflow-hidden': rank !== 0 })}>
              {rank === 0 && <Sparkles />}
              <Image
                 src={image.url}
