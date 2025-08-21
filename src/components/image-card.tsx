@@ -20,9 +20,11 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank }: ImageCard
 
   const podiumClasses = {
     container: cn({
-        "scale-115 z-10": rank === 0,
-        "scale-110": rank === 1,
-        "scale-105": rank === 2,
+        "scale-125 z-10": rank === 0,
+        "scale-100": rank === 1,
+        "scale-100": rank === 2,
+        "self-start": rank === 1 || rank === 2,
+        "relative top-8": rank === 1 || rank === 2,
     }),
     imageBorder: cn({
       "border-gold": rank === 0,
@@ -35,11 +37,11 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank }: ImageCard
   return (
     <div className={cn("flex flex-col items-center gap-3 transition-all hover:-translate-y-1 relative", isPodium ? podiumClasses.container : "")}>
       {rank === 0 && (
-        <span className="absolute -top-4 -right-2 text-4xl transform -rotate-12" role="img" aria-label="crown">👑</span>
+        <span className="absolute -top-10 text-5xl transform -rotate-12" role="img" aria-label="crown">👑</span>
       )}
       <div 
         className={cn(
-          "relative aspect-square w-full rounded-full border-4 shadow-md overflow-hidden",
+          "relative aspect-square w-24 md:w-32 rounded-full border-4 shadow-md overflow-hidden",
           podiumClasses.imageBorder
         )}
       >
@@ -48,7 +50,7 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank }: ImageCard
           alt={image.name ?? 'photo'}
           fill
           className="object-cover"
-          sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 16.6vw"
+          sizes="(max-width: 768px) 30vw, 10vw"
           data-ai-hint={image.name.toLowerCase().split(' ').slice(0, 2).join(' ')}
         />
       </div>
