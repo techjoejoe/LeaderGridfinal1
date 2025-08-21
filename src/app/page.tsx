@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { collection, onSnapshot, doc, updateDoc, addDoc, writeBatch, getDocs, query, setDoc } from "firebase/firestore";
+import { collection, onSnapshot, doc, updateDoc, setDoc, query } from "firebase/firestore";
 import { ref, uploadString, getDownloadURL } from "firebase/storage";
 import { db, storage } from "@/lib/firebase";
 import type { PicVoteImage } from "@/lib/types";
@@ -96,27 +96,21 @@ export default function Home() {
     });
 
     try {
-      // 1. Get a new document reference with a unique ID
       const newImageRef = doc(collection(db, "images"));
       const newImageId = newImageRef.id;
 
-      // 2. Upload the image to storage with the unique ID as part of the name
       const storageRef = ref(storage, `images/${newImageId}-${imageName.replace(/\s+/g, '-')}.png`);
       const snapshot = await uploadString(storageRef, dataUrl, 'data_url');
       const downloadURL = await getDownloadURL(snapshot.ref);
       
-      // 3. Create the new image object with the ID
-      const newImage: PicVoteImage = {
-        id: newImageId,
+      const newImage: Omit<PicVoteImage, 'id'> = {
         name: imageName,
         userName,
         url: downloadURL,
         votes: 0,
       };
 
-      // 4. Save the document to Firestore using the same unique ID
       await setDoc(newImageRef, newImage);
-
 
       toast({
         title: "Image Uploaded!",
