@@ -27,7 +27,7 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank }: ImageCard
         "self-end": rank === 1 || rank === 2,
     }),
     imageContainer: cn(
-        "relative aspect-square rounded-full shadow-md transition-all p-1",
+        "relative aspect-square rounded-full shadow-xl transition-all p-1",
         {
             "w-48 h-48 md:w-60 md:h-60": rank === 0, // 1st place
             "w-36 h-36 md:w-44 md:h-44": rank === 1, // 2nd place
@@ -43,7 +43,7 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank }: ImageCard
   };
 
   const nonPodiumClasses = {
-      imageContainer: "w-32 h-32 md:w-36 md:h-36 rounded-full shadow-md p-1",
+      imageContainer: "w-32 h-32 md:w-36 md:h-36 rounded-full shadow-xl p-1",
       imageBorder: "border-4 border-card rounded-full w-full h-full"
   };
 
@@ -65,9 +65,11 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank }: ImageCard
            isPodium ? podiumClasses.imageBorder : nonPodiumClasses.imageBorder
         )}>
             <div className={cn("w-full h-full rounded-full relative bg-card", { 'overflow-hidden': rank !== 0 })}>
-                {rank === 0 && <Sparkles />}
-                {rank === 1 && <Sparkles color="#C0C0C0" />}
-                {rank === 2 && <Sparkles color="#CD7F32" />}
+                {rank < 3 && (
+                  <Sparkles
+                    color={rank === 0 ? '#FFC700' : rank === 1 ? '#C0C0C0' : '#CD7F32'}
+                  />
+                )}
                 <Image
                     src={image.url}
                     alt={image.name ?? 'photo'}
