@@ -105,24 +105,4 @@
   .animate-float {
     animation: float 3s ease-in-out infinite;
   }
-
-  @keyframes sparkle-animation {
-    0% {
-      transform: scale(0) rotate(0deg);
-      opacity: 0.7;
-    }
-    50% {
-      opacity: 1;
-    }
-    100% {
-      transform: scale(2) rotate(calc(var(--end-rotation) * 1deg));
-      opacity: 0;
-    }
-  }
-
-  .sparkle {
-    animation-name: sparkle-animation;
-    animation-timing-function: linear;
-    animation-iteration-count: infinite;
-  }
 }
