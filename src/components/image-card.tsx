@@ -1,3 +1,4 @@
+
 import Image from "next/image";
 import { Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -23,7 +24,7 @@ export function ImageCard({ image, onVote, disabled }: ImageCardProps) {
   return (
     <Card className="overflow-hidden group transition-all duration-300 hover:shadow-xl hover:scale-105">
       <CardHeader className="p-0">
-        <div className="aspect-square relative overflow-hidden rounded-t-lg">
+        <div className="aspect-square relative overflow-hidden rounded-full">
           <Image
             src={image.url}
             alt={image.name}
