@@ -49,7 +49,7 @@ export function Leaderboard({ images }: LeaderboardProps) {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                       <div className="w-10 h-10 rounded-md overflow-hidden relative flex-shrink-0">
+                       <div className="w-10 h-10 rounded-full overflow-hidden relative flex-shrink-0">
                         <Image
                           src={image.url}
                           alt={image.name}
