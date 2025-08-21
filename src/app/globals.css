@@ -37,6 +37,10 @@
     --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-border: 190 20% 75%;
     --sidebar-ring: 22 89% 51%;
+
+    --gold: 36 91% 68%;
+    --silver: 240 4% 75%;
+    --bronze: 28 44% 60%;
   }
  
   .dark {
@@ -72,6 +76,10 @@
     --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-border: 217 33% 25%;
     --sidebar-ring: 22 89% 61%;
+    
+    --gold: 42 91% 58%;
+    --silver: 240 5% 85%;
+    --bronze: 33 54% 70%;
   }
 }
  

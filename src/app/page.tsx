@@ -185,7 +185,7 @@ export default function Home() {
                 </p>
             </div>
             {loading ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 items-end">
                 {[...Array(5)].map((_, i) => (
                     <div key={i} className="flex flex-col items-center gap-3">
                     <div className="rounded-full border-4 border-card shadow-md aspect-square w-full bg-muted animate-pulse"></div>
@@ -197,11 +197,12 @@ export default function Home() {
             ) : (
                 <>
                 {images.length > 0 ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                    {sortedImages.map((image) => (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 items-end">
+                    {sortedImages.map((image, index) => (
                         <ImageCard
                         key={image.id}
                         image={image}
+                        rank={index}
                         onVote={handleVote}
                         disabled={dailyVoteInfo.votesLeft <= 0 || hasVotedForImage(image.id)}
                         hasVoted={hasVotedForImage(image.id)}
