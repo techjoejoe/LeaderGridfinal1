@@ -36,16 +36,16 @@ export function ImageCard({ image, onVote, disabled }: ImageCardProps) {
           />
         </div>
       </CardHeader>
-      <CardContent className="p-4 text-center">
-        <CardTitle className="font-headline text-xl truncate">{image.name}</CardTitle>
-        <CardDescription className="flex items-center justify-center gap-1 text-muted-foreground mt-1">
-            <User className="h-4 w-4" />
+      <CardContent className="p-3 text-center">
+        <CardTitle className="font-headline text-lg truncate">{image.name}</CardTitle>
+        <CardDescription className="flex items-center justify-center gap-1 text-muted-foreground text-xs mt-1">
+            <User className="h-3 w-3" />
             <span className="truncate">{image.userName || 'Anonymous'}</span>
         </CardDescription>
       </CardContent>
-      <CardFooter className="flex justify-between items-center p-4 pt-0">
-        <div className="text-lg font-bold text-primary">
-          {image.votes} <span className="text-sm font-normal text-muted-foreground">votes</span>
+      <CardFooter className="flex justify-between items-center p-3 pt-0">
+        <div className="text-base font-bold text-primary">
+          {image.votes} <span className="text-xs font-normal text-muted-foreground">votes</span>
         </div>
         <Button
           onClick={() => onVote(image.id)}
@@ -53,14 +53,14 @@ export function ImageCard({ image, onVote, disabled }: ImageCardProps) {
           variant="ghost"
           size="icon"
           className={cn(
-            "rounded-full text-muted-foreground transition-colors duration-300",
+            "rounded-full text-muted-foreground transition-colors duration-300 h-8 w-8",
             "hover:bg-accent/10 hover:text-accent",
             "active:scale-125",
             { "text-accent": disabled }
           )}
           aria-label={`Vote for ${image.name}`}
         >
-          <Heart className={cn("h-6 w-6", { "fill-current": disabled })} />
+          <Heart className={cn("h-5 w-5", { "fill-current": disabled })} />
         </Button>
       </CardFooter>
     </Card>
