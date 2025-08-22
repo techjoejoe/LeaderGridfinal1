@@ -41,6 +41,15 @@ export function AuthButton({ user }: AuthButtonProps) {
     }
   }
 
+  const handleAppleSignIn = async () => {
+    const provider = new OAuthProvider('apple.com');
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (error) {
+      console.error("Error during Apple sign-in:", error);
+    }
+  }
+
   const handleSignOut = async () => {
     try {
       await signOut(auth);
@@ -80,6 +89,10 @@ export function AuthButton({ user }: AuthButtonProps) {
       </Button>
        <Button onClick={handleMicrosoftSignIn} variant="outline" size="sm">
           <Image src="/microsoft-logo.svg" alt="Microsoft" width={16} height={16} className="mr-2"/>
+          Sign In
+      </Button>
+      <Button onClick={handleAppleSignIn} variant="outline" size="sm">
+          <Image src="/apple-logo.svg" alt="Apple" width={16} height={16} className="mr-2"/>
           Sign In
       </Button>
     </div>
