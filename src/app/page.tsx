@@ -171,6 +171,15 @@ export default function Home() {
     }
   };
 
+  const handleResetVotes = () => {
+    localStorage.removeItem("picvote_daily_votes");
+    setDailyVoteInfo({ votesLeft: DAILY_VOTE_LIMIT, votedImageIds: [] });
+    toast({
+      title: "Votes Reset",
+      description: "You can now vote again.",
+    });
+  };
+
 
   const sortedImages = useMemo(() => {
     return [...images].sort((a, b) => b.votes - a.votes);
@@ -193,7 +202,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <Header onUploadClick={() => setUploadOpen(true)} />
+      <Header onUploadClick={() => setUploadOpen(true)} onResetVotesClick={handleResetVotes} />
       <main className="container mx-auto px-4 py-8">
         <div className="w-full">
             <div className="flex justify-between items-center mb-6">
