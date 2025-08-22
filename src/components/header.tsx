@@ -1,5 +1,5 @@
 
-import { Trophy, RotateCcw, Users, Award, MoreVertical } from "lucide-react";
+import { Trophy, Users, Award, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
 import { ThemeToggle } from "./theme-toggle";
@@ -14,11 +14,10 @@ import {
 
 type HeaderProps = {
   onUploadClick: () => void;
-  onResetVotesClick: () => void;
   onLeaderboardClick: () => void;
 };
 
-export function Header({ onUploadClick, onResetVotesClick, onLeaderboardClick }: HeaderProps) {
+export function Header({ onUploadClick, onLeaderboardClick }: HeaderProps) {
   return (
     <header className="bg-card border-b sticky top-0 z-10 shadow-sm">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
@@ -63,10 +62,6 @@ export function Header({ onUploadClick, onResetVotesClick, onLeaderboardClick }:
                   <Award className="mr-2 h-4 w-4" />
                   <span>Make a Badge</span>
                 </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={onResetVotesClick}>
-                <RotateCcw className="mr-2 h-4 w-4" />
-                <span>Reset Votes</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
