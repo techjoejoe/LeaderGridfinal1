@@ -1,8 +1,15 @@
 
-import { Trophy, RotateCcw, Users, Award } from "lucide-react";
+import { Trophy, RotateCcw, Users, Award, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
 import { ThemeToggle } from "./theme-toggle";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
 
 type HeaderProps = {
   onUploadClick: () => void;
@@ -22,24 +29,34 @@ export function Header({ onUploadClick, onResetVotesClick, onLeaderboardClick }:
         </div>
         <div className="flex items-center gap-2">
            <ThemeToggle />
-           <Button onClick={onLeaderboardClick} variant="ghost" size="icon" className="h-9 w-9">
-              <Users className="h-5 w-5" />
-              <span className="sr-only">See Leaderboard</span>
-           </Button>
-           <Button onClick={onResetVotesClick} variant="outline">
-            <RotateCcw className="mr-2 h-4 w-4" />
-            Reset Votes
-          </Button>
-           <Button asChild>
-             <Link href="https://docs.paylocity.com/Madlib/teamMatty.html" target="_blank">
-               <Award className="mr-2 h-4 w-4" />
-               Make a Badge
-             </Link>
-           </Button>
-          <Button onClick={onUploadClick} className="bg-accent text-accent-foreground hover:bg-accent/90">
+           <Button onClick={onUploadClick} className="bg-accent text-accent-foreground hover:bg-accent/90">
             <Trophy className="mr-2 h-4 w-4" />
             Enter Contest
           </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <MoreVertical className="h-5 w-5" />
+                <span className="sr-only">Open menu</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={onLeaderboardClick}>
+                <Users className="mr-2 h-4 w-4" />
+                <span>Leaderboard</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="https://docs.paylocity.com/Madlib/teamMatty.html" target="_blank">
+                  <Award className="mr-2 h-4 w-4" />
+                  <span>Make a Badge</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onResetVotesClick}>
+                <RotateCcw className="mr-2 h-4 w-4" />
+                <span>Reset Votes</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </header>
