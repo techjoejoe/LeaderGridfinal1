@@ -218,7 +218,7 @@ export default function Home() {
                 </p>
             </div>
             {loading ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 items-end">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 items-end">
                 {[...Array(5)].map((_, i) => (
                     <div key={i} className="flex flex-col items-center gap-3">
                     <div className="rounded-full border-4 border-card shadow-lg aspect-square w-full bg-muted animate-pulse"></div>
@@ -247,7 +247,7 @@ export default function Home() {
                           </div>
                       )}
                       {otherImages.length > 0 && (
-                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 items-end">
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 items-end">
                           {otherImages.map((image, index) => (
                               <ImageCard
                               key={image.id}
