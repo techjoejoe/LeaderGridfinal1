@@ -43,8 +43,8 @@ export function Header({ user, onLeaderboardClick, onSignInClick }: HeaderProps)
             />
         </Link>
         <div className="flex items-center gap-2">
-           <AuthButton user={user} onSignInClick={onSignInClick} />
            <ThemeToggle />
+           <AuthButton user={user} onSignInClick={onSignInClick} />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon">
