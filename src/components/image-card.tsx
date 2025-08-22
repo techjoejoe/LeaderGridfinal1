@@ -2,6 +2,7 @@
 "use client";
 
 import Image from "next/image";
+import { useRef } from "react";
 import { Vote, Check, Loader2 } from "lucide-react";
 import type { PicVoteImage } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ type ImageCardProps = {
 
 export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting }: ImageCardProps) {
   const isPodium = rank < 3;
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   const podiumClasses = {
     container: cn({
@@ -50,8 +52,17 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting }:
 
   const uploaderName = [image.firstName, image.lastName].filter(Boolean).join(" ") || "Anonymous";
 
+  const handleVoteClick = () => {
+    if (audioRef.current) {
+        audioRef.current.currentTime = 0;
+        audioRef.current.play();
+    }
+    onVote(image.id);
+  }
+
   return (
     <div className={cn("flex flex-col items-center gap-3 transition-all hover:-translate-y-1 relative", isPodium ? podiumClasses.container : "")}>
+        <audio ref={audioRef} src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAA" preload="auto" />
       {rank === 0 && (
         <span className="absolute -top-16 text-8xl transform -rotate-12 animate-float z-20" role="img" aria-label="crown">👑</span>
       )}
@@ -92,7 +103,7 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting }:
       <div className="text-center w-36">
         <p className="font-bold truncate text-sm" title={image.name}>{image.name}</p>
         <p className="text-xs text-muted-foreground truncate" title={`by ${uploaderName}`}>by {uploaderName}</p>
-        <Button onClick={() => onVote(image.id)} disabled={disabled || isVoting} size="sm" className="w-full mt-2" variant={hasVoted ? "secondary" : "outline"}>
+        <Button onClick={handleVoteClick} disabled={disabled || isVoting} size="sm" className="w-full mt-2" variant={hasVoted ? "secondary" : "outline"}>
             {isVoting ? <Loader2 className="animate-spin" /> : hasVoted ? <Check /> : <Vote />}
             {isVoting ? "Voting..." : hasVoted ? "Voted" : `Vote (${image.votes})`}
         </Button>
