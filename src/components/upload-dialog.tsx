@@ -38,6 +38,8 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
   const [zoom, setZoom] = useState(1);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [imageStyle, setImageStyle] = useState<React.CSSProperties>({});
+
 
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -64,6 +66,33 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
     }
   };
 
+  useEffect(() => {
+    if (imageSrc && imgRef.current) {
+      const image = imgRef.current;
+      const onImageLoad = () => {
+        const { naturalWidth, naturalHeight } = image;
+        const scale = Math.max(CROP_DIMENSION / naturalWidth, CROP_DIMENSION / naturalHeight);
+        const initialWidth = naturalWidth * scale;
+        const initialHeight = naturalHeight * scale;
+
+        setImageStyle({
+            width: `${initialWidth}px`,
+            height: `${initialHeight}px`,
+            transform: `translate(${crop.x}px, ${crop.y}px) scale(${zoom})`,
+            transition: isDragging ? 'none' : 'transform 0.1s ease-out',
+        });
+      };
+      
+      // The image might be already loaded from cache
+      if (image.complete) {
+        onImageLoad();
+      } else {
+        image.onload = onImageLoad;
+      }
+    }
+  }, [imageSrc, crop, zoom, isDragging]);
+
+
   const getCroppedImg = useCallback(() => {
     if (!imgRef.current || !canvasRef.current || !imageSrc) return null;
 
@@ -76,14 +105,13 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
     const outputSize = 512;
     canvas.width = outputSize;
     canvas.height = outputSize;
+    
+    // Calculate the source rectangle to draw from the original image
+    const currentScale = Math.max(CROP_DIMENSION / image.naturalWidth, CROP_DIMENSION / image.naturalHeight) * zoom;
+    const sourceSize = CROP_DIMENSION / currentScale;
 
-    const scaleX = image.naturalWidth / image.width;
-    const scaleY = image.naturalHeight / image.height;
-    
-    const sourceSize = Math.min(image.naturalWidth, image.naturalHeight) / zoom;
-    
-    const sourceX = (image.naturalWidth - sourceSize) / 2 + (crop.x * scaleX);
-    const sourceY = (image.naturalHeight - sourceSize) / 2 + (crop.y * scaleY);
+    const sourceX = (image.naturalWidth / 2) - (sourceSize / 2) + (crop.x * (image.naturalWidth/image.width));
+    const sourceY = (image.naturalHeight / 2) - (sourceSize / 2) + (crop.y * (image.naturalHeight/image.height));
     
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
@@ -133,6 +161,7 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
       setError("");
       setCrop({ x: 0, y: 0 });
       setZoom(1);
+      setImageStyle({});
       if (uploadSucceeded) {
         setFile(null);
         setImageSrc(null);
@@ -152,19 +181,16 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
     e.preventDefault();
     setIsDragging(true);
-    setDragStart({ x: e.clientX, y: e.clientY });
+    setDragStart({ x: e.clientX - crop.x, y: e.clientY - crop.y });
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
     e.preventDefault();
     if (isDragging) {
-      const deltaX = e.clientX - dragStart.x;
-      const deltaY = e.clientY - dragStart.y;
-      setCrop(prev => ({
-          x: prev.x + deltaX,
-          y: prev.y + deltaY
-      }));
-      setDragStart({ x: e.clientX, y: e.clientY });
+      setCrop({
+          x: e.clientX - dragStart.x,
+          y: e.clientY - dragStart.y
+      });
     }
   };
 
@@ -175,34 +201,13 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
   
   const handleMouseLeave = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
     e.preventDefault();
-    setIsDragging(false);
+    if (isDragging) {
+      setIsDragging(false);
+    }
   };
 
-  const handleZoomOut = () => setZoom(z => Math.max(z - 0.1, 0.2));
-  const handleZoomIn = () => setZoom(z => Math.min(z + 0.1, 2));
-
-
-  const [imageStyle, setImageStyle] = useState({});
-
-  useEffect(() => {
-    if (imgRef.current && imageSrc) {
-      const image = imgRef.current;
-      const { naturalWidth, naturalHeight } = image;
-      
-      const scale = Math.max(CROP_DIMENSION / naturalWidth, CROP_DIMENSION / naturalHeight);
-      
-      const newWidth = naturalWidth * scale;
-      const newHeight = naturalHeight * scale;
-
-      setImageStyle({
-        width: `${newWidth}px`,
-        height: `${newHeight}px`,
-        transform: `scale(${zoom}) translate(${crop.x}px, ${crop.y}px)`,
-        transition: isDragging ? 'none' : 'transform 0.1s ease-out',
-      });
-    }
-  }, [imageSrc, zoom, crop, isDragging]);
-
+  const handleZoomOut = () => setZoom(z => Math.max(z - 0.1, 1));
+  const handleZoomIn = () => setZoom(z => Math.min(z + 0.1, 3));
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -244,27 +249,12 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
                           alt="Crop preview" 
                           className="pointer-events-none"
                           style={imageStyle}
-                          onLoad={(e) => {
-                             const img = e.currentTarget;
-                              const { naturalWidth, naturalHeight } = img;
-      
-                              const scale = Math.max(CROP_DIMENSION / naturalWidth, CROP_DIMENSION / naturalHeight);
-                              
-                              const newWidth = naturalWidth * scale;
-                              const newHeight = naturalHeight * scale;
-
-                              setImageStyle({
-                                width: `${newWidth}px`,
-                                height: `${newHeight}px`,
-                                transform: `scale(${zoom}) translate(${crop.x}px, ${crop.y}px)`,
-                              });
-                          }}
                         />
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button variant="outline" size="icon" onClick={handleZoomOut}><Minus className="h-4 w-4"/></Button>
+                      <Button variant="outline" size="icon" onClick={handleZoomOut} disabled={zoom <= 1}><Minus className="h-4 w-4"/></Button>
                       <Label>Zoom</Label>
-                      <Button variant="outline" size="icon" onClick={handleZoomIn}><Plus className="h-4 w-4"/></Button>
+                      <Button variant="outline" size="icon" onClick={handleZoomIn} disabled={zoom >= 3}><Plus className="h-4 w-4"/></Button>
                     </div>
                  </div>
             )}
@@ -280,3 +270,4 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
     </Dialog>
   );
 }
+
