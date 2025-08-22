@@ -231,7 +231,7 @@ export default function Home() {
                         You have <span className="font-bold text-primary">{dailyVoteInfo.votesLeft}</span> votes left today.
                     </p>
                  ) : (
-                    <p className="text-lg text-muted-foreground mt-1">Please sign in to vote and upload images.</p>
+                    <p className="text-lg text-muted-foreground mt-1">Please sign in to vote or upload an image.</p>
                  )}
             </div>
             {loading ? (

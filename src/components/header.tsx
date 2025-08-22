@@ -45,7 +45,7 @@ export function Header({ user, onUploadClick, onLeaderboardClick }: HeaderProps)
         <div className="flex items-center gap-2">
            <AuthButton user={user} />
            <ThemeToggle />
-           <Button onClick={onUploadClick} className="bg-accent text-accent-foreground hover:bg-accent/90">
+           <Button onClick={onUploadClick} disabled={!user} className="bg-accent text-accent-foreground hover:bg-accent/90">
             <Trophy className="mr-2 h-4 w-4" />
             Enter Contest
           </Button>
