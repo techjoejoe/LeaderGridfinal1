@@ -197,7 +197,7 @@ export default function Home() {
       <main className="container mx-auto px-4 py-8">
         <div className="w-full">
             <div className="flex justify-between items-center mb-6">
-                <h2 className="text-3xl font-headline font-bold">Image Gallery</h2>
+                <h2 className="text-3xl font-headline font-bold">Team Matty AI Badge Contest</h2>
                 <p className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-md">
                 Votes left today: <span className="font-bold text-primary">{dailyVoteInfo.votesLeft}</span>
                 </p>
