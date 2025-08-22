@@ -1,8 +1,9 @@
 
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApp, type FirebaseApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { getAuth } from 'firebase/auth';
+import { getAnalytics, isSupported } from "firebase/analytics";
 
 const firebaseConfig = {
   projectId: 'picvote-h2ow0',
@@ -18,4 +19,6 @@ const db = getFirestore(app);
 const storage = getStorage(app);
 const auth = getAuth(app);
 
-export { app, db, storage, auth };
+const analytics = isSupported().then(yes => yes ? getAnalytics(app) : null);
+
+export { app, db, storage, auth, analytics };
