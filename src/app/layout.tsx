@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { ThemeProvider } from '@/components/theme-provider';
 
 export const metadata: Metadata = {
-  title: 'PicVote',
+  title: 'PicPick',
   description: 'Vote for your favorite pictures!',
 };
 
