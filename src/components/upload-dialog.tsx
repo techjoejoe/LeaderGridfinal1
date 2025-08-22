@@ -126,7 +126,8 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
   // Zoom handlers
   const handleZoom = (direction: 'in' | 'out') => {
     const newScale = direction === 'in' ? scale * 1.1 : scale / 1.1;
-    setScale(Math.max(1, Math.min(newScale, 3))); // Clamp zoom between 1x and 3x
+    const minScale = imgRef.current ? Math.min(CROP_DIMENSION / imgRef.current.width, CROP_DIMENSION / imgRef.current.height, 1) : 1;
+    setScale(Math.max(minScale, Math.min(newScale, 3))); // Clamp zoom 
   };
 
   // Adjust position if zoom change pushes image out of bounds
@@ -146,20 +147,23 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
-
+    
     canvas.width = OUTPUT_DIMENSION;
     canvas.height = OUTPUT_DIMENSION;
-    
-    // Scale from display image to source (natural) image
-    const sourceScale = image.naturalWidth / image.width;
 
-    const finalScale = scale / sourceScale;
+    const sourceImageWidth = image.naturalWidth;
+    const sourceImageHeight = image.naturalHeight;
 
-    const sx = (image.naturalWidth / 2) - (CROP_DIMENSION / 2 * finalScale) - (position.x / sourceScale);
-    const sy = (image.naturalHeight / 2) - (CROP_DIMENSION / 2 * finalScale) - (position.y / sourceScale);
-    const sWidth = CROP_DIMENSION * finalScale;
-    const sHeight = CROP_DIMENSION * finalScale;
+    // The scale of the on-screen image relative to the crop UI dimension
+    const displayScale = Math.max(CROP_DIMENSION / sourceImageWidth, CROP_DIMENSION / sourceImageHeight);
     
+    // The size of the crop area on the source image
+    const cropSizeOnSource = CROP_DIMENSION / (displayScale * scale);
+
+    // Calculate the top-left corner (sx, sy) of the crop area on the source image
+    const sx = (sourceImageWidth / 2) - (cropSizeOnSource / 2) - (position.x / (displayScale * scale));
+    const sy = (sourceImageHeight / 2) - (cropSizeOnSource / 2) - (position.y / (displayScale * scale));
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
     // Create a circular clipping path
@@ -173,8 +177,8 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
       image,
       sx,
       sy,
-      sWidth,
-      sHeight,
+      cropSizeOnSource,
+      cropSizeOnSource,
       0,
       0,
       OUTPUT_DIMENSION,
@@ -183,6 +187,14 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
 
     return canvas.toDataURL("image/png");
   }, [position, scale]);
+  
+  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    const initialScale = Math.max(CROP_DIMENSION / img.naturalWidth, CROP_DIMENSION / img.naturalHeight);
+    setScale(initialScale);
+    setPosition({ x: 0, y: 0 });
+  };
+
 
   const handleSubmit = () => {
     let hasError = false;
@@ -259,22 +271,21 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
                           ref={imgRef}
                           src={imageSrc} 
                           alt="Crop preview" 
-                          className="pointer-events-none object-cover"
+                          className="pointer-events-none"
                           style={{
-                              transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
-                              width: 'auto',
-                              height: 'auto',
-                              minWidth: '100%',
-                              minHeight: '100%',
-                              maxWidth: 'none',
+                            width: 'auto',
+                            height: 'auto',
+                            maxWidth: 'none',
+                            transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
                           }}
                           crossOrigin="anonymous"
+                          onLoad={handleImageLoad}
                         />
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button variant="outline" size="icon" onClick={() => handleZoom('out')} disabled={scale <= 1}><Minus className="h-4 w-4"/></Button>
+                      <Button variant="outline" size="icon" onClick={() => handleZoom('out')}><Minus className="h-4 w-4"/></Button>
                       <Label>Zoom</Label>
-                      <Button variant="outline" size="icon" onClick={() => handleZoom('in')} disabled={scale >= 3}><Plus className="h-4 w-4"/></Button>
+                      <Button variant="outline" size="icon" onClick={() => handleZoom('in')}><Plus className="h-4 w-4"/></Button>
                     </div>
                  </div>
             )}
@@ -289,4 +300,3 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
     </Dialog>
   );
 }
-
