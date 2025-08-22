@@ -10,17 +10,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { User } from 'firebase/auth';
-import { AuthButton } from "./auth-button";
 
 
 type HeaderProps = {
-  user: User | null;
   onLeaderboardClick: () => void;
-  onSignInClick: () => void;
 };
 
-export function Header({ user, onLeaderboardClick, onSignInClick }: HeaderProps) {
+export function Header({ onLeaderboardClick }: HeaderProps) {
   return (
     <header className="bg-card border-b sticky top-0 z-10 shadow-sm">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
@@ -44,7 +40,6 @@ export function Header({ user, onLeaderboardClick, onSignInClick }: HeaderProps)
         </Link>
         <div className="flex items-center gap-2">
            <ThemeToggle />
-           <AuthButton user={user} onSignInClick={onSignInClick} />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon">

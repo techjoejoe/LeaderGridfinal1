@@ -8,8 +8,3 @@ export type PicVoteImage = {
   lastName: string;
   uploaderUid: string;
 };
-
-export type DailyVoteInfo = {
-  votesLeft: number;
-  votedImageIds: string[];
-};
