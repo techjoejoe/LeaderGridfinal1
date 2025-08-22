@@ -24,7 +24,7 @@ export function Header({ onUploadClick, onResetVotesClick, onLeaderboardClick }:
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
         <Link href="/" className="flex items-center gap-3 font-bold font-headline text-lg">
             <Image
-                src="/logo-light.png"
+                src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/logo-light.png?alt=media&token=576a43d9-43ef-4307-868f-130e212228c1"
                 alt="PicPick Logo Light"
                 width={140}
                 height={40}
