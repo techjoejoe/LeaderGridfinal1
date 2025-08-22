@@ -1,12 +1,14 @@
-import { Trophy, RotateCcw } from "lucide-react";
+
+import { Trophy, RotateCcw, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 type HeaderProps = {
   onUploadClick: () => void;
   onResetVotesClick: () => void;
+  onLeaderboardClick: () => void;
 };
 
-export function Header({ onUploadClick, onResetVotesClick }: HeaderProps) {
+export function Header({ onUploadClick, onResetVotesClick, onLeaderboardClick }: HeaderProps) {
   return (
     <header className="bg-card border-b sticky top-0 z-10 shadow-sm">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
@@ -17,6 +19,10 @@ export function Header({ onUploadClick, onResetVotesClick }: HeaderProps) {
           </h1>
         </div>
         <div className="flex items-center gap-2">
+           <Button onClick={onLeaderboardClick} variant="ghost" size="icon" className="h-9 w-9">
+              <Users className="h-5 w-5" />
+              <span className="sr-only">See Leaderboard</span>
+           </Button>
            <Button onClick={onResetVotesClick} variant="outline">
             <RotateCcw className="mr-2 h-4 w-4" />
             Reset Votes
