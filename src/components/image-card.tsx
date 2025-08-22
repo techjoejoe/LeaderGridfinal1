@@ -58,6 +58,10 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting }:
     onVote(image.id);
   }
 
+  const imageSizes = isPodium 
+    ? "(max-width: 768px) 30vw, 240px" 
+    : "(max-width: 768px) 25vw, (max-width: 1200px) 15vw, 144px";
+
   return (
     <div className={cn("flex flex-col items-center gap-3 relative", isPodium ? podiumClasses.container : "")}>
       {rank === 0 && (
@@ -92,7 +96,7 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting }:
                     alt={image.name ?? 'photo'}
                     fill
                     className="object-cover rounded-full p-1"
-                    sizes="(max-width: 768px) 30vw, 10vw"
+                    sizes={imageSizes}
                     data-ai-hint={image.name.toLowerCase().split(' ').slice(0, 2).join(' ')}
                 />
             </div>
@@ -101,9 +105,9 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting }:
       <div className="text-center w-36 relative">
         <p className="font-bold truncate text-sm" title={image.name}>{image.name}</p>
         <p className="text-xs text-muted-foreground truncate" title={`by ${uploaderName}`}>by {uploaderName}</p>
-        <Button onClick={handleVoteClick} disabled={disabled || isVoting} size="sm" className="w-full mt-2" variant={hasVoted ? "secondary" : "outline"}>
-            {isVoting ? <Loader2 className="animate-spin" /> : hasVoted ? <Check /> : <Vote />}
-            {isVoting ? "Voting..." : hasVoted ? "Voted" : `Vote (${image.votes})`}
+        <Button onClick={handleVoteClick} disabled={disabled || isVoting} size="sm" className="w-full mt-2" variant={"outline"}>
+            {isVoting ? <Loader2 className="animate-spin" /> : <Vote />}
+            {isVoting ? "Voting..." : `Vote (${image.votes})`}
         </Button>
          {showConfetti && (
           <Confetti onAnimationComplete={() => setShowConfetti(false)} />
