@@ -1,6 +1,7 @@
 
-import { Trophy, RotateCcw, Users } from "lucide-react";
+import { Trophy, RotateCcw, Users, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Link from 'next/link';
 
 type HeaderProps = {
   onUploadClick: () => void;
@@ -27,6 +28,12 @@ export function Header({ onUploadClick, onResetVotesClick, onLeaderboardClick }:
             <RotateCcw className="mr-2 h-4 w-4" />
             Reset Votes
           </Button>
+           <Button asChild>
+             <Link href="https://docs.paylocity.com/Madlib/teamMatty.html" target="_blank">
+               <Award className="mr-2 h-4 w-4" />
+               Make a Badge
+             </Link>
+           </Button>
           <Button onClick={onUploadClick} className="bg-accent text-accent-foreground hover:bg-accent/90">
             <Trophy className="mr-2 h-4 w-4" />
             Enter Contest
