@@ -52,12 +52,6 @@ export function Header({ onLeaderboardClick }: HeaderProps) {
                 <Users className="mr-2 h-4 w-4" />
                 <span>Leaderboard</span>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="https://docs.paylocity.com/Madlib/teamMatty.html" target="_blank">
-                  <Award className="mr-2 h-4 w-4" />
-                  <span>Make a Badge</span>
-                </Link>
-              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

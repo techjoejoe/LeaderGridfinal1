@@ -18,18 +18,19 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { Crop } from "lucide-react";
+import { Crop, Upload } from "lucide-react";
 import { getCroppedImg } from "@/lib/image-utils";
 
 type UploadDialogProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onUpload: (imageName: string, dataUrl: string) => void;
+  onUpload: (photoName: string, uploaderName: string, dataUrl: string) => void;
 };
 
 export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogProps) {
   const [imageSrc, setImageSrc] = useState<string | null>(null);
-  const [imageName, setImageName] = useState("");
+  const [photoName, setPhotoName] = useState("");
+  const [uploaderName, setUploaderName] = useState("");
   const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
@@ -41,7 +42,8 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
 
   const resetState = useCallback(() => {
     setImageSrc(null);
-    setImageName("");
+    setPhotoName("");
+    setUploaderName("");
     setCrop({ x: 0, y: 0 });
     setZoom(1);
     setCroppedAreaPixels(null);
@@ -52,10 +54,10 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
     }
   }, []);
 
-  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFileError("");
+  const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
+      setFileError("");
       if (file.size > 10 * 1024 * 1024) { // 10MB limit
         setFileError("File size cannot exceed 10MB.");
         return;
@@ -65,11 +67,8 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
         return;
       }
       
-      const reader = new FileReader();
-      reader.addEventListener("load", () => {
-        setImageSrc(reader.result as string);
-      });
-      reader.readAsDataURL(file);
+      let imageDataUrl = await readFile(file);
+      setImageSrc(imageDataUrl);
     }
   };
 
@@ -79,8 +78,8 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
   
   const handleSubmit = async () => {
     let hasError = false;
-    if (!imageName.trim()) {
-      setNameError("Badge name is required.");
+    if (!photoName.trim()) {
+      setNameError("Photo name is required.");
       hasError = true;
     } else {
       setNameError("");
@@ -104,21 +103,19 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
         setFileError("Could not process the image. Please try again.");
         return;
       }
-
-      const options = {
+      
+      const compressedBlob = await imageCompression(croppedImageBlob, {
         maxSizeMB: 1,
         maxWidthOrHeight: 512,
         useWebWorker: true,
         fileType: 'image/webp',
-      };
-      
-      const compressedBlob = await imageCompression(croppedImageBlob as File, options);
+      });
 
       const reader = new FileReader();
       reader.readAsDataURL(compressedBlob);
       reader.onloadend = () => {
         const base64data = reader.result;
-        onUpload(imageName, base64data as string);
+        onUpload(photoName, uploaderName, base64data as string);
         onOpenChange(false);
       };
       
@@ -139,16 +136,20 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
     <Dialog open={isOpen} onOpenChange={handleDialogClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="font-headline">Enter the Contest</DialogTitle>
+          <DialogTitle className="font-headline">Upload a Photo</DialogTitle>
           <DialogDescription>
-            Upload your badge design. Pan and zoom to fit the image in the circle.
+            Upload your photo. Pan and zoom to fit the image in the circle.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
             <div className="space-y-2">
-                <Label htmlFor="imageName">Badge Name</Label>
-                <Input id="imageName" value={imageName} onChange={(e) => setImageName(e.target.value)} placeholder="e.g., 'Team Matty Innovator'"/>
+                <Label htmlFor="photoName">Photo Name</Label>
+                <Input id="photoName" value={photoName} onChange={(e) => setPhotoName(e.target.value)} placeholder="e.g., 'Sunset over the lake'"/>
                 {nameError && <p className="text-sm text-destructive">{nameError}</p>}
+            </div>
+             <div className="space-y-2">
+                <Label htmlFor="uploaderName">Your Name (Optional)</Label>
+                <Input id="uploaderName" value={uploaderName} onChange={(e) => setUploaderName(e.target.value)} placeholder="e.g., 'Jane Doe'"/>
             </div>
             <div className="space-y-2">
                 <Label htmlFor="file">Image</Label>
@@ -191,10 +192,19 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
         </div>
         <DialogFooter>
             <Button onClick={handleSubmit} disabled={!imageSrc} className="bg-accent text-accent-foreground hover:bg-accent/90">
-                Upload & Enter
+                <Upload className="mr-2 h-4 w-4" />
+                Upload Photo
             </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
+}
+
+function readFile(file: File): Promise<string> {
+  return new Promise((resolve) => {
+    const reader = new FileReader()
+    reader.addEventListener('load', () => resolve(reader.result as string), false)
+    reader.readAsDataURL(file)
+  })
 }

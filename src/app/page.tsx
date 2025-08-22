@@ -12,8 +12,7 @@ import { UploadDialog } from "@/components/upload-dialog";
 import { LeaderboardDialog } from "@/components/leaderboard-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Trophy, Award } from "lucide-react";
-import Link from "next/link";
+import { Upload } from "lucide-react";
 
 
 export default function Home() {
@@ -72,25 +71,25 @@ export default function Home() {
     }
   };
 
-  const handleUpload = async (imageName: string, dataUrl: string) => {
+  const handleUpload = async (photoName: string, uploaderName: string, dataUrl: string) => {
     setUploadOpen(false);
     toast({
-      title: "Uploading Image...",
-      description: "Please wait while your image is being uploaded.",
+      title: "Uploading Photo...",
+      description: "Please wait while your photo is being uploaded.",
     });
 
     try {
       const newImageDocRef = doc(collection(db, "images"));
       const newImageId = newImageDocRef.id;
 
-      const storageRef = ref(storage, `images/${newImageId}.png`);
+      const storageRef = ref(storage, `images/${newImageId}.webp`);
       
       const snapshot = await uploadString(storageRef, dataUrl, 'data_url');
       const downloadURL = await getDownloadURL(snapshot.ref);
       
       const newImage: Omit<PicVoteImage, 'id'> = {
-        name: imageName,
-        firstName: "Anonymous",
+        name: photoName,
+        firstName: uploaderName || "Anonymous",
         lastName: "",
         url: downloadURL,
         votes: 0,
@@ -100,15 +99,15 @@ export default function Home() {
       await setDoc(newImageDocRef, newImage);
       
       toast({
-        title: "Image Uploaded!",
-        description: `${imageName} is now in the running.`,
+        title: "Photo Uploaded!",
+        description: `${photoName} is now in the running.`,
       });
     } catch (error) {
       console.error("Error uploading image:", error);
       toast({
         variant: "destructive",
         title: "Upload Failed",
-        description: "Could not upload your image. Please try again.",
+        description: "Could not upload your photo. Please try again.",
       });
     }
   };
@@ -144,21 +143,15 @@ export default function Home() {
         <div className="w-full">
             <div className="mb-6">
               <div className="flex justify-between items-center mb-1">
-                <h2 className="text-3xl font-headline font-bold">Team Matty AI Badge Contest</h2>
+                <h2 className="text-3xl font-headline font-bold">PicPick</h2>
                 <div className="flex items-center gap-2">
-                  <Button asChild variant="outline">
-                    <Link href="https://docs.paylocity.com/Madlib/teamMatty.html" target="_blank">
-                      <Award className="mr-2 h-4 w-4" />
-                      Make a Badge
-                    </Link>
-                  </Button>
                   <Button onClick={onUploadClick} className="bg-accent text-accent-foreground hover:bg-accent/90">
-                    <Trophy className="mr-2 h-4 w-4" />
-                    Enter Contest
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload Photo
                   </Button>
                 </div>
               </div>
-               <p className="text-lg text-muted-foreground">Vote for your favorite badge design!</p>
+               <p className="text-lg text-muted-foreground">Vote for your favorite photo!</p>
             </div>
             {loading ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 items-end">
@@ -207,7 +200,7 @@ export default function Home() {
                     </div>
                 ) : (
                     <div className="text-center py-16 border-2 border-dashed rounded-lg">
-                    <h3 className="text-2xl font-bold font-headline">No images yet!</h3>
+                    <h3 className="text-2xl font-bold font-headline">No photos yet!</h3>
                     <p className="text-muted-foreground mt-2">Be the first to upload a picture.</p>
                     </div>
                 )}
