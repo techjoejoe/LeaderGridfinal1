@@ -4,6 +4,16 @@ import type {NextConfig} from 'next';
 const nextConfig: NextConfig = {
   /* config options here */
   basePath: '/picpick',
+  async redirects() {
+    return [
+      {
+        source: '/',
+        destination: '/picpick',
+        basePath: false,
+        permanent: false,
+      },
+    ]
+  },
   typescript: {
     ignoreBuildErrors: true,
   },
