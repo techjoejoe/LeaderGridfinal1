@@ -14,6 +14,7 @@ import { LeaderboardDialog } from "@/components/leaderboard-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { SignInDialog } from "@/components/sign-in-dialog";
+import { Trophy } from "lucide-react";
 
 const DAILY_VOTE_LIMIT = 10;
 
@@ -215,26 +216,32 @@ export default function Home() {
   }, [podiumImages]);
 
   const voteDisabled = !user || dailyVoteInfo.votesLeft <= 0;
+  const onUploadClick = () => user ? setUploadOpen(true) : setSignInOpen(true);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Header 
         user={user}
-        onUploadClick={() => user ? setUploadOpen(true) : setSignInOpen(true)}
         onLeaderboardClick={() => setLeaderboardOpen(true)}
         onSignInClick={() => setSignInOpen(true)}
       />
       <main className="container mx-auto px-4 py-8">
         <div className="w-full">
             <div className="mb-6">
+              <div className="flex justify-between items-center mb-1">
                 <h2 className="text-3xl font-headline font-bold">Team Matty AI Badge Contest</h2>
-                 {user ? (
-                    <p className="text-lg text-muted-foreground mt-1">
-                        You have <span className="font-bold text-primary">{dailyVoteInfo.votesLeft}</span> votes left today.
-                    </p>
-                 ) : (
-                    <p className="text-lg text-muted-foreground mt-1">Please sign in to vote or upload an image.</p>
-                 )}
+                <Button onClick={onUploadClick} disabled={!user} className="bg-accent text-accent-foreground hover:bg-accent/90">
+                  <Trophy className="mr-2 h-4 w-4" />
+                  Enter Contest
+                </Button>
+              </div>
+               {user ? (
+                  <p className="text-lg text-muted-foreground">
+                      You have <span className="font-bold text-primary">{dailyVoteInfo.votesLeft}</span> votes left today.
+                  </p>
+               ) : (
+                  <p className="text-lg text-muted-foreground">Please sign in to vote or upload an image.</p>
+               )}
             </div>
             {loading ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 items-end">
