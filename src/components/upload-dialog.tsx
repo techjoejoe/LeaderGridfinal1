@@ -38,7 +38,6 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
   const [zoom, setZoom] = useState(1);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [imageStyle, setImageStyle] = useState<React.CSSProperties>({});
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
 
 
@@ -76,6 +75,8 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
         const initialWidth = naturalWidth * scale;
         const initialHeight = naturalHeight * scale;
         setImageDimensions({ width: initialWidth, height: initialHeight });
+        setCrop({ x: 0, y: 0 });
+        setZoom(1);
       };
 
       if (image.complete) {
@@ -86,14 +87,13 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
     }
   }, [imageSrc]);
 
-  useEffect(() => {
-    setImageStyle({
-      width: `${imageDimensions.width}px`,
-      height: `${imageDimensions.height}px`,
-      transform: `translate(${crop.x}px, ${crop.y}px) scale(${zoom})`,
-      transition: isDragging ? 'none' : 'transform 0.1s ease-out',
-    });
-  }, [imageDimensions, crop, zoom, isDragging]);
+  const imageStyle: React.CSSProperties = {
+    width: `${imageDimensions.width}px`,
+    height: `${imageDimensions.height}px`,
+    transform: `translate(${crop.x}px, ${crop.y}px) scale(${zoom})`,
+    transition: isDragging ? 'none' : 'transform 0.1s ease-out',
+    maxWidth: 'none',
+  }
 
   const getCroppedImg = useCallback(() => {
     if (!imgRef.current || !canvasRef.current || !imageSrc) return null;
@@ -108,19 +108,19 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
     canvas.width = outputSize;
     canvas.height = outputSize;
 
-    // Calculate crop parameters based on the original image's dimensions
-    const scaleX = image.naturalWidth / imageDimensions.width;
-    const scaleY = image.naturalHeight / imageDimensions.height;
+    // The scale of the display image relative to the crop area
+    const displayScale = imageDimensions.width / CROP_DIMENSION;
     
-    const finalScale = zoom;
-    
-    // The size of the crop area on the original image
-    const cropSizeInPixels = CROP_DIMENSION / finalScale;
-    
-    const sourceX = (image.naturalWidth - (cropSizeInPixels * scaleX)) / 2 - (crop.x * scaleX);
-    const sourceY = (image.naturalHeight - (cropSizeInPixels * scaleY)) / 2 - (crop.y * scaleY);
-    const sourceWidth = cropSizeInPixels * scaleX;
-    const sourceHeight = cropSizeInPixels * scaleY;
+    // Total scale including user zoom
+    const totalScale = zoom / displayScale;
+
+    // The dimensions of the source image to draw
+    const sourceWidth = image.naturalWidth / totalScale;
+    const sourceHeight = image.naturalHeight / totalScale;
+
+    // The top-left corner of the source image to draw
+    const sourceX = (image.naturalWidth - sourceWidth) / 2 - (crop.x * (image.naturalWidth / imageDimensions.width));
+    const sourceY = (image.naturalHeight - sourceHeight) / 2 - (crop.y * (image.naturalHeight / imageDimensions.height));
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -170,8 +170,6 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
       setError("");
       setCrop({ x: 0, y: 0 });
       setZoom(1);
-      setImageStyle({});
-      setImageDimensions({ width: 0, height: 0 });
       if (uploadSucceeded) {
         setFile(null);
         setImageSrc(null);
@@ -197,9 +195,18 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
     e.preventDefault();
     if (isDragging) {
+      const dx = e.clientX - dragStart.x;
+      const dy = e.clientY - dragStart.y;
+      
+      const scaledWidth = imageDimensions.width * zoom;
+      const scaledHeight = imageDimensions.height * zoom;
+
+      const x_bound = (scaledWidth - CROP_DIMENSION) / 2;
+      const y_bound = (scaledHeight - CROP_DIMENSION) / 2;
+      
       setCrop({
-          x: e.clientX - dragStart.x,
-          y: e.clientY - dragStart.y
+          x: Math.max(-x_bound, Math.min(dx, x_bound)),
+          y: Math.max(-y_bound, Math.min(dy, y_bound)),
       });
     }
   };
@@ -281,3 +288,5 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
     </Dialog>
   );
 }
+
+    
