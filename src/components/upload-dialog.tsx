@@ -198,9 +198,9 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="font-headline">Upload an Image</DialogTitle>
+          <DialogTitle className="font-headline">Enter the Contest</DialogTitle>
           <DialogDescription>
-            Add a new image to the competition. Adjust the crop to fit the circle.
+            Upload your best picture to join the competition. Adjust the crop to fit the circle.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
