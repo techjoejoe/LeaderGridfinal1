@@ -149,7 +149,7 @@ export default function Home() {
     }
   };
 
-  const handleUpload = async (imageName: string, firstName: string, lastName: string, dataUrl: string) => {
+  const handleUpload = async (imageName: string, dataUrl: string) => {
     if (!user) {
       setSignInOpen(true);
       setUploadOpen(false);
@@ -170,6 +170,10 @@ export default function Home() {
       
       const snapshot = await uploadString(storageRef, dataUrl, 'data_url');
       const downloadURL = await getDownloadURL(snapshot.ref);
+
+      const nameParts = user.displayName?.split(" ") || ["Anonymous"];
+      const firstName = nameParts[0];
+      const lastName = nameParts.slice(1).join(" ");
       
       const newImage: Omit<PicVoteImage, 'id'> = {
         name: imageName,
