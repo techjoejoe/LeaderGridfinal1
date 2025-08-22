@@ -47,7 +47,7 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting }:
   };
 
   const nonPodiumClasses = {
-      imageContainer: "w-32 h-32 md:w-36 md:h-36 rounded-full shadow-2xl p-1 drop-shadow-lg transition-all duration-300",
+      imageContainer: "w-32 h-32 md:w-36 md:h-36 rounded-full shadow-2xl p-1 drop-shadow-lg transition-all duration-300 dark:shadow-primary-foreground/10 dark:hover:shadow-primary-foreground/20",
       imageBorder: "border-4 border-card rounded-full w-full h-full"
   };
 
@@ -65,7 +65,7 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting }:
       )}
       <div 
         className={cn(
-          "relative group",
+          "relative group transition-transform duration-300",
           isPodium ? "hover:scale-105" : "hover:scale-125",
           isPodium ? podiumClasses.imageContainer : nonPodiumClasses.imageContainer,
            isVoting && "animate-pulse-glow"
