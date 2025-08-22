@@ -208,11 +208,11 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
                 <Label htmlFor="imageName" className="text-right">Image Name</Label>
                 <Input id="imageName" value={imageName} onChange={(e) => setImageName(e.target.value)} className="col-span-3" placeholder="e.g., 'Majestic Mountains'"/>
             </div>
-             <div className="grid grid-cols-4 items-center gap-4">
+            <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="firstName" className="text-right">First Name</Label>
                 <Input id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} className="col-span-3" placeholder="e.g., 'Jane'"/>
             </div>
-             <div className="grid grid-cols-4 items-center gap-4">
+            <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="lastName" className="text-right">Last Name</Label>
                 <Input id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} className="col-span-3" placeholder="e.g., 'Doe'"/>
             </div>
