@@ -22,23 +22,8 @@ export function Header({ onUploadClick, onResetVotesClick, onLeaderboardClick }:
   return (
     <header className="bg-card border-b sticky top-0 z-10 shadow-sm">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-        <Link href="/" className="flex items-center gap-3">
-            <Image 
-                src="/logo-light.png"
-                alt="PicPick Logo Light"
-                width={140}
-                height={40}
-                className="dark:hidden"
-                priority
-            />
-            <Image 
-                src="/logo-dark.png"
-                alt="PicPick Logo Dark"
-                width={140}
-                height={40}
-                className="hidden dark:block"
-                priority
-            />
+        <Link href="/" className="flex items-center gap-3 font-bold font-headline text-lg">
+            PicVote
         </Link>
         <div className="flex items-center gap-2">
            <ThemeToggle />
