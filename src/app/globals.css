@@ -122,6 +122,21 @@
   }
 
   .animate-sparkle {
-    animation: sparkle 2s ease-in-out infinite;
+    animation: sparkle 1s ease-in-out infinite;
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% {
+      transform: scale(1);
+      box-shadow: 0 0 0 0 hsla(var(--accent), 0.7);
+    }
+    50% {
+      transform: scale(1.02);
+      box-shadow: 0 0 10px 5px hsla(var(--accent), 0);
+    }
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 0.8s ease-in-out;
   }
 }

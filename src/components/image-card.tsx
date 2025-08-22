@@ -2,7 +2,7 @@
 "use client";
 
 import Image from "next/image";
-import { Vote, Check } from "lucide-react";
+import { Vote, Check, Loader2 } from "lucide-react";
 import type { PicVoteImage } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -15,9 +15,10 @@ type ImageCardProps = {
   disabled: boolean;
   hasVoted: boolean;
   rank: number;
+  isVoting: boolean;
 };
 
-export function ImageCard({ image, onVote, disabled, hasVoted, rank }: ImageCardProps) {
+export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting }: ImageCardProps) {
   const isPodium = rank < 3;
 
   const podiumClasses = {
@@ -58,6 +59,7 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank }: ImageCard
         className={cn(
           "relative",
           isPodium ? podiumClasses.imageContainer : nonPodiumClasses.imageContainer,
+           isVoting && "animate-pulse-glow"
         )}
       >
         <div className="absolute inset-0 z-0">
@@ -90,9 +92,9 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank }: ImageCard
       <div className="text-center w-36">
         <p className="font-bold truncate text-sm" title={image.name}>{image.name}</p>
         <p className="text-xs text-muted-foreground truncate" title={`by ${uploaderName}`}>by {uploaderName}</p>
-        <Button onClick={() => onVote(image.id)} disabled={disabled} size="sm" className="w-full mt-2" variant={hasVoted ? "secondary" : "outline"}>
-          {hasVoted ? <Check /> : <Vote />}
-          {hasVoted ? "Voted" : `Vote (${image.votes})`}
+        <Button onClick={() => onVote(image.id)} disabled={disabled || isVoting} size="sm" className="w-full mt-2" variant={hasVoted ? "secondary" : "outline"}>
+            {isVoting ? <Loader2 className="animate-spin" /> : hasVoted ? <Check /> : <Vote />}
+            {isVoting ? "Voting..." : hasVoted ? "Voted" : `Vote (${image.votes})`}
         </Button>
       </div>
     </div>

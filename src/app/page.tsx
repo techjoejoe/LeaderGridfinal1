@@ -24,6 +24,7 @@ export default function Home() {
   const [isUploadOpen, setUploadOpen] = useState(false);
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
+  const [votingImageId, setVotingImageId] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "images"), (snapshot) => {
@@ -90,6 +91,8 @@ export default function Home() {
       });
       return;
     }
+    
+    setVotingImageId(id);
 
     const imageRef = doc(db, "images", id);
     const image = images.find(img => img.id === id);
@@ -122,6 +125,8 @@ export default function Home() {
           title: "Error",
           description: "Could not cast your vote. Please try again.",
         });
+      } finally {
+        setVotingImageId(null);
       }
     }
   };
@@ -201,7 +206,7 @@ export default function Home() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 items-end">
                 {[...Array(5)].map((_, i) => (
                     <div key={i} className="flex flex-col items-center gap-3">
-                    <div className="rounded-full border-4 border-card shadow-md aspect-square w-full bg-muted animate-pulse"></div>
+                    <div className="rounded-full border-4 border-card shadow-lg aspect-square w-full bg-muted animate-pulse"></div>
                     <div className="w-3/4 h-4 bg-muted animate-pulse rounded"></div>
                         <div className="w-1/2 h-4 bg-muted animate-pulse rounded"></div>
                     </div>
@@ -221,6 +226,7 @@ export default function Home() {
                               onVote={handleVote}
                               disabled={dailyVoteInfo.votesLeft <= 0 || hasVotedForImage(image.id)}
                               hasVoted={hasVotedForImage(image.id)}
+                              isVoting={votingImageId === image.id}
                               />
                           ))}
                           </div>
@@ -235,6 +241,7 @@ export default function Home() {
                               onVote={handleVote}
                               disabled={dailyVoteInfo.votesLeft <= 0 || hasVotedForImage(image.id)}
                               hasVoted={hasVotedForImage(image.id)}
+                              isVoting={votingImageId === image.id}
                               />
                           ))}
                           </div>
