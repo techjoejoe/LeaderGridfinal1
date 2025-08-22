@@ -11,7 +11,7 @@ import { ImageCard } from "@/components/image-card";
 import { UploadDialog } from "@/components/upload-dialog";
 import { useToast } from "@/hooks/use-toast";
 
-const DAILY_VOTE_LIMIT = 4;
+const DAILY_VOTE_LIMIT = 10;
 
 type DailyVoteInfo = {
   votesLeft: number;
