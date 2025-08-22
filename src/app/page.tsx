@@ -213,7 +213,7 @@ export default function Home() {
         <div className="w-full">
             <div className="mb-6">
                 <h2 className="text-3xl font-headline font-bold">Team Matty AI Badge Contest</h2>
-                <p className="text-base text-muted-foreground mt-1">
+                <p className="text-lg text-muted-foreground mt-1">
                     You have <span className="font-bold text-primary">{dailyVoteInfo.votesLeft}</span> votes left today.
                 </p>
             </div>
