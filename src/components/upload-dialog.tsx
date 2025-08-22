@@ -22,138 +22,174 @@ type UploadDialogProps = {
 };
 
 const CROP_DIMENSION = 256;
+const OUTPUT_DIMENSION = 512;
 
 export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogProps) {
   const [imageName, setImageName] = useState("");
-  const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState("");
   const [imageSrc, setImageSrc] = useState<string | null>(null);
-
+  
   const imgRef = useRef<HTMLImageElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Cropping state
-  const [crop, setCrop] = useState({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
-
+  // Simplified state for crop and zoom
+  const [scale, setScale] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  
+  // Dragging state
+  const isDraggingRef = useRef(false);
+  const dragStartPointRef = useRef({ x: 0, y: 0 });
+  
+  // Reset state when dialog opens/closes or new file is selected
+  const resetState = useCallback((clearFile = false) => {
+    setImageName("");
+    setError("");
+    setScale(1);
+    setPosition({ x: 0, y: 0 });
+    isDraggingRef.current = false;
+    dragStartPointRef.current = { x: 0, y: 0 };
+    if (clearFile) {
+      setImageSrc(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  }, []);
 
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      const selectedFile = e.target.files[0];
-      if (selectedFile.size > 5 * 1024 * 1024) { // 5MB limit
+      const file = e.target.files[0];
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
         setError("File size cannot exceed 5MB.");
         return;
       }
-      if (!['image/jpeg', 'image/png', 'image/gif'].includes(selectedFile.type)) {
+      if (!['image/jpeg', 'image/png', 'image/gif'].includes(file.type)) {
         setError("Invalid file type. Please upload a JPG, PNG, or GIF.");
         return;
       }
-      setFile(selectedFile);
-      setError("");
+      
+      resetState(false); // Reset crop/zoom but not file
       
       const reader = new FileReader();
       reader.addEventListener("load", () => {
         setImageSrc(reader.result as string);
-        // Reset crop/zoom when new image is loaded
-        setZoom(1);
-        setCrop({ x: 0, y: 0 });
       });
-      reader.readAsDataURL(selectedFile);
+      reader.readAsDataURL(file);
     }
   };
-
-  useEffect(() => {
+  
+  // Calculate boundaries for panning
+  const getBoundaries = useCallback(() => {
+    if (!imgRef.current) return { x: 0, y: 0 };
+    
     const image = imgRef.current;
-    if (imageSrc && image) {
-      const onImageLoad = () => {
-        const { naturalWidth, naturalHeight } = image;
-        const scale = Math.max(CROP_DIMENSION / naturalWidth, CROP_DIMENSION / naturalHeight);
-        const initialWidth = naturalWidth * scale;
-        const initialHeight = naturalHeight * scale;
-        setImageDimensions({ width: initialWidth, height: initialHeight });
-        setCrop({ x: 0, y: 0 });
-        setZoom(1);
-      };
+    const scaledWidth = image.width * scale;
+    const scaledHeight = image.height * scale;
+    
+    const x_bound = Math.max(0, (scaledWidth - CROP_DIMENSION) / 2);
+    const y_bound = Math.max(0, (scaledHeight - CROP_DIMENSION) / 2);
+    
+    return { x: x_bound, y: y_bound };
+  }, [scale]);
+  
+  // Mouse event handlers for panning
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    isDraggingRef.current = true;
+    dragStartPointRef.current = { x: e.clientX - position.x, y: e.clientY - position.y };
+  };
 
-      if (image.complete) {
-        onImageLoad();
-      } else {
-        image.onload = onImageLoad;
-      }
-    }
-  }, [imageSrc]);
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isDraggingRef.current) return;
+    e.preventDefault();
+    
+    const newX = e.clientX - dragStartPointRef.current.x;
+    const newY = e.clientY - dragStartPointRef.current.y;
+    
+    const boundary = getBoundaries();
+    
+    setPosition({
+      x: Math.max(-boundary.x, Math.min(newX, boundary.x)),
+      y: Math.max(-boundary.y, Math.min(newY, boundary.y)),
+    });
+  };
 
-  const imageStyle: React.CSSProperties = {
-    width: `${imageDimensions.width}px`,
-    height: `${imageDimensions.height}px`,
-    transform: `translate(${crop.x}px, ${crop.y}px) scale(${zoom})`,
-    transition: isDragging ? 'none' : 'transform 0.1s ease-out',
-    maxWidth: 'none',
-  }
+  const handleMouseUpOrLeave = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    isDraggingRef.current = false;
+  };
+  
+  // Zoom handlers
+  const handleZoom = (direction: 'in' | 'out') => {
+    const newScale = direction === 'in' ? scale * 1.1 : scale / 1.1;
+    setScale(Math.max(1, Math.min(newScale, 3))); // Clamp zoom between 1x and 3x
+  };
 
+  // Adjust position if zoom change pushes image out of bounds
+  useEffect(() => {
+    const boundary = getBoundaries();
+    setPosition(currentPos => ({
+        x: Math.max(-boundary.x, Math.min(currentPos.x, boundary.x)),
+        y: Math.max(-boundary.y, Math.min(currentPos.y, boundary.y)),
+    }));
+  }, [scale, getBoundaries]);
+
+  // Generate the final cropped image
   const getCroppedImg = useCallback(() => {
-    if (!imgRef.current || !canvasRef.current || !imageSrc) return null;
+    if (!imgRef.current || !canvasRef.current) return null;
 
     const image = imgRef.current;
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
-
     if (!ctx) return null;
 
-    const outputSize = 512;
-    canvas.width = outputSize;
-    canvas.height = outputSize;
-
-    // The scale of the display image relative to the crop area
-    const displayScale = imageDimensions.width / CROP_DIMENSION;
+    canvas.width = OUTPUT_DIMENSION;
+    canvas.height = OUTPUT_DIMENSION;
     
-    // Total scale including user zoom
-    const totalScale = zoom / displayScale;
+    // Scale from display image to source (natural) image
+    const sourceScale = image.naturalWidth / image.width;
 
-    // The dimensions of the source image to draw
-    const sourceWidth = image.naturalWidth / totalScale;
-    const sourceHeight = image.naturalHeight / totalScale;
+    const finalScale = scale * sourceScale;
 
-    // The top-left corner of the source image to draw
-    const sourceX = (image.naturalWidth - sourceWidth) / 2 - (crop.x * (image.naturalWidth / imageDimensions.width));
-    const sourceY = (image.naturalHeight - sourceHeight) / 2 - (crop.y * (image.naturalHeight / imageDimensions.height));
-
+    const sx = (image.naturalWidth - (CROP_DIMENSION / finalScale) * image.naturalWidth) / 2 - (position.x * sourceScale);
+    const sy = (image.naturalHeight - (CROP_DIMENSION / finalScale) * image.naturalHeight) / 2 - (position.y * sourceScale);
+    const sWidth = image.naturalWidth / finalScale;
+    const sHeight = image.naturalHeight / finalScale;
+    
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
+    
+    // Create a circular clipping path
     ctx.beginPath();
-    ctx.arc(outputSize / 2, outputSize / 2, outputSize / 2, 0, Math.PI * 2, true);
+    ctx.arc(OUTPUT_DIMENSION / 2, OUTPUT_DIMENSION / 2, OUTPUT_DIMENSION / 2, 0, Math.PI * 2, true);
     ctx.closePath();
     ctx.clip();
-
+    
+    // Draw the image
     ctx.drawImage(
       image,
-      sourceX,
-      sourceY,
-      sourceWidth,
-      sourceHeight,
+      sx,
+      sy,
+      sWidth,
+      sHeight,
       0,
       0,
-      outputSize,
-      outputSize
+      OUTPUT_DIMENSION,
+      OUTPUT_DIMENSION
     );
 
     return canvas.toDataURL("image/png");
-  }, [imageSrc, crop, zoom, imageDimensions]);
-  
-  const handleSubmit = async () => {
+  }, [position, scale]);
+
+  const handleSubmit = () => {
     if (!imageName.trim()) {
       setError("Image name is required.");
       return;
     }
-    if (!file || !imageSrc) {
+    if (!imageSrc) {
       setError("Please select an image file.");
       return;
     }
-
     setError("");
     
     const croppedDataUrl = getCroppedImg();
@@ -164,81 +200,27 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
         setError("Could not process the image. Please try again.");
     }
   };
-  
-  const resetState = (uploadSucceeded = false) => {
-      setImageName("");
-      setError("");
-      setCrop({ x: 0, y: 0 });
-      setZoom(1);
-      if (uploadSucceeded) {
-        setFile(null);
-        setImageSrc(null);
-        if (fileInputRef.current) {
-          fileInputRef.current.value = "";
-        }
-      }
-  }
 
-  const handleClose = (open: boolean) => {
+  const handleDialogClose = (open: boolean) => {
     if (!open) {
-      resetState(true);
+      resetState(true); // Reset everything when dialog is closed
     }
     onOpenChange(open);
   }
 
-  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
-    e.preventDefault();
-    setIsDragging(true);
-    setDragStart({ x: e.clientX - crop.x, y: e.clientY - crop.y });
-  };
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
-    e.preventDefault();
-    if (isDragging) {
-      const dx = e.clientX - dragStart.x;
-      const dy = e.clientY - dragStart.y;
-      
-      const scaledWidth = imageDimensions.width * zoom;
-      const scaledHeight = imageDimensions.height * zoom;
-
-      const x_bound = (scaledWidth - CROP_DIMENSION) / 2;
-      const y_bound = (scaledHeight - CROP_DIMENSION) / 2;
-      
-      setCrop({
-          x: Math.max(-x_bound, Math.min(dx, x_bound)),
-          y: Math.max(-y_bound, Math.min(dy, y_bound)),
-      });
-    }
-  };
-
-  const handleMouseUp = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-  
-  const handleMouseLeave = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
-    e.preventDefault();
-    if (isDragging) {
-      setIsDragging(false);
-    }
-  };
-
-  const handleZoomOut = () => setZoom(z => Math.max(z - 0.1, 1));
-  const handleZoomIn = () => setZoom(z => Math.min(z + 0.1, 3));
-
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
+    <Dialog open={isOpen} onOpenChange={handleDialogClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="font-headline">Enter the Contest</DialogTitle>
           <DialogDescription>
-            Upload your best picture to join the competition. Adjust the crop to fit the circle.
+            Upload your badge design. Pan and zoom to fit the image in the circle.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="imageName" className="text-right">Image Name</Label>
-                <Input id="imageName" value={imageName} onChange={(e) => setImageName(e.target.value)} className="col-span-3" placeholder="e.g., 'Majestic Mountains'"/>
+                <Label htmlFor="imageName" className="text-right">Badge Name</Label>
+                <Input id="imageName" value={imageName} onChange={(e) => setImageName(e.target.value)} className="col-span-3" placeholder="e.g., 'Team Matty Innovator'"/>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="file" className="text-right">Image</Label>
@@ -246,7 +228,7 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
                     <Input id="file" type="file" ref={fileInputRef} onChange={onFileChange} className="hidden" accept="image/png, image/jpeg, image/gif"/>
                     <Button variant="outline" onClick={() => fileInputRef.current?.click()} className="w-full">
                         <Crop className="mr-2 h-4 w-4" />
-                        {file ? file.name : 'Choose a file'}
+                        {fileInputRef.current?.files?.[0]?.name || 'Choose a file'}
                     </Button>
                 </div>
             </div>
@@ -257,22 +239,28 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
                         style={{ width: CROP_DIMENSION, height: CROP_DIMENSION }}
                         onMouseDown={handleMouseDown}
                         onMouseMove={handleMouseMove}
-                        onMouseUp={handleMouseUp}
-                        onMouseLeave={handleMouseLeave}
+                        onMouseUp={handleMouseUpOrLeave}
+                        onMouseLeave={handleMouseUpOrLeave}
                       >
                        <img 
                           ref={imgRef}
                           src={imageSrc} 
                           alt="Crop preview" 
-                          className="pointer-events-none"
-                          style={imageStyle}
+                          className="pointer-events-none object-cover"
+                          style={{
+                              transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+                              // Set initial size to cover the container while maintaining aspect ratio
+                              minWidth: CROP_DIMENSION,
+                              minHeight: CROP_DIMENSION,
+                              maxWidth: 'none',
+                          }}
                           crossOrigin="anonymous"
                         />
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button variant="outline" size="icon" onClick={handleZoomOut} disabled={zoom <= 1}><Minus className="h-4 w-4"/></Button>
+                      <Button variant="outline" size="icon" onClick={() => handleZoom('out')} disabled={scale <= 1}><Minus className="h-4 w-4"/></Button>
                       <Label>Zoom</Label>
-                      <Button variant="outline" size="icon" onClick={handleZoomIn} disabled={zoom >= 3}><Plus className="h-4 w-4"/></Button>
+                      <Button variant="outline" size="icon" onClick={() => handleZoom('in')} disabled={scale >= 3}><Plus className="h-4 w-4"/></Button>
                     </div>
                  </div>
             )}
@@ -288,5 +276,3 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
     </Dialog>
   );
 }
-
-    
