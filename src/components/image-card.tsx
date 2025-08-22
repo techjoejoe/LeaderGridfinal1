@@ -41,8 +41,8 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting }:
     ),
     imageBorder: cn("border-4 rounded-full w-full h-full", {
       "border-transparent": rank === 0,
-      "border-silver": rank === 1,
-      "border-bronze": rank === 2,
+      "border-silver dark:shadow-[0_0_15px_2px_hsl(var(--silver))]": rank === 1,
+      "border-bronze dark:shadow-[0_0_15px_2px_hsl(var(--bronze))]": rank === 2,
     }),
   };
 
@@ -74,7 +74,7 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting }:
         <div className="absolute inset-0 z-0">
           <div className={cn(
               "w-full h-full rounded-full",
-              { "bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-700": rank === 0 }
+              { "bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-700 dark:shadow-[0_0_25px_5px_hsl(var(--gold))]": rank === 0 }
           )} />
         </div>
         <div className={cn(
