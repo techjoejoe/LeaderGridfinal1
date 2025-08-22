@@ -14,7 +14,8 @@ import { LeaderboardDialog } from "@/components/leaderboard-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { SignInDialog } from "@/components/sign-in-dialog";
-import { Trophy } from "lucide-react";
+import { Trophy, Award } from "lucide-react";
+import Link from "next/link";
 
 const DAILY_VOTE_LIMIT = 10;
 
@@ -234,10 +235,18 @@ export default function Home() {
             <div className="mb-6">
               <div className="flex justify-between items-center mb-1">
                 <h2 className="text-3xl font-headline font-bold">Team Matty AI Badge Contest</h2>
-                <Button onClick={onUploadClick} disabled={!user} className="bg-accent text-accent-foreground hover:bg-accent/90">
-                  <Trophy className="mr-2 h-4 w-4" />
-                  Enter Contest
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button asChild variant="outline">
+                    <Link href="https://docs.paylocity.com/Madlib/teamMatty.html" target="_blank">
+                      <Award className="mr-2 h-4 w-4" />
+                      Make a Badge
+                    </Link>
+                  </Button>
+                  <Button onClick={onUploadClick} disabled={!user} className="bg-accent text-accent-foreground hover:bg-accent/90">
+                    <Trophy className="mr-2 h-4 w-4" />
+                    Enter Contest
+                  </Button>
+                </div>
               </div>
                {user ? (
                   <p className="text-lg text-muted-foreground">
