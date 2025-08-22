@@ -188,10 +188,8 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
     if (imgRef.current && imageSrc) {
       const image = imgRef.current;
       const { naturalWidth, naturalHeight } = image;
-      const isLandscape = naturalWidth > naturalHeight;
-      const scale = isLandscape
-        ? CROP_DIMENSION / naturalHeight
-        : CROP_DIMENSION / naturalWidth;
+      
+      const scale = Math.max(CROP_DIMENSION / naturalWidth, CROP_DIMENSION / naturalHeight);
       
       const newWidth = naturalWidth * scale;
       const newHeight = naturalHeight * scale;
@@ -248,13 +246,12 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
                           style={imageStyle}
                           onLoad={(e) => {
                              const img = e.currentTarget;
-                              const isLandscape = img.naturalWidth > img.naturalHeight;
-                              const scale = isLandscape
-                                ? CROP_DIMENSION / img.naturalHeight
-                                : CROP_DIMENSION / img.naturalWidth;
+                              const { naturalWidth, naturalHeight } = img;
+      
+                              const scale = Math.max(CROP_DIMENSION / naturalWidth, CROP_DIMENSION / naturalHeight);
                               
-                              const newWidth = img.naturalWidth * scale;
-                              const newHeight = img.naturalHeight * scale;
+                              const newWidth = naturalWidth * scale;
+                              const newHeight = naturalHeight * scale;
 
                               setImageStyle({
                                 width: `${newWidth}px`,
@@ -283,5 +280,3 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
     </Dialog>
   );
 }
-
-    
