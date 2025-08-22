@@ -2,27 +2,66 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { collection, onSnapshot, doc, updateDoc, setDoc, getDoc, writeBatch } from "firebase/firestore";
+import { collection, onSnapshot, doc, updateDoc, setDoc, getDoc, writeBatch, runTransaction } from "firebase/firestore";
 import { ref, uploadString, getDownloadURL } from "firebase/storage";
-import { db, storage } from "@/lib/firebase";
-import type { PicVoteImage } from "@/lib/types";
+import { db, storage, auth } from "@/lib/firebase";
+import type { PicVoteImage, UserVoteData } from "@/lib/types";
 import { Header } from "@/components/header";
 import { ImageCard } from "@/components/image-card";
 import { UploadDialog } from "@/components/upload-dialog";
 import { LeaderboardDialog } from "@/components/leaderboard-dialog";
+import { SignInDialog } from "@/components/sign-in-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Upload } from "lucide-react";
+import { onAuthStateChanged, User } from "firebase/auth";
+import { getToday, isWeekday } from "@/lib/date-utils";
 
 
 export default function Home() {
   const [images, setImages] = useState<PicVoteImage[]>([]);
+  const [user, setUser] = useState<User | null>(null);
+  const [userVoteData, setUserVoteData] = useState<UserVoteData | null>(null);
+  
   const [isUploadOpen, setUploadOpen] = useState(false);
   const [isLeaderboardOpen, setLeaderboardOpen] = useState(false);
+  const [isSignInOpen, setSignInOpen] = useState(false);
+
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [votingImageId, setVotingImageId] = useState<string | null>(null);
 
+
+  useEffect(() => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribeAuth();
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      const userVoteRef = doc(db, "user_votes", user.uid);
+      const unsubscribeVotes = onSnapshot(userVoteRef, (doc) => {
+        if (doc.exists()) {
+          setUserVoteData(doc.data() as UserVoteData);
+        } else {
+          // Initialize if it doesn't exist
+          const initialData: UserVoteData = {
+            votesToday: 4,
+            lastVotedDate: "1970-01-01",
+            lastVotedWeekday: -1,
+            imageVotes: {},
+          };
+          setDoc(doc.ref, initialData);
+          setUserVoteData(initialData);
+        }
+      });
+      return () => unsubscribeVotes();
+    } else {
+      setUserVoteData(null);
+    }
+  }, [user]);
 
   useEffect(() => {
     setLoading(true);
@@ -46,32 +85,100 @@ export default function Home() {
   }, [toast]);
 
   const handleVote = async (id: string) => {
+    if (!user) {
+      setSignInOpen(true);
+      return;
+    }
     setVotingImageId(id);
 
-    const imageRef = doc(db, "images", id);
-    const image = images.find(img => img.id === id);
+    try {
+      await runTransaction(db, async (transaction) => {
+        const userVoteRef = doc(db, "user_votes", user.uid);
+        const imageRef = doc(db, "images", id);
 
-    if (image) {
-      try {
-        await updateDoc(imageRef, { votes: image.votes + 1 });
+        const userVoteDoc = await transaction.get(userVoteRef);
+        const imageDoc = await transaction.get(imageRef);
+
+        if (!imageDoc.exists()) {
+          throw new Error("Image does not exist!");
+        }
+
+        const today = getToday();
+        const currentDay = new Date().getDay(); // 0 (Sun) - 6 (Sat)
+        
+        let currentVoteData: UserVoteData;
+        if (!userVoteDoc.exists()) {
+          currentVoteData = {
+            votesToday: 4,
+            lastVotedDate: "1970-01-01",
+            lastVotedWeekday: -1,
+            imageVotes: {},
+          };
+        } else {
+          currentVoteData = userVoteDoc.data() as UserVoteData;
+        }
+
+        // Reset votes if it's a new day
+        if (currentVoteData.lastVotedDate !== today) {
+          currentVoteData.votesToday = 4;
+          currentVoteData.lastVotedDate = today;
+        }
+
+        // Rule 1: Check if it's a weekday
+        if (!isWeekday(currentDay)) {
+          throw new Error("Voting is only allowed on weekdays (Mon-Fri).");
+        }
+        
+        // Rule 2: Check for daily vote limit
+        if (currentVoteData.votesToday <= 0) {
+          throw new Error("You have no votes left for today.");
+        }
+
+        // Rule 3: Check for per-image vote limit
+        const imageVoteCount = currentVoteData.imageVotes[id] || 0;
+        if (imageVoteCount >= 2) {
+          throw new Error("You can only vote for the same image twice.");
+        }
+
+        // All checks passed, update votes
+        const newImageData = { votes: imageDoc.data().votes + 1 };
+        transaction.update(imageRef, newImageData);
+        
+        const newUserVoteData: UserVoteData = {
+          ...currentVoteData,
+          votesToday: currentVoteData.votesToday - 1,
+          lastVotedDate: today,
+          lastVotedWeekday: currentDay,
+          imageVotes: {
+            ...currentVoteData.imageVotes,
+            [id]: imageVoteCount + 1,
+          },
+        };
+        transaction.set(userVoteRef, newUserVoteData);
+        
         toast({
           title: "Vote Cast!",
-          description: `Your vote for ${image.name} has been counted.`,
+          description: `Your vote for ${imageDoc.data().name} has been counted.`,
         });
-      } catch (error) {
-        console.error("Error updating votes:", error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Could not cast your vote. Please try again.",
-        });
-      } finally {
-        setVotingImageId(null);
-      }
+      });
+    } catch (error: any) {
+      console.error("Error casting vote:", error);
+      toast({
+        variant: "destructive",
+        title: "Vote Failed",
+        description: error.message || "Could not cast your vote. Please try again.",
+      });
+    } finally {
+      setVotingImageId(null);
     }
   };
 
   const handleUpload = async (photoName: string, uploaderName: string, dataUrl: string) => {
+    if (!user) {
+      setSignInOpen(true);
+      return;
+    }
+
     setUploadOpen(false);
     toast({
       title: "Uploading Photo...",
@@ -93,7 +200,7 @@ export default function Home() {
         lastName: "",
         url: downloadURL,
         votes: 0,
-        uploaderUid: "anonymous",
+        uploaderUid: user.uid,
       };
 
       await setDoc(newImageDocRef, newImage);
@@ -116,6 +223,31 @@ export default function Home() {
     return [...images].sort((a, b) => b.votes - a.votes);
   }, [images]);
 
+  const onUploadClick = () => {
+    if (!user) {
+      setSignInOpen(true);
+    } else {
+      setUploadOpen(true);
+    }
+  };
+
+  const { votesLeft, canVoteToday, hasVotedForImage } = useMemo(() => {
+    const today = getToday();
+    const currentDay = new Date().getDay();
+    
+    if (!user || !userVoteData) {
+      return { votesLeft: 0, canVoteToday: false, hasVotedForImage: () => false };
+    }
+
+    const votesLeft = userVoteData.lastVotedDate === today ? userVoteData.votesToday : 4;
+    const canVoteTodayResult = isWeekday(currentDay) && votesLeft > 0;
+
+    const hasVotedForImageFunc = (imageId: string) => (userVoteData.imageVotes?.[imageId] ?? 0) >= 2;
+
+    return { votesLeft, canVoteToday: canVoteTodayResult, hasVotedForImage: hasVotedForImageFunc };
+
+  }, [user, userVoteData]);
+
 
   const podiumImages = sortedImages.slice(0, 3);
   const otherImages = sortedImages.slice(3);
@@ -130,13 +262,11 @@ export default function Home() {
     return podiumMap;
   }, [podiumImages]);
   
-  const onUploadClick = () => {
-    setUploadOpen(true)
-  };
-
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Header 
+        user={user}
+        onSignInClick={() => setSignInOpen(true)}
         onLeaderboardClick={() => setLeaderboardOpen(true)}
       />
       <main className="container mx-auto px-4 py-8">
@@ -151,7 +281,9 @@ export default function Home() {
                   </Button>
                 </div>
               </div>
-               <p className="text-lg text-muted-foreground">Vote for your favorite photo!</p>
+              <p className="text-lg text-muted-foreground">
+                {user ? `You have ${votesLeft} votes left today. Happy picking!` : "Vote for your favorite photo!"}
+              </p>
             </div>
             {loading ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 items-end">
@@ -171,13 +303,13 @@ export default function Home() {
                           <div className="flex justify-center items-end gap-4 md:gap-8 mb-8 border-b pb-8 pt-12 min-h-[320px]">
                           {displayedPodium.map(({ image, rank }) => (
                               <ImageCard
-                              key={image.id}
-                              image={image}
-                              rank={rank}
-                              onVote={handleVote}
-                              disabled={false}
-                              hasVoted={false}
-                              isVoting={votingImageId === image.id}
+                                key={image.id}
+                                image={image}
+                                rank={rank}
+                                onVote={handleVote}
+                                disabled={!canVoteToday || hasVotedForImage(image.id)}
+                                hasVoted={hasVotedForImage(image.id)}
+                                isVoting={votingImageId === image.id}
                               />
                           ))}
                           </div>
@@ -186,13 +318,13 @@ export default function Home() {
                           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 items-end">
                           {otherImages.map((image, index) => (
                               <ImageCard
-                              key={image.id}
-                              image={image}
-                              rank={index + 3}
-                              onVote={handleVote}
-                              disabled={false}
-                              hasVoted={false}
-                              isVoting={votingImageId === image.id}
+                                key={image.id}
+                                image={image}
+                                rank={index + 3}
+                                onVote={handleVote}
+                                disabled={!canVoteToday || hasVotedForImage(image.id)}
+                                hasVoted={hasVotedForImage(image.id)}
+                                isVoting={votingImageId === image.id}
                               />
                           ))}
                           </div>
@@ -217,6 +349,10 @@ export default function Home() {
         isOpen={isLeaderboardOpen}
         onOpenChange={setLeaderboardOpen}
         images={sortedImages}
+      />
+      <SignInDialog
+        isOpen={isSignInOpen}
+        onOpenChange={setSignInOpen}
       />
     </div>
   );
