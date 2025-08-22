@@ -32,8 +32,7 @@ export function Header({ onUploadClick, onResetVotesClick, onLeaderboardClick }:
                 priority
             />
             <Image
-                src="https://placehold.co/140x40.png"
-                data-ai-hint="logo dark"
+                src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/logo-dark.png?alt=media&token=e3d5ffd5-84bb-41e1-8f58-885d394c667f"
                 alt="PicPick Logo Dark"
                 width={140}
                 height={40}
