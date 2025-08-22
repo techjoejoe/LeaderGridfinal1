@@ -1,7 +1,7 @@
 
 "use client";
 
-import { GoogleAuthProvider, signInWithPopup, signOut, User } from "firebase/auth";
+import { GoogleAuthProvider, OAuthProvider, signInWithPopup, signOut, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -14,6 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import Image from 'next/image';
 
 
 type AuthButtonProps = {
@@ -30,6 +31,15 @@ export function AuthButton({ user }: AuthButtonProps) {
       console.error("Error during Google sign-in:", error);
     }
   };
+
+  const handleMicrosoftSignIn = async () => {
+    const provider = new OAuthProvider('microsoft.com');
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (error) {
+      console.error("Error during Microsoft sign-in:", error);
+    }
+  }
 
   const handleSignOut = async () => {
     try {
@@ -63,9 +73,15 @@ export function AuthButton({ user }: AuthButtonProps) {
   }
 
   return (
-    <Button onClick={handleGoogleSignIn}>
-        <LogIn className="mr-2 h-4 w-4" />
-        Sign In
-    </Button>
+    <div className="flex gap-2">
+      <Button onClick={handleGoogleSignIn} variant="outline" size="sm">
+          <Image src="/google-logo.svg" alt="Google" width={16} height={16} className="mr-2"/>
+          Sign In
+      </Button>
+       <Button onClick={handleMicrosoftSignIn} variant="outline" size="sm">
+          <Image src="/microsoft-logo.svg" alt="Microsoft" width={16} height={16} className="mr-2"/>
+          Sign In
+      </Button>
+    </div>
   );
 }
