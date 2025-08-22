@@ -24,7 +24,7 @@ export function Header({ onUploadClick, onResetVotesClick, onLeaderboardClick }:
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
         <Link href="/" className="flex items-center gap-3">
             <Image 
-                src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.appspot.com/o/resources%2FPicpickb.png?alt=media"
+                src="/logo-light.png"
                 alt="PicPick Logo Light"
                 width={140}
                 height={40}
@@ -32,7 +32,7 @@ export function Header({ onUploadClick, onResetVotesClick, onLeaderboardClick }:
                 priority
             />
             <Image 
-                src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.appspot.com/o/resources%2FPicpickw.png?alt=media"
+                src="/logo-dark.png"
                 alt="PicPick Logo Dark"
                 width={140}
                 height={40}
