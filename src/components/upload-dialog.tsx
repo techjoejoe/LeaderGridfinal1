@@ -39,6 +39,7 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [imageStyle, setImageStyle] = useState<React.CSSProperties>({});
+  const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
 
 
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -67,31 +68,32 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
   };
 
   useEffect(() => {
-    if (imageSrc && imgRef.current) {
-      const image = imgRef.current;
+    const image = imgRef.current;
+    if (imageSrc && image) {
       const onImageLoad = () => {
         const { naturalWidth, naturalHeight } = image;
         const scale = Math.max(CROP_DIMENSION / naturalWidth, CROP_DIMENSION / naturalHeight);
         const initialWidth = naturalWidth * scale;
         const initialHeight = naturalHeight * scale;
-
-        setImageStyle({
-            width: `${initialWidth}px`,
-            height: `${initialHeight}px`,
-            transform: `translate(${crop.x}px, ${crop.y}px) scale(${zoom})`,
-            transition: isDragging ? 'none' : 'transform 0.1s ease-out',
-        });
+        setImageDimensions({ width: initialWidth, height: initialHeight });
       };
-      
-      // The image might be already loaded from cache
+
       if (image.complete) {
         onImageLoad();
       } else {
         image.onload = onImageLoad;
       }
     }
-  }, [imageSrc, crop, zoom, isDragging]);
+  }, [imageSrc]);
 
+  useEffect(() => {
+    setImageStyle({
+      width: `${imageDimensions.width}px`,
+      height: `${imageDimensions.height}px`,
+      transform: `translate(${crop.x}px, ${crop.y}px) scale(${zoom})`,
+      transition: isDragging ? 'none' : 'transform 0.1s ease-out',
+    });
+  }, [imageDimensions, crop, zoom, isDragging]);
 
   const getCroppedImg = useCallback(() => {
     if (!imgRef.current || !canvasRef.current || !imageSrc) return null;
@@ -101,20 +103,27 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
     const ctx = canvas.getContext("2d");
 
     if (!ctx) return null;
-    
+
     const outputSize = 512;
     canvas.width = outputSize;
     canvas.height = outputSize;
-    
-    // Calculate the source rectangle to draw from the original image
-    const currentScale = Math.max(CROP_DIMENSION / image.naturalWidth, CROP_DIMENSION / image.naturalHeight) * zoom;
-    const sourceSize = CROP_DIMENSION / currentScale;
 
-    const sourceX = (image.naturalWidth / 2) - (sourceSize / 2) + (crop.x * (image.naturalWidth/image.width));
-    const sourceY = (image.naturalHeight / 2) - (sourceSize / 2) + (crop.y * (image.naturalHeight/image.height));
+    // Calculate crop parameters based on the original image's dimensions
+    const scaleX = image.naturalWidth / imageDimensions.width;
+    const scaleY = image.naturalHeight / imageDimensions.height;
     
+    const finalScale = zoom;
+    
+    // The size of the crop area on the original image
+    const cropSizeInPixels = CROP_DIMENSION / finalScale;
+    
+    const sourceX = (image.naturalWidth - (cropSizeInPixels * scaleX)) / 2 - (crop.x * scaleX);
+    const sourceY = (image.naturalHeight - (cropSizeInPixels * scaleY)) / 2 - (crop.y * scaleY);
+    const sourceWidth = cropSizeInPixels * scaleX;
+    const sourceHeight = cropSizeInPixels * scaleY;
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
+
     ctx.beginPath();
     ctx.arc(outputSize / 2, outputSize / 2, outputSize / 2, 0, Math.PI * 2, true);
     ctx.closePath();
@@ -124,8 +133,8 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
       image,
       sourceX,
       sourceY,
-      sourceSize,
-      sourceSize,
+      sourceWidth,
+      sourceHeight,
       0,
       0,
       outputSize,
@@ -133,7 +142,7 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
     );
 
     return canvas.toDataURL("image/png");
-  }, [imageSrc, crop, zoom]);
+  }, [imageSrc, crop, zoom, imageDimensions]);
   
   const handleSubmit = async () => {
     if (!imageName.trim()) {
@@ -162,6 +171,7 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
       setCrop({ x: 0, y: 0 });
       setZoom(1);
       setImageStyle({});
+      setImageDimensions({ width: 0, height: 0 });
       if (uploadSucceeded) {
         setFile(null);
         setImageSrc(null);
@@ -249,6 +259,7 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
                           alt="Crop preview" 
                           className="pointer-events-none"
                           style={imageStyle}
+                          crossOrigin="anonymous"
                         />
                     </div>
                     <div className="flex items-center gap-2">
@@ -270,4 +281,3 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
     </Dialog>
   );
 }
-
