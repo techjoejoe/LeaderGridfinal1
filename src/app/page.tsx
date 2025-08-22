@@ -13,6 +13,7 @@ import { UploadDialog } from "@/components/upload-dialog";
 import { LeaderboardDialog } from "@/components/leaderboard-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { SignInDialog } from "@/components/sign-in-dialog";
 
 const DAILY_VOTE_LIMIT = 10;
 
@@ -22,6 +23,7 @@ export default function Home() {
   const [dailyVoteInfo, setDailyVoteInfo] = useState<DailyVoteInfo>({ votesLeft: DAILY_VOTE_LIMIT, votedImageIds: [] });
   const [isUploadOpen, setUploadOpen] = useState(false);
   const [isLeaderboardOpen, setLeaderboardOpen] = useState(false);
+  const [isSignInOpen, setSignInOpen] = useState(false);
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [votingImageId, setVotingImageId] = useState<string | null>(null);
@@ -30,6 +32,9 @@ export default function Home() {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoading(false);
+      if (currentUser) {
+        setSignInOpen(false); // Close sign-in dialog on successful login
+      }
     });
     return () => unsubscribe();
   }, []);
@@ -79,11 +84,7 @@ export default function Home() {
 
   const handleVote = async (id: string) => {
     if (!user) {
-      toast({
-        variant: "destructive",
-        title: "Not Signed In",
-        description: "You must be signed in to vote.",
-      });
+      setSignInOpen(true);
       return;
     }
 
@@ -149,7 +150,7 @@ export default function Home() {
 
   const handleUpload = async (imageName: string, firstName: string, lastName: string, dataUrl: string) => {
     if (!user) {
-      toast({ variant: "destructive", title: "Not Signed In", description: "You must be signed in to upload an image."});
+      setSignInOpen(true);
       setUploadOpen(false);
       return;
     }
@@ -219,8 +220,9 @@ export default function Home() {
     <div className="min-h-screen bg-background text-foreground">
       <Header 
         user={user}
-        onUploadClick={() => setUploadOpen(true)} 
+        onUploadClick={() => user ? setUploadOpen(true) : setSignInOpen(true)}
         onLeaderboardClick={() => setLeaderboardOpen(true)}
+        onSignInClick={() => setSignInOpen(true)}
       />
       <main className="container mx-auto px-4 py-8">
         <div className="w-full">
@@ -298,6 +300,10 @@ export default function Home() {
         isOpen={isLeaderboardOpen}
         onOpenChange={setLeaderboardOpen}
         images={sortedImages}
+      />
+      <SignInDialog
+        isOpen={isSignInOpen}
+        onOpenChange={setSignInOpen}
       />
     </div>
   );

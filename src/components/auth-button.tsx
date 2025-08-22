@@ -1,7 +1,7 @@
 
 "use client";
 
-import { GoogleAuthProvider, OAuthProvider, signInWithPopup, signOut, User } from "firebase/auth";
+import { signOut, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -14,41 +14,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import Image from 'next/image';
-
 
 type AuthButtonProps = {
   user: User | null;
+  onSignInClick: () => void;
 };
 
-export function AuthButton({ user }: AuthButtonProps) {
-
-  const handleGoogleSignIn = async () => {
-    const provider = new GoogleAuthProvider();
-    try {
-      await signInWithPopup(auth, provider);
-    } catch (error) {
-      console.error("Error during Google sign-in:", error);
-    }
-  };
-
-  const handleMicrosoftSignIn = async () => {
-    const provider = new OAuthProvider('microsoft.com');
-    try {
-      await signInWithPopup(auth, provider);
-    } catch (error) {
-      console.error("Error during Microsoft sign-in:", error);
-    }
-  }
-
-  const handleAppleSignIn = async () => {
-    const provider = new OAuthProvider('apple.com');
-    try {
-      await signInWithPopup(auth, provider);
-    } catch (error) {
-      console.error("Error during Apple sign-in:", error);
-    }
-  }
+export function AuthButton({ user, onSignInClick }: AuthButtonProps) {
 
   const handleSignOut = async () => {
     try {
@@ -82,19 +54,9 @@ export function AuthButton({ user }: AuthButtonProps) {
   }
 
   return (
-    <div className="flex gap-2">
-      <Button onClick={handleGoogleSignIn} variant="outline" size="sm">
-          <Image src="/google-logo.svg" alt="Google" width={16} height={16} className="mr-2"/>
-          Sign In
-      </Button>
-       <Button onClick={handleMicrosoftSignIn} variant="outline" size="sm">
-          <Image src="/microsoft-logo.svg" alt="Microsoft" width={16} height={16} className="mr-2"/>
-          Sign In
-      </Button>
-      <Button onClick={handleAppleSignIn} variant="outline" size="sm">
-          <Image src="/apple-logo.svg" alt="Apple" width={16} height={16} className="mr-2"/>
-          Sign In
-      </Button>
-    </div>
+    <Button onClick={onSignInClick} variant="outline" size="sm">
+      <LogIn className="mr-2 h-4 w-4" />
+      Sign In
+    </Button>
   );
 }
