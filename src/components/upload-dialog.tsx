@@ -26,7 +26,8 @@ const OUTPUT_DIMENSION = 512;
 
 export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogProps) {
   const [imageName, setImageName] = useState("");
-  const [error, setError] = useState("");
+  const [nameError, setNameError] = useState("");
+  const [fileError, setFileError] = useState("");
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   
   const imgRef = useRef<HTMLImageElement>(null);
@@ -44,7 +45,8 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
   // Reset state when dialog opens/closes or new file is selected
   const resetState = useCallback((clearFile = false) => {
     setImageName("");
-    setError("");
+    setNameError("");
+    setFileError("");
     setScale(1);
     setPosition({ x: 0, y: 0 });
     isDraggingRef.current = false;
@@ -58,14 +60,15 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
   }, []);
 
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFileError("");
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
       if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        setError("File size cannot exceed 5MB.");
+        setFileError("File size cannot exceed 5MB.");
         return;
       }
       if (!['image/jpeg', 'image/png', 'image/gif'].includes(file.type)) {
-        setError("Invalid file type. Please upload a JPG, PNG, or GIF.");
+        setFileError("Invalid file type. Please upload a JPG, PNG, or GIF.");
         return;
       }
       
@@ -150,12 +153,12 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
     // Scale from display image to source (natural) image
     const sourceScale = image.naturalWidth / image.width;
 
-    const finalScale = scale * sourceScale;
+    const finalScale = scale / sourceScale;
 
-    const sx = (image.naturalWidth - (CROP_DIMENSION / finalScale) * image.naturalWidth) / 2 - (position.x * sourceScale);
-    const sy = (image.naturalHeight - (CROP_DIMENSION / finalScale) * image.naturalHeight) / 2 - (position.y * sourceScale);
-    const sWidth = image.naturalWidth / finalScale;
-    const sHeight = image.naturalHeight / finalScale;
+    const sx = (image.naturalWidth / 2) - (CROP_DIMENSION / 2 * finalScale) - (position.x / sourceScale);
+    const sy = (image.naturalHeight / 2) - (CROP_DIMENSION / 2 * finalScale) - (position.y / sourceScale);
+    const sWidth = CROP_DIMENSION * finalScale;
+    const sHeight = CROP_DIMENSION * finalScale;
     
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
@@ -182,22 +185,31 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
   }, [position, scale]);
 
   const handleSubmit = () => {
+    let hasError = false;
     if (!imageName.trim()) {
-      setError("Image name is required.");
-      return;
+      setNameError("Image name is required.");
+      hasError = true;
+    } else {
+        setNameError("");
     }
+
     if (!imageSrc) {
-      setError("Please select an image file.");
-      return;
+      setFileError("Please select an image file.");
+      hasError = true;
+    } else {
+        setFileError("");
     }
-    setError("");
+
+    if (hasError) {
+        return;
+    }
     
     const croppedDataUrl = getCroppedImg();
     if (croppedDataUrl) {
         onUpload(imageName, croppedDataUrl);
         resetState(true);
     } else {
-        setError("Could not process the image. Please try again.");
+        setFileError("Could not process the image. Please try again.");
     }
   };
 
@@ -218,22 +230,23 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="imageName" className="text-right">Badge Name</Label>
-                <Input id="imageName" value={imageName} onChange={(e) => setImageName(e.target.value)} className="col-span-3" placeholder="e.g., 'Team Matty Innovator'"/>
+            <div className="space-y-2">
+                <Label htmlFor="imageName">Badge Name</Label>
+                <Input id="imageName" value={imageName} onChange={(e) => setImageName(e.target.value)} placeholder="e.g., 'Team Matty Innovator'"/>
+                {nameError && <p className="text-sm text-destructive">{nameError}</p>}
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="file" className="text-right">Image</Label>
-                <div className="col-span-3">
-                    <Input id="file" type="file" ref={fileInputRef} onChange={onFileChange} className="hidden" accept="image/png, image/jpeg, image/gif"/>
-                    <Button variant="outline" onClick={() => fileInputRef.current?.click()} className="w-full">
-                        <Crop className="mr-2 h-4 w-4" />
-                        {fileInputRef.current?.files?.[0]?.name || 'Choose a file'}
-                    </Button>
-                </div>
+            <div className="space-y-2">
+                <Label htmlFor="file">Image</Label>
+                <Input id="file" type="file" ref={fileInputRef} onChange={onFileChange} className="hidden" accept="image/png, image/jpeg, image/gif"/>
+                <Button variant="outline" onClick={() => fileInputRef.current?.click()} className="w-full">
+                    <Crop className="mr-2 h-4 w-4" />
+                    {fileInputRef.current?.files?.[0]?.name || 'Choose a file'}
+                </Button>
+                 {fileError && <p className="text-sm text-destructive">{fileError}</p>}
             </div>
+            
             {imageSrc && (
-                 <div className="flex flex-col items-center gap-4 my-4">
+                 <div className="flex flex-col items-center gap-4 pt-4">
                     <div
                         className="relative overflow-hidden rounded-full cursor-grab active:cursor-grabbing flex items-center justify-center bg-muted"
                         style={{ width: CROP_DIMENSION, height: CROP_DIMENSION }}
@@ -249,9 +262,10 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
                           className="pointer-events-none object-cover"
                           style={{
                               transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
-                              // Set initial size to cover the container while maintaining aspect ratio
-                              minWidth: CROP_DIMENSION,
-                              minHeight: CROP_DIMENSION,
+                              width: 'auto',
+                              height: 'auto',
+                              minWidth: '100%',
+                              minHeight: '100%',
                               maxWidth: 'none',
                           }}
                           crossOrigin="anonymous"
@@ -265,7 +279,6 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
                  </div>
             )}
              <canvas ref={canvasRef} style={{ display: 'none' }} />
-             {error && <p className="col-span-4 text-center text-sm text-destructive">{error}</p>}
         </div>
         <DialogFooter>
             <Button onClick={handleSubmit} disabled={!imageSrc} className="bg-accent text-accent-foreground hover:bg-accent/90">
@@ -276,3 +289,4 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
     </Dialog>
   );
 }
+
