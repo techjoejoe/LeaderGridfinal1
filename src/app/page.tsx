@@ -26,9 +26,22 @@ export default function Home() {
   const [isUploadOpen, setUploadOpen] = useState(false);
   const [isLeaderboardOpen, setLeaderboardOpen] = useState(false);
   const [isSignInOpen, setSignInOpen] = useState(false);
+  const [signInTitle, setSignInTitle] = useState("Sign In");
+  const [signInDescription, setSignInDescription] = useState("Choose a provider to sign in and start voting.");
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [votingImageId, setVotingImageId] = useState<string | null>(null);
+
+  const resetSignInDialog = () => {
+    setSignInTitle("Sign In");
+    setSignInDescription("Choose a provider to sign in and start voting.");
+  };
+
+  const openSignInDialog = (title?: string, description?: string) => {
+    setSignInTitle(title || "Sign In");
+    setSignInDescription(description || "Choose a provider to sign in and start voting.");
+    setSignInOpen(true);
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -86,7 +99,7 @@ export default function Home() {
 
   const handleVote = async (id: string) => {
     if (!user) {
-      setSignInOpen(true);
+      openSignInDialog();
       return;
     }
 
@@ -152,7 +165,7 @@ export default function Home() {
 
   const handleUpload = async (imageName: string, dataUrl: string) => {
     if (!user) {
-      setSignInOpen(true);
+      openSignInDialog("Sign in to Enter Contest", "Please sign in to upload an image and enter the contest.");
       setUploadOpen(false);
       return;
     }
@@ -221,14 +234,21 @@ export default function Home() {
   }, [podiumImages]);
 
   const voteDisabled = !user || dailyVoteInfo.votesLeft <= 0;
-  const onUploadClick = () => user ? setUploadOpen(true) : setSignInOpen(true);
+  
+  const onUploadClick = () => {
+      if (user) {
+          setUploadOpen(true)
+      } else {
+          openSignInDialog("Sign in to Enter Contest", "Please sign in to upload an image.");
+      }
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Header 
         user={user}
         onLeaderboardClick={() => setLeaderboardOpen(true)}
-        onSignInClick={() => setSignInOpen(true)}
+        onSignInClick={() => openSignInDialog()}
       />
       <main className="container mx-auto px-4 py-8">
         <div className="w-full">
@@ -242,7 +262,7 @@ export default function Home() {
                       Make a Badge
                     </Link>
                   </Button>
-                  <Button onClick={onUploadClick} disabled={!user} className="bg-accent text-accent-foreground hover:bg-accent/90">
+                  <Button onClick={onUploadClick} className="bg-accent text-accent-foreground hover:bg-accent/90">
                     <Trophy className="mr-2 h-4 w-4" />
                     Enter Contest
                   </Button>
@@ -323,8 +343,17 @@ export default function Home() {
       />
       <SignInDialog
         isOpen={isSignInOpen}
-        onOpenChange={setSignInOpen}
+        onOpenChange={(open) => {
+          setSignInOpen(open);
+          if (!open) {
+            resetSignInDialog();
+          }
+        }}
+        title={signInTitle}
+        description={signInDescription}
       />
     </div>
   );
 }
+
+    

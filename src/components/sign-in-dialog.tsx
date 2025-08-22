@@ -16,9 +16,16 @@ import Image from "next/image";
 type SignInDialogProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
+  title?: string;
+  description?: string;
 };
 
-export function SignInDialog({ isOpen, onOpenChange }: SignInDialogProps) {
+export function SignInDialog({ 
+  isOpen, 
+  onOpenChange,
+  title = "Sign In",
+  description = "Choose a provider to sign in and start voting."
+}: SignInDialogProps) {
   const handleGoogleSignIn = async () => {
     const provider = new GoogleAuthProvider();
     try {
@@ -53,9 +60,9 @@ export function SignInDialog({ isOpen, onOpenChange }: SignInDialogProps) {
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xs">
         <DialogHeader>
-          <DialogTitle className="font-headline text-center">Sign In</DialogTitle>
+          <DialogTitle className="font-headline text-center">{title}</DialogTitle>
           <DialogDescription className="text-center">
-            Choose a provider to sign in and start voting.
+            {description}
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-3 py-4">
@@ -76,3 +83,5 @@ export function SignInDialog({ isOpen, onOpenChange }: SignInDialogProps) {
     </Dialog>
   );
 }
+
+    
