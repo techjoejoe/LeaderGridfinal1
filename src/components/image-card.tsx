@@ -59,13 +59,14 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting }:
   }
 
   return (
-    <div className={cn("flex flex-col items-center gap-3 transition-all duration-300 relative", isPodium ? "hover:scale-105" : "hover:scale-125 hover:z-30", isPodium ? podiumClasses.container : "")}>
+    <div className={cn("flex flex-col items-center gap-3 relative", isPodium ? podiumClasses.container : "hover:z-30")}>
       {rank === 0 && (
         <span className="absolute -top-14 text-8xl transform -rotate-12 animate-float z-20 drop-shadow-lg" role="img" aria-label="crown">👑</span>
       )}
       <div 
         className={cn(
-          "relative",
+          "relative transition-all duration-300",
+          isPodium ? "hover:scale-105" : "hover:scale-125",
           isPodium ? podiumClasses.imageContainer : nonPodiumClasses.imageContainer,
            isVoting && "animate-pulse-glow"
         )}
