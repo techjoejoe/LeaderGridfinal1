@@ -2,6 +2,7 @@
 import { Trophy, RotateCcw, Users, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
+import { ThemeToggle } from "./theme-toggle";
 
 type HeaderProps = {
   onUploadClick: () => void;
@@ -20,6 +21,7 @@ export function Header({ onUploadClick, onResetVotesClick, onLeaderboardClick }:
           </h1>
         </div>
         <div className="flex items-center gap-2">
+           <ThemeToggle />
            <Button onClick={onLeaderboardClick} variant="ghost" size="icon" className="h-9 w-9">
               <Users className="h-5 w-5" />
               <span className="sr-only">See Leaderboard</span>
