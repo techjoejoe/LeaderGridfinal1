@@ -2,12 +2,13 @@
 "use client";
 
 import Image from "next/image";
-import { useRef } from "react";
+import { useState } from "react";
 import { Vote, Check, Loader2 } from "lucide-react";
 import type { PicVoteImage } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Sparkles } from "@/components/sparkles";
+import { Confetti } from "@/components/confetti";
 
 
 type ImageCardProps = {
@@ -21,10 +22,10 @@ type ImageCardProps = {
 
 export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting }: ImageCardProps) {
   const isPodium = rank < 3;
-  const audioRef = useRef<HTMLAudioElement>(null);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   const podiumClasses = {
-    container: cn({
+    container: cn("drop-shadow-lg", {
         "z-20": rank === 0,
         "z-10": rank === 1,
         "self-end": rank === 1 || rank === 2,
@@ -46,25 +47,21 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting }:
   };
 
   const nonPodiumClasses = {
-      imageContainer: "w-32 h-32 md:w-36 md:h-36 rounded-full shadow-2xl p-1",
+      imageContainer: "w-32 h-32 md:w-36 md:h-36 rounded-full shadow-2xl p-1 drop-shadow-lg",
       imageBorder: "border-4 border-card rounded-full w-full h-full"
   };
 
   const uploaderName = [image.firstName, image.lastName].filter(Boolean).join(" ") || "Anonymous";
 
   const handleVoteClick = () => {
-    if (audioRef.current) {
-        audioRef.current.currentTime = 0;
-        audioRef.current.play().catch(e => console.error("Error playing audio:", e));
-    }
+    setShowConfetti(true);
     onVote(image.id);
   }
 
   return (
     <div className={cn("flex flex-col items-center gap-3 transition-all duration-300 hover:scale-105 relative", isPodium ? podiumClasses.container : "")}>
-        <audio ref={audioRef} src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA" preload="auto" />
       {rank === 0 && (
-        <span className="absolute -top-16 text-8xl transform -rotate-12 animate-float z-20" role="img" aria-label="crown">👑</span>
+        <span className="absolute -top-8 text-8xl transform -rotate-12 animate-float z-20 drop-shadow-lg" role="img" aria-label="crown">👑</span>
       )}
       <div 
         className={cn(
@@ -100,13 +97,16 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting }:
             </div>
         </div>
       </div>
-      <div className="text-center w-36">
+      <div className="text-center w-36 relative">
         <p className="font-bold truncate text-sm" title={image.name}>{image.name}</p>
         <p className="text-xs text-muted-foreground truncate" title={`by ${uploaderName}`}>by {uploaderName}</p>
         <Button onClick={handleVoteClick} disabled={disabled || isVoting} size="sm" className="w-full mt-2" variant={hasVoted ? "secondary" : "outline"}>
             {isVoting ? <Loader2 className="animate-spin" /> : hasVoted ? <Check /> : <Vote />}
             {isVoting ? "Voting..." : hasVoted ? "Voted" : `Vote (${image.votes})`}
         </Button>
+         {showConfetti && (
+          <Confetti onAnimationComplete={() => setShowConfetti(false)} />
+        )}
       </div>
     </div>
   );
