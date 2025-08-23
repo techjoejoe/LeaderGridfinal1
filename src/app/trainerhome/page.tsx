@@ -14,6 +14,7 @@ import type { Class } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import Link from "next/link";
 
 function ClassCard({ classData }: { classData: Class }) {
   return (
@@ -23,7 +24,9 @@ function ClassCard({ classData }: { classData: Class }) {
             <CardDescription>Invite Code: {classData.inviteCode}</CardDescription>
         </CardHeader>
         <CardFooter>
-            <Button className="w-full" disabled>Enter Class</Button>
+            <Button asChild className="w-full">
+              <Link href="/contests">Enter Class</Link>
+            </Button>
         </CardFooter>
     </Card>
   )
