@@ -59,13 +59,18 @@ export const onDeleteContest = functions.firestore
         });
     }
 
-    // Note: Deleting user_votes subcollections across all users is a complex
-    // operation that can be slow and costly. For this simplified implementation,
-    // we are leaving the user_votes documents. They will become orphaned data
-    // but will not affect the app's functionality. A more robust cleanup
-    // would involve a more complex script or batch job.
+    // 2. Delete all user vote data for this contest
+    // This requires querying the 'users' collection and then the 'user_votes' subcollection
+    const usersSnapshot = await db.collection("users").get();
+    functions.logger.log(`Checking ${usersSnapshot.size} users for vote data to delete.`);
+    
+    for (const userDoc of usersSnapshot.docs) {
+        const userVoteRef = db.collection("users").doc(userDoc.id).collection("user_votes").doc(contestId);
+        // We don't need to check if it exists, just add delete to the batch
+        batch.delete(userVoteRef);
+    }
     
     functions.logger.log("Committing batch delete for Firestore documents.");
     await batch.commit();
-    functions.logger.log(`Successfully cleaned up image data for contest ${contestId}`);
+    functions.logger.log(`Successfully cleaned up contest ${contestId}`);
   });
