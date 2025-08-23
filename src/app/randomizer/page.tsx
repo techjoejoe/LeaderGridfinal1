@@ -3,7 +3,8 @@
 
 import { Header } from "@/components/header";
 import { onAuthStateChanged, User } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
+import { doc, getDoc, setDoc, onSnapshot } from "firebase/firestore";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { SignInDialog } from "@/components/sign-in-dialog";
 import { Button } from "@/components/ui/button";
@@ -78,6 +79,7 @@ type Winner = { name: string; time: string };
 type UndoState = { items: Item[], winners: Winner[] };
 
 const RandomizerWheel = () => {
+    const [user, setUser] = useState<User | null>(null);
     const [items, setItems] = useState<Item[]>([]);
     const [isSpinning, setIsSpinning] = useState(false);
     const [currentRotation, setCurrentRotation] = useState(0);
@@ -100,6 +102,45 @@ const RandomizerWheel = () => {
     const teamAddInputRef = useRef<HTMLInputElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const soundEffects = useRef(new SoundEffects());
+    
+    // Store items in Firestore for persistence
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+          setUser(currentUser);
+        });
+        return () => unsubscribe();
+    }, []);
+
+    useEffect(() => {
+        if (user) {
+            const docRef = doc(db, "randomizer_lists", user.uid);
+            const unsubscribe = onSnapshot(docRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if(data.items) setItems(data.items);
+                    if(data.recentWinners) setRecentWinners(data.recentWinners);
+                    if(data.settings) setSettings(s => ({...s, ...data.settings}));
+                } else {
+                    // No data for this user yet, maybe set initial state
+                    setItems([]);
+                    setRecentWinners([]);
+                }
+            });
+            return () => unsubscribe();
+        } else {
+            // Not signed in, use local state only
+            setItems([]);
+            setRecentWinners([]);
+        }
+    }, [user]);
+
+    const saveStateToFirestore = useCallback(async (newState: { items?: Item[], recentWinners?: Winner[], settings?: Partial<typeof settings> }) => {
+        if (user) {
+            const docRef = doc(db, "randomizer_lists", user.uid);
+            const currentState = (await getDoc(docRef)).data() || {};
+            await setDoc(docRef, { ...currentState, ...newState }, { merge: true });
+        }
+    }, [user]);
     
     const teamColorSets = [
         ['#FF6B6B', '#FF5252', '#FF7979', '#FF4444'], // Team 1 - Reds
@@ -184,6 +225,11 @@ const RandomizerWheel = () => {
         }
     }, []);
 
+    const updateItems = (newItems: Item[]) => {
+        setItems(newItems);
+        saveStateToFirestore({ items: newItems });
+    };
+
     const addTextItems = useCallback(() => {
         const text = textInputRef.current?.value.trim();
         if (text) {
@@ -198,9 +244,9 @@ const RandomizerWheel = () => {
                     team: `Team ${(index % numberOfTeams) + 1}`,
                     teamNumber: (index % numberOfTeams) + 1,
                 })).sort((a,b) => (a.teamNumber ?? 0) - (b.teamNumber ?? 0));
-                setItems(newTeamItems);
+                updateItems(newTeamItems);
             } else {
-                setItems(prev => [...prev, ...newItemsRaw.map(name => ({ name }))]);
+                updateItems([...items, ...newItemsRaw.map(name => ({ name }))]);
             }
             if(textInputRef.current) textInputRef.current.value = "";
             showResult(`Added ${newItemsRaw.length} item(s)`);
@@ -236,18 +282,21 @@ const RandomizerWheel = () => {
             showResult(`🎉 ${winnerText}`);
             
             const timeString = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-            setRecentWinners(prev => [{ name: winnerText, time: timeString }, ...prev.slice(0, 4)]);
+            const newWinners = [{ name: winnerText, time: timeString }, ...recentWinners.slice(0, 4)];
+            setRecentWinners(newWinners);
+            saveStateToFirestore({ recentWinners: newWinners });
 
             if (settings.removeWinner) {
                 setTimeout(() => {
                     saveUndoState();
-                    setItems(prev => prev.filter((_, i) => i !== (winningIndex % prev.length)));
+                    const updatedItems = items.filter((_, i) => i !== (winningIndex % items.length));
+                    updateItems(updatedItems);
                 }, 1000);
             }
 
             setIsSpinning(false);
         }, 8000);
-    }, [isSpinning, items, settings.removeWinner, settings.soundEnabled, currentRotation, saveUndoState, showResult]);
+    }, [isSpinning, items, settings.removeWinner, settings.soundEnabled, currentRotation, saveUndoState, showResult, recentWinners]);
 
     // Keyboard shortcuts
     useEffect(() => {
@@ -288,7 +337,7 @@ const RandomizerWheel = () => {
 
     const clearItems = () => {
         saveUndoState();
-        setItems([]);
+        updateItems([]);
         if (fileInputRef.current) fileInputRef.current.value = "";
         if (textInputRef.current) textInputRef.current.value = "";
         if (teamAddInputRef.current) teamAddInputRef.current.value = "";
@@ -313,13 +362,13 @@ const RandomizerWheel = () => {
                     }).filter(Boolean) as Item[];
                     
                     if (currentMode === 'team') {
-                        setItems(newItems.map((item, index) => ({
+                        updateItems(newItems.map((item, index) => ({
                             ...item,
                             team: `Team ${(index % numberOfTeams) + 1}`,
                             teamNumber: (index % numberOfTeams) + 1
                         })));
                     } else {
-                        setItems(newItems);
+                        updateItems(newItems);
                     }
                     showResult('CSV loaded successfully!');
                 }
@@ -330,14 +379,15 @@ const RandomizerWheel = () => {
     const removeItem = (index: number) => {
         saveUndoState();
         const removedItem = items[index];
-        setItems(prev => prev.filter((_, i) => i !== index));
+        const newItems = items.filter((_, i) => i !== index)
+        updateItems(newItems);
         showResult(`Removed ${removedItem.name}`);
     };
 
     const undoLastAction = () => {
         if (undoHistory.length > 0) {
             const lastState = undoHistory[undoHistory.length - 1];
-            setItems(lastState.items);
+            updateItems(lastState.items);
             setRecentWinners(lastState.winners);
             setUndoHistory(prev => prev.slice(0, -1));
             showResult('Action undone!');
@@ -367,10 +417,12 @@ const RandomizerWheel = () => {
                 team: `Team ${(index % numberOfTeams) + 1}`,
                 teamNumber: (index % numberOfTeams) + 1,
             }));
-            setItems(teamItems.sort((a,b) => (a.teamNumber ?? 0) - (b.teamNumber ?? 0)));
+            const sortedTeamItems = teamItems.sort((a,b) => (a.teamNumber ?? 0) - (b.teamNumber ?? 0));
+            updateItems(sortedTeamItems);
             showResult('Switched to Team Mode');
         } else {
-            setItems(items.map(({ name }) => ({ name })));
+            const newItems = items.map(({ name }) => ({ name }));
+            updateItems(newItems);
             showResult('Switched to Normal Mode');
         }
     };
@@ -401,7 +453,7 @@ const RandomizerWheel = () => {
             team: `Team ${(index % numberOfTeams) + 1}`,
             teamNumber: (index % numberOfTeams) + 1,
         })).sort((a,b) => (a.teamNumber ?? 0) - (b.teamNumber ?? 0));
-        setItems(newTeamItems);
+        updateItems(newTeamItems);
         showResult('Teams shuffled!');
     };
     
@@ -414,7 +466,7 @@ const RandomizerWheel = () => {
             team: `Team ${(index % numberOfTeams) + 1}`,
             teamNumber: (index % numberOfTeams) + 1,
         })).sort((a,b) => (a.teamNumber ?? 0) - (b.teamNumber ?? 0));
-        setItems(balancedItems);
+        updateItems(balancedItems);
         showResult('Teams balanced!');
     };
 
@@ -424,9 +476,15 @@ const RandomizerWheel = () => {
         saveUndoState();
         const minTeam = Object.keys(teamCounts).reduce((a, b) => teamCounts[a] <= teamCounts[b] ? a : b);
         const teamNum = parseInt(minTeam);
-        setItems(prev => [...prev, { name, team: `Team ${teamNum}`, teamNumber: teamNum }].sort((a,b) => (a.teamNumber || 0) - (b.teamNumber || 0)));
+        const newItems = [...items, { name, team: `Team ${teamNum}`, teamNumber: teamNum }].sort((a,b) => (a.teamNumber || 0) - (b.teamNumber || 0));
+        updateItems(newItems);
         if(teamAddInputRef.current) teamAddInputRef.current.value = "";
         showResult(`Added "${name}" to Team ${teamNum}`);
+    };
+
+    const updateRecentWinners = (newWinners: Winner[]) => {
+        setRecentWinners(newWinners);
+        saveStateToFirestore({ recentWinners: newWinners });
     };
 
     return (
@@ -648,7 +706,7 @@ const RandomizerWheel = () => {
                                     </div>
                                 ))}
                             </div>
-                            <Button style={{marginTop: '8px'}} onClick={() => setRecentWinners([])}>Clear History</Button>
+                            <Button style={{marginTop: '8px'}} onClick={() => updateRecentWinners([])}>Clear History</Button>
                         </div>
                     </div>
 
@@ -753,6 +811,3 @@ export default function RandomizerPage() {
 }
 
     
-
-    
-
