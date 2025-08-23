@@ -3,107 +3,104 @@
 
 import { Header } from "@/components/header";
 import { onAuthStateChanged, User } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import { useState, useEffect } from "react";
+import { collection, addDoc, query, where, onSnapshot, serverTimestamp } from "firebase/firestore";
 import { SignInDialog } from "@/components/sign-in-dialog";
-import { DashboardCard } from "@/components/dashboard-card";
-import { Zap, HelpCircle, QrCode } from "lucide-react";
-import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import { PlusCircle, Info } from "lucide-react";
+import { CreateClassDialog } from "@/components/create-class-dialog";
+import type { Class } from "@/lib/types";
+import { useToast } from "@/hooks/use-toast";
+import { Card, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 
-const dashboardTools = [
-  {
-    description: "Spin a wheel to randomly select a name or item.",
-    icon: (
-      <Image
-        src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/randomizer.png?alt=media&token=1acfebed-1dfe-4651-af05-23b96d3c66e6"
-        alt="Randomizer Wheel Logo"
-        width={140}
-        height={40}
-      />
-    ),
-    href: "/randomizer",
-    disabled: false,
-  },
-  {
-    description: "Run a photo contest and let users vote for the best one.",
-    icon: (
-      <Image
-        src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/logo-light.png?alt=media&token=576a43d9-43ef-4307-868f-130e212228c1"
-        alt="PicPick Logo"
-        width={140}
-        height={40}
-        className="dark:hidden"
-      />
-    ),
-    href: "/contests",
-    disabled: false,
-  },
-  {
-    description: "Create and run live polls to gather real-time feedback.",
-    icon: (
-      <Image
-        src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/Livevote.png?alt=media&token=821a851e-8449-4ede-8005-9be175576be4"
-        alt="Live Poll Logo"
-        width={140}
-        height={40}
-      />
-    ),
-    href: "#",
-    disabled: true,
-  },
-  {
-    description: "Set a countdown timer for activities and breaks.",
-    icon: (
-        <Image
-            src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/Tickr.png?alt=media&token=0ea8fafc-822b-4cfc-bc88-6fbbd8959479"
-            alt="Tickr Logo"
-            width={140}
-            height={40}
-        />
-    ),
-    href: "#",
-    disabled: true,
-  },
-  {
-    title: "First to Buzz In",
-    description: "A virtual buzzer for trivia and quiz games.",
-    icon: Zap,
-    href: "#",
-    disabled: true,
-  },
-  {
-    title: "Quiz",
-    description: "Create and administer quizzes with automated scoring.",
-    icon: HelpCircle,
-    href: "#",
-    disabled: true,
-  },
-  {
-    description: "A fun, interactive game where users scan QR codes to earn points.",
-    icon: (
-        <Image
-            src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/LeaderGridMascotLogo.png?alt=media&token=98f67c05-c876-4426-9f91-26cdbc73bbf6"
-            alt="LeaderGrid Mascot Logo"
-            width={120}
-            height={120}
-        />
-    ),
-    href: "#",
-    disabled: true,
-  },
-]
+function ClassCard({ classData }: { classData: Class }) {
+  return (
+    <Card className="flex flex-col transition-all hover:shadow-lg">
+        <CardHeader className="flex-grow">
+            <CardTitle>{classData.name}</CardTitle>
+            <CardDescription>Invite Code: {classData.inviteCode}</CardDescription>
+        </CardHeader>
+        <CardFooter>
+            <Button className="w-full" disabled>Enter Class</Button>
+        </CardFooter>
+    </Card>
+  )
+}
 
 
 export default function TrainerHomePage() {
   const [user, setUser] = useState<User | null>(null);
   const [isSignInOpen, setSignInOpen] = useState(false);
+  const [isCreateClassOpen, setCreateClassOpen] = useState(false);
+  const [classes, setClasses] = useState<Class[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
+      if (!currentUser) {
+        setLoading(false);
+        setClasses([]);
+      }
     });
     return () => unsubscribeAuth();
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      setLoading(true);
+      const q = query(collection(db, "classes"), where("trainerUid", "==", user.uid));
+      const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const classesData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Class));
+        setClasses(classesData);
+        setLoading(false);
+      }, (error) => {
+        console.error("Error fetching classes: ", error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Could not fetch your classes.",
+        });
+        setLoading(false);
+      });
+      return () => unsubscribe();
+    }
+  }, [user, toast]);
+
+  const handleCreateClass = async (className: string) => {
+    if (!user) {
+      setSignInOpen(true);
+      return;
+    }
+
+    const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+    try {
+      await addDoc(collection(db, "classes"), {
+        name: className,
+        trainerUid: user.uid,
+        learnerUids: [],
+        createdAt: serverTimestamp(),
+        inviteCode: inviteCode,
+      });
+
+      toast({
+        title: "Class Created!",
+        description: `Your class "${className}" is ready.`,
+      });
+      setCreateClassOpen(false);
+    } catch (error) {
+      console.error("Error creating class:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Could not create the class. Please try again.",
+      });
+    }
+  };
 
   return (
     <>
@@ -112,26 +109,53 @@ export default function TrainerHomePage() {
         onSignInClick={() => setSignInOpen(true)}
       />
       <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold font-headline">Trainer Dashboard</h1>
-          <p className="text-muted-foreground">Welcome back! Select a tool to get started.</p>
+        <div className="flex justify-between items-center mb-6">
+            <div>
+                <h1 className="text-3xl font-bold font-headline">My Classes</h1>
+                <p className="text-muted-foreground">Select a class or create a new one to begin.</p>
+            </div>
+            <Button onClick={() => user ? setCreateClassOpen(true) : setSignInOpen(true)} >
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Create New Class
+            </Button>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {dashboardTools.map((tool, index) => (
-            <DashboardCard
-              key={tool.title || index}
-              title={tool.title}
-              description={tool.description}
-              icon={tool.icon}
-              href={tool.href}
-              disabled={tool.disabled}
-            />
-          ))}
-        </div>
+
+        {user ? (
+            loading ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    {[...Array(4)].map((_, i) => (
+                        <Card key={i}>
+                            <CardHeader><Skeleton className="h-6 w-3/4" /><Skeleton className="h-4 w-1/2 mt-2" /></CardHeader>
+                            <CardFooter><Skeleton className="h-10 w-full" /></CardFooter>
+                        </Card>
+                    ))}
+                </div>
+            ) : classes.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    {classes.map((c) => <ClassCard key={c.id} classData={c} />)}
+                </div>
+            ) : (
+                <div className="text-center py-16 border-2 border-dashed rounded-lg">
+                    <h3 className="text-2xl font-bold font-headline">No classes yet!</h3>
+                    <p className="text-muted-foreground mt-2">Get started by creating your first class.</p>
+                </div>
+            )
+        ) : (
+          <div className="text-center py-16 border-2 border-dashed rounded-lg">
+            <h3 className="text-2xl font-bold font-headline">Please Sign In</h3>
+            <p className="text-muted-foreground mt-2">You need to be signed in to view or create classes.</p>
+            <Button onClick={() => setSignInOpen(true)} className="mt-4">Sign In</Button>
+          </div>
+        )}
       </main>
       <SignInDialog
         isOpen={isSignInOpen}
         onOpenChange={setSignInOpen}
+      />
+      <CreateClassDialog
+        isOpen={isCreateClassOpen}
+        onOpenChange={setCreateClassOpen}
+        onCreate={handleCreateClass}
       />
     </>
   );

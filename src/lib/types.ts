@@ -32,4 +32,24 @@ export type Contest = {
     imageShape: ContestImageShape;
     hasPassword?: boolean;
     password?: string;
+    classId: string; // Link to the Class
 }
+
+// Represents a user's document in the 'users' collection
+export type UserData = {
+    uid: string;
+    email: string | null;
+    displayName: string | null;
+    role: 'trainer' | 'learner';
+    classIds: string[]; // List of classes the user is a member of
+};
+
+// Represents a Class document in the 'classes' collection
+export type Class = {
+    id: string;
+    name: string;
+    trainerUid: string;
+    learnerUids: string[];
+    createdAt: Timestamp;
+    inviteCode: string;
+};
