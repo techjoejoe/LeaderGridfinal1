@@ -25,7 +25,7 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting, i
   const isPodium = rank < 3;
   const [showConfetti, setShowConfetti] = useState(false);
 
-  const podiumContainerClasses = cn("drop-shadow-lg w-full", {
+  const podiumContainerClasses = cn("drop-shadow-lg w-full flex flex-col items-center", {
     "z-20 w-48 md:w-60": rank === 0,
     "z-10 w-36 md:w-44 self-end": rank === 1,
     "w-32 md:w-36 self-end": rank === 2,
@@ -36,12 +36,15 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting, i
     onVote(image.id);
   }
 
-  const imageContainerClasses = cn("relative w-full shadow-lg overflow-hidden", {
-    "rounded-full aspect-square": imageShape === 'circular',
-    "rounded-md aspect-square": imageShape === 'square',
-    "rounded-lg": imageShape === 'original'
-  });
-
+  const imageFrameClasses = cn(
+    "relative w-full overflow-hidden bg-card shadow-lg",
+    {
+      "rounded-full aspect-square": imageShape === 'circular',
+      "rounded-md aspect-square": imageShape === 'square',
+      "rounded-lg": imageShape === 'original',
+    }
+  );
+  
   const imageBorderClasses = cn("border-4 w-full h-full", {
     "rounded-full": imageShape === 'circular',
     "rounded-md": imageShape === 'square' || imageShape === 'original',
@@ -77,20 +80,34 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting, i
           }
         )} />
         <div className={cn("relative h-full w-full p-1 shadow-2xl", imageBorderClasses)}>
-           <div className={cn(imageContainerClasses, "bg-card")}>
-                {rank < 3 && (
-                  <Sparkles
-                    color={rank === 0 ? '#FFC700' : rank === 1 ? '#C0C0C0' : '#CD7F32'}
-                  />
-                )}
-                <Image
-                    src={image.url}
-                    alt={image.name ?? 'photo'}
-                    fill
-                    className="object-cover"
-                    sizes={imageSizes}
-                    data-ai-hint={image.name.toLowerCase().split(' ').slice(0, 2).join(' ')}
+            <div className={imageFrameClasses}>
+              {rank < 3 && (
+                <Sparkles
+                  color={rank === 0 ? '#FFC700' : rank === 1 ? '#C0C0C0' : '#CD7F32'}
                 />
+              )}
+              {imageShape === 'original' ? (
+                <Image
+                  src={image.url}
+                  alt={image.name ?? 'photo'}
+                  width={500}
+                  height={500}
+                  className="w-full h-auto object-cover"
+                  sizes={imageSizes}
+                  data-ai-hint={image.name.toLowerCase().split(' ').slice(0, 2).join(' ')}
+                  priority={isPodium}
+                />
+              ) : (
+                <Image
+                  src={image.url}
+                  alt={image.name ?? 'photo'}
+                  fill
+                  className="object-cover"
+                  sizes={imageSizes}
+                  data-ai-hint={image.name.toLowerCase().split(' ').slice(0, 2).join(' ')}
+                  priority={isPodium}
+                />
+              )}
             </div>
         </div>
       </div>
