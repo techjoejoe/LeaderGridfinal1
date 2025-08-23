@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import type { Contest, PicVoteImage } from "@/lib/types";
 import { User } from "firebase/auth";
-import { collection, query, onSnapshot } from "firebase/firestore";
+import { collection, query, onSnapshot, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
