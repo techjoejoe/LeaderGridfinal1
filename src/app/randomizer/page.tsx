@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Settings, X, Share2, Monitor, Shuffle, Scale, Undo, Trash2, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Papa from "papaparse";
+import { Confetti } from "@/components/confetti";
 
 // Sound System using Web Audio API
 class SoundEffects {
@@ -95,6 +96,7 @@ const RandomizerWheel = () => {
     const [shareLink, setShareLink] = useState("");
     const [theme, setTheme] = useState('dark');
     const [wheelSize, setWheelSize] = useState('medium');
+    const [winner, setWinner] = useState<{item: Item, text: string} | null>(null);
 
     const wheelRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -125,6 +127,8 @@ const RandomizerWheel = () => {
                     setItems([]);
                     setRecentWinners([]);
                 }
+            }, (error) => {
+                console.error("Firestore snapshot error:", error);
             });
             return () => unsubscribe();
         } else {
@@ -136,9 +140,13 @@ const RandomizerWheel = () => {
 
     const saveStateToFirestore = useCallback(async (newState: { items?: Item[], recentWinners?: Winner[], settings?: Partial<typeof settings> }) => {
         if (user) {
-            const docRef = doc(db, "randomizer_lists", user.uid);
-            const currentState = (await getDoc(docRef)).data() || {};
-            await setDoc(docRef, { ...currentState, ...newState }, { merge: true });
+            try {
+                const docRef = doc(db, "randomizer_lists", user.uid);
+                const currentState = (await getDoc(docRef)).data() || {};
+                await setDoc(docRef, { ...currentState, ...newState }, { merge: true });
+            } catch(e) {
+                console.error("Could not save state to firestore", e);
+            }
         }
     }, [user]);
     
@@ -253,6 +261,17 @@ const RandomizerWheel = () => {
         }
     }, [currentMode, items, numberOfTeams, saveUndoState, showResult]);
 
+    const closeWinnerOverlay = () => {
+        if (!winner) return;
+
+        if (settings.removeWinner) {
+            saveUndoState();
+            const updatedItems = items.filter(item => item.name !== winner.item.name);
+            updateItems(updatedItems);
+        }
+        setWinner(null);
+    };
+
     const spinWheel = useCallback(() => {
         if (isSpinning || items.length === 0) return;
 
@@ -271,29 +290,21 @@ const RandomizerWheel = () => {
         const segmentAngle = 360 / items.length;
         const finalAngle = newRotation % 360;
         const winningIndex = Math.floor((360 - finalAngle) / segmentAngle);
-        const winner = items[winningIndex % items.length];
+        const winnerItem = items[winningIndex % items.length];
 
         setTimeout(() => {
             if (settings.soundEnabled) {
                 soundEffects.current.stopSpinning();
                 soundEffects.current.playWinner();
             }
-            const winnerText = winner.team ? `${winner.name} (${winner.team})` : winner.name;
-            showResult(`🎉 ${winnerText}`);
+            const winnerText = winnerItem.team ? `${winnerItem.name} (${winnerItem.team})` : winnerItem.name;
+            setWinner({ item: winnerItem, text: winnerText });
             
             const timeString = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
             const newWinners = [{ name: winnerText, time: timeString }, ...recentWinners.slice(0, 4)];
             setRecentWinners(newWinners);
             saveStateToFirestore({ recentWinners: newWinners });
-
-            if (settings.removeWinner) {
-                setTimeout(() => {
-                    saveUndoState();
-                    const updatedItems = items.filter((_, i) => i !== (winningIndex % items.length));
-                    updateItems(updatedItems);
-                }, 1000);
-            }
-
+            
             setIsSpinning(false);
         }, 8000);
     }, [isSpinning, items, settings.removeWinner, settings.soundEnabled, currentRotation, saveUndoState, showResult, recentWinners]);
@@ -310,7 +321,8 @@ const RandomizerWheel = () => {
                 e.preventDefault();
                 setIsPresentationMode(p => !p);
             } else if (e.key === 'Escape') {
-                if (isPresentationMode) setIsPresentationMode(false);
+                if(winner) closeWinnerOverlay();
+                else if (isPresentationMode) setIsPresentationMode(false);
                 else {
                     setIsSettingsOpen(false);
                     setIsShareOpen(false);
@@ -320,7 +332,7 @@ const RandomizerWheel = () => {
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [spinWheel, isPresentationMode]);
+    }, [spinWheel, isPresentationMode, winner]);
     
     // Load from URL params on mount
     useEffect(() => {
@@ -588,6 +600,39 @@ const RandomizerWheel = () => {
                 .mode-btn { flex: 1; padding: 8px; background: transparent; border: none; border-radius: 8px; color: var(--text-secondary); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
                 .mode-btn.active { background: var(--accent-gradient); color: white; }
                 .team-input { width: 100%; padding: 8px 12px; background: var(--bg-hover); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary); font-size: 14px; }
+                .winner-overlay {
+                    position: fixed;
+                    inset: 0;
+                    background-color: rgba(0, 0, 0, 0.7);
+                    backdrop-filter: blur(10px);
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 2000;
+                    animation: fadeIn 0.5s ease-in-out;
+                }
+                @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+                .winner-overlay-content {
+                    text-align: center;
+                    animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+                }
+                 @keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+                .winner-title {
+                    font-size: 2rem;
+                    color: var(--text-secondary);
+                }
+                .winner-name {
+                    font-size: clamp(2rem, 10vw, 6rem);
+                    font-weight: 700;
+                    line-height: 1;
+                    margin: 1rem 0;
+                    background: linear-gradient(135deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    background-clip: text;
+                    padding: 1rem;
+                }
                 
                 @media (max-width: 768px) {
                     .randomizer-page .main-content { grid-template-columns: 1fr; }
@@ -602,6 +647,17 @@ const RandomizerWheel = () => {
                     <X size={16} /> Exit Presentation
                 </button>
             }
+            {winner && (
+                <div className="winner-overlay" onClick={closeWinnerOverlay}>
+                    <Confetti onAnimationComplete={() => {}} />
+                    <div className="winner-overlay-content">
+                        <div className="winner-title">The winner is...</div>
+                        <div className="winner-name">{winner.text}</div>
+                        <Button onClick={closeWinnerOverlay}>Close</Button>
+                    </div>
+                </div>
+            )}
+
 
             <div className="container">
                 <div className="header">
@@ -809,5 +865,7 @@ export default function RandomizerPage() {
     </>
   );
 }
+
+    
 
     
