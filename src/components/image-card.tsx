@@ -44,11 +44,12 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting, i
             "w-48 h-48 md:w-60 md:h-60": rank === 0 && (imageShape === 'circular' || imageShape === 'square'),
             "w-36 h-36 md:w-44 md:h-44": rank === 1 && (imageShape === 'circular' || imageShape === 'square'),
             "w-32 h-32 md:w-36 md:h-36": rank === 2 && (imageShape === 'circular' || imageShape === 'square'),
-            "w-48 md:w-60": rank === 0 && imageShape === 'original',
-            "w-36 md:w-44": rank === 1 && imageShape === 'original',
-            "w-32 md:w-36": rank === 2 && imageShape === 'original',
+            "h-48 md:h-60": rank === 0 && imageShape === 'original',
+            "h-36 md:h-44": rank === 1 && imageShape === 'original',
+            "h-32 md:h-36": rank === 2 && imageShape === 'original',
             "overflow-visible": rank === 0,
             "aspect-square": imageShape === 'circular' || imageShape === 'square',
+            "aspect-auto": imageShape === 'original',
         }
     ),
     imageBorder: cn("border-4 w-full h-full", shapeClasses[imageShape], {
@@ -64,7 +65,7 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting, i
         shapeClasses[imageShape],
         {
           "w-32 h-32 md:w-36 md:h-36": (imageShape === 'circular' || imageShape === 'square'),
-          "w-32 md:w-36": imageShape === 'original'
+          "h-32 md:h-36 aspect-auto": imageShape === 'original'
         }
       ),
       imageBorder: cn("border-4 border-card w-full h-full", shapeClasses[imageShape])
@@ -100,7 +101,7 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting, i
           )} />
         </div>
         <div className={cn(
-          "relative",
+          "relative h-full",
            isPodium ? podiumClasses.imageBorder : nonPodiumClasses.imageBorder
         )}>
             <div className={cn("w-full h-full relative bg-card shadow-lg", shapeClasses[imageShape], { 'overflow-hidden': rank !== 0 || imageShape !== 'circular' })}>
@@ -113,7 +114,7 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting, i
                     src={image.url}
                     alt={image.name ?? 'photo'}
                     fill
-                    className={cn("object-cover p-1", shapeClasses[imageShape])}
+                    className={cn("object-contain p-1", shapeClasses[imageShape])}
                     sizes={imageSizes}
                     data-ai-hint={image.name.toLowerCase().split(' ').slice(0, 2).join(' ')}
                 />
