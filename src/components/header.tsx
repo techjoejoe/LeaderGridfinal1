@@ -1,5 +1,5 @@
 
-import { Users, MoreVertical } from "lucide-react";
+import { Users, MoreVertical, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
 import { ThemeToggle } from "./theme-toggle";
@@ -9,6 +9,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 import { AuthButton } from "./auth-button";
 import type { User } from "firebase/auth";
@@ -52,6 +53,12 @@ export function Header({ user, onSignInClick }: HeaderProps) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <Link href="/picpick">
+                  <Trophy className="mr-2 h-4 w-4" />
+                  <span>Contest</span>
+                </Link>
+              </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/leaderboard">
                   <Users className="mr-2 h-4 w-4" />
