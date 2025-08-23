@@ -41,15 +41,10 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting, i
         "relative shadow-2xl transition-all p-1 w-full",
         shapeClasses[imageShape],
         {
-            "w-48 h-48 md:w-60 md:h-60": rank === 0 && (imageShape === 'circular' || imageShape === 'square'),
-            "w-36 h-36 md:w-44 md:h-44": rank === 1 && (imageShape === 'circular' || imageShape === 'square'),
-            "w-32 h-32 md:w-36 md:h-36": rank === 2 && (imageShape === 'circular' || imageShape === 'square'),
-            "w-48 md:w-60 max-h-80": rank === 0 && imageShape === 'original',
-            "w-36 md:w-44 max-h-64": rank === 1 && imageShape === 'original',
-            "w-32 md:w-36 max-h-56": rank === 2 && imageShape === 'original',
+            "w-48 md:w-60": rank === 0,
+            "w-36 md:w-44": rank === 1,
+            "w-32 md:w-36": rank === 2,
             "overflow-visible": rank === 0,
-            "aspect-square": imageShape === 'circular' || imageShape === 'square',
-            "aspect-auto": imageShape === 'original',
         }
     ),
     imageBorder: cn("border-4 w-full h-full", shapeClasses[imageShape], {
@@ -64,10 +59,7 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting, i
         "shadow-2xl p-1 drop-shadow-lg transition-all duration-300 dark:shadow-primary-foreground/10 dark:hover:shadow-primary-foreground/20 w-full", 
         shapeClasses[imageShape],
         {
-          "w-32 h-32 md:w-36 md:h-36": (imageShape === 'circular' || imageShape === 'square'),
-          "aspect-square": imageShape === 'circular' || imageShape === 'square',
-          "aspect-auto": imageShape === 'original',
-          "max-h-64": imageShape === 'original',
+          "w-32 md:w-36": true,
         }
       ),
       imageBorder: cn("border-4 border-card w-full h-full", shapeClasses[imageShape])
@@ -81,6 +73,8 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting, i
   const imageSizes = isPodium 
     ? "(max-width: 768px) 30vw, 240px" 
     : "(max-width: 768px) 25vw, (max-width: 1200px) 15vw, 144px";
+
+  const imageContainerAspectRatio = imageShape === 'original' ? 'auto' : '1/1';
 
   return (
     <div className={cn("flex flex-col items-center gap-3 relative", isPodium ? podiumClasses.container : "w-full")}>
@@ -106,7 +100,12 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting, i
           "relative h-full w-full",
            isPodium ? podiumClasses.imageBorder : nonPodiumClasses.imageBorder
         )}>
-            <div className={cn("w-full h-full relative bg-card shadow-lg", shapeClasses[imageShape], 'overflow-hidden')}>
+            <div className={cn(
+              "w-full bg-card shadow-lg", 
+              shapeClasses[imageShape], 
+              'overflow-hidden',
+              imageShape === 'original' ? 'aspect-auto' : 'aspect-square'
+            )}>
                 {rank < 3 && (
                   <Sparkles
                     color={rank === 0 ? '#FFC700' : rank === 1 ? '#C0C0C0' : '#CD7F32'}
