@@ -8,10 +8,12 @@ import { doc, getDoc, setDoc, onSnapshot } from "firebase/firestore";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { SignInDialog } from "@/components/sign-in-dialog";
 import { Button } from "@/components/ui/button";
-import { Settings, X, Share2, Monitor, Shuffle, Scale, Undo, Trash2, Upload } from "lucide-react";
+import { Settings, X, Share2, Monitor, Shuffle, Scale, Undo, Trash2, Upload, Volume2, VolumeX, Sun, Moon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Papa from "papaparse";
 import { Confetti } from "@/components/confetti";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 // Sound System using Web Audio API
 class SoundEffects {
@@ -90,12 +92,9 @@ const RandomizerWheel = () => {
     const [currentMode, setCurrentMode] = useState<'normal' | 'team'>('normal');
     const [numberOfTeams, setNumberOfTeams] = useState(2);
     const [isPresentationMode, setIsPresentationMode] = useState(false);
-    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isShareOpen, setIsShareOpen] = useState(false);
     const [resultText, setResultText] = useState("Add items to get started");
     const [shareLink, setShareLink] = useState("");
-    const [theme, setTheme] = useState('dark');
-    const [wheelSize, setWheelSize] = useState('medium');
     const [winner, setWinner] = useState<{item: Item, text: string} | null>(null);
 
     const wheelRef = useRef<HTMLDivElement>(null);
@@ -173,7 +172,7 @@ const RandomizerWheel = () => {
     
         const [width, height] = [rect.width, rect.height];
         const [cx, cy] = [width / 2, height / 2];
-        const radius = Math.min(width, height) / 2;
+        const radius = Math.min(width, height) / 2 - 10; // padding
     
         if (items.length === 0) {
             ctx.clearRect(0, 0, width, height);
@@ -204,14 +203,36 @@ const RandomizerWheel = () => {
             ctx.shadowBlur = 3;
             ctx.shadowOffsetX = 1;
             ctx.shadowOffsetY = 1;
-            ctx.fillText(item.name, radius * 0.6, 5);
+
+            const text = item.name;
+            const textRadius = radius * 0.6;
+            
+            // Basic text wrapping
+            const maxTextWidth = radius * 0.5;
+            const words = text.split(' ');
+            let line = '';
+            let y = 5;
+
+            for (let n = 0; n < words.length; n++) {
+                const testLine = line + words[n] + ' ';
+                const metrics = ctx.measureText(testLine);
+                const testWidth = metrics.width;
+                if (testWidth > maxTextWidth && n > 0) {
+                    ctx.fillText(line, textRadius, y);
+                    line = words[n] + ' ';
+                    y += 16; // line height
+                } else {
+                    line = testLine;
+                }
+            }
+            ctx.fillText(line, textRadius, y);
             ctx.restore();
         });
-    }, [items, wheelSize]);
+    }, [items]);
 
     useEffect(() => {
         drawWheel();
-    }, [drawWheel, items, wheelSize]);
+    }, [drawWheel, items]);
 
     const saveUndoState = useCallback(() => {
         setUndoHistory(prev => {
@@ -262,7 +283,7 @@ const RandomizerWheel = () => {
             if(textInputRef.current) textInputRef.current.value = "";
             showResult(`Added ${newItemsRaw.length} item(s)`);
         }
-    }, [currentMode, items, numberOfTeams, saveUndoState, showResult, teamColors]);
+    }, [currentMode, items, numberOfTeams, saveUndoState, showResult, teamColors, teamColorSets]);
 
     const closeWinnerOverlay = () => {
         if (!winner) return;
@@ -327,7 +348,6 @@ const RandomizerWheel = () => {
                 if(winner) closeWinnerOverlay();
                 else if (isPresentationMode) setIsPresentationMode(false);
                 else {
-                    setIsSettingsOpen(false);
                     setIsShareOpen(false);
                 }
             }
@@ -339,7 +359,7 @@ const RandomizerWheel = () => {
     
     // Load from URL params on mount
     useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
+        const params = new URLSearchParams(window.location().search);
         if (params.has('items')) {
             try {
                 const sharedItems: Item[] = JSON.parse(atob(params.get('items')!));
@@ -429,10 +449,9 @@ const RandomizerWheel = () => {
         setCurrentMode(mode);
         if (mode === 'team') {
             const teamItems = items.map((item, index) => ({
-                name: item.name,
+                ...item,
                 team: `Team ${(index % numberOfTeams) + 1}`,
                 teamNumber: (index % numberOfTeams) + 1,
-                color: item.color,
             }));
             const sortedTeamItems = teamItems.sort((a,b) => (a.teamNumber ?? 0) - (b.teamNumber ?? 0));
             updateItems(sortedTeamItems);
@@ -506,50 +525,42 @@ const RandomizerWheel = () => {
         setRecentWinners(newWinners);
         saveStateToFirestore({ recentWinners: newWinners });
     };
+    
+    const handleSettingChange = (key: keyof typeof settings, value: boolean) => {
+        const newSettings = {...settings, [key]: value};
+        setSettings(newSettings);
+        saveStateToFirestore({settings: newSettings});
+    }
 
     return (
-        <div className={cn("randomizer-page", theme, isPresentationMode && "presentation-mode")}>
+        <div className={cn("randomizer-page", isPresentationMode && "presentation-mode")}>
              <style>{`
                 .randomizer-page {
-                    --bg-primary: linear-gradient(180deg, #0a0a0a 0%, #1a1a2e 100%);
-                    --bg-secondary: rgba(255, 255, 255, 0.05);
-                    --bg-hover: rgba(255, 255, 255, 0.08);
-                    --border-color: rgba(255, 255, 255, 0.1);
-                    --text-primary: white;
-                    --text-secondary: rgba(255, 255, 255, 0.6);
-                    --text-muted: rgba(255, 255, 255, 0.3);
-                    --accent-blue: #4285F4;
-                    --accent-gradient: linear-gradient(135deg, #4285F4 0%, #3367D6 100%);
+                    --bg-primary: hsl(var(--background));
+                    --bg-secondary: hsl(var(--card));
+                    --bg-hover: hsl(var(--muted));
+                    --border-color: hsl(var(--border));
+                    --text-primary: hsl(var(--foreground));
+                    --text-secondary: hsl(var(--muted-foreground));
+                    --text-muted: hsl(var(--muted-foreground) / 0.5);
+                    --accent-blue: hsl(var(--primary));
+                    --accent-gradient: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.8) 100%);
                     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
                     background: var(--bg-primary);
                     color: var(--text-primary);
                     transition: background 0.3s ease;
                 }
-                .randomizer-page.light {
-                    --bg-primary: linear-gradient(180deg, #f5f5f7 0%, #e3e3e8 100%);
-                    --bg-secondary: rgba(0, 0, 0, 0.03);
-                    --bg-hover: rgba(0, 0, 0, 0.05);
-                    --border-color: rgba(0, 0, 0, 0.1);
-                    --text-primary: #1d1d1f;
-                    --text-secondary: rgba(0, 0, 0, 0.6);
-                    --text-muted: rgba(0, 0, 0, 0.3);
-                    --accent-blue: #007AFF;
-                    --accent-gradient: linear-gradient(135deg, #007AFF 0%, #0051D5 100%);
-                }
-                .randomizer-page .background-glow { position: fixed; width: 600px; height: 600px; border-radius: 50%; filter: blur(100px); opacity: 0.5; pointer-events: none; animation: float 20s ease-in-out infinite; }
-                .randomizer-page .glow-1 { background: radial-gradient(circle, #4158D0 0%, transparent 70%); top: -200px; left: -200px; }
-                .randomizer-page .glow-2 { background: radial-gradient(circle, #C850C0 0%, transparent 70%); bottom: -200px; right: -200px; animation-delay: -10s; }
-                .randomizer-page.light .background-glow { opacity: 0.2; }
+                .randomizer-page .background-glow { position: fixed; width: 600px; height: 600px; border-radius: 50%; filter: blur(100px); opacity: 0.15; pointer-events: none; animation: float 20s ease-in-out infinite; }
+                .randomizer-page .glow-1 { background: radial-gradient(circle, hsl(var(--primary)) 0%, transparent 70%); top: -200px; left: -200px; }
+                .randomizer-page .glow-2 { background: radial-gradient(circle, hsl(var(--accent)) 0%, transparent 70%); bottom: -200px; right: -200px; animation-delay: -10s; }
                 @keyframes float { 0%, 100% { transform: translate(0, 0) scale(1); } 33% { transform: translate(30px, -30px) scale(1.1); } 66% { transform: translate(-20px, 20px) scale(0.9); } }
                 .randomizer-page .container { max-width: 1200px; margin: 0 auto; padding: 40px 20px; position: relative; z-index: 1; }
                 .randomizer-page .header { text-align: center; margin-bottom: 50px; position: relative; }
                 .randomizer-page .title { font-size: 48px; font-weight: 700; letter-spacing: -0.03em; margin-bottom: 8px; background: linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
                 .randomizer-page .subtitle { color: var(--text-secondary); font-size: 18px; font-weight: 400; }
                 .randomizer-page .header-btn { position: absolute; top: 0; width: 40px; height: 40px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; color: var(--text-primary); }
-                .randomizer-page .settings-btn { right: 0; }
                 .randomizer-page .hide-all-btn { right: 50px; }
-                .randomizer-page .share-btn { right: 100px; }
-                .randomizer-page .settings-btn:hover { transform: rotate(90deg); }
+                .randomizer-page .share-btn { right: 0; }
                 .randomizer-page .hide-all-btn:hover, .randomizer-page .share-btn:hover { background: var(--bg-hover); transform: scale(1.05); }
                 .randomizer-page.presentation-mode .container { max-width: 100%; padding: 20px; }
                 .randomizer-page.presentation-mode .header, .randomizer-page.presentation-mode .header-btn, .randomizer-page.presentation-mode .control-panel, .randomizer-page.presentation-mode .action-button:not(.spin-button) { display: none; }
@@ -571,10 +582,7 @@ const RandomizerWheel = () => {
                 .randomizer-page .recent-winners { max-height: 150px; overflow-y: auto; padding: 8px; background: var(--bg-hover); border-radius: 10px; }
                 .randomizer-page .winner-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; margin: 4px 0; background: var(--bg-secondary); border-radius: 8px; border-left: 3px solid; }
                 .randomizer-page .wheel-section { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 500px; }
-                .randomizer-page .wheel-container { position: relative; transition: all 0.3s ease; }
-                .randomizer-page .wheel-container.small { width: 300px; height: 300px; }
-                .randomizer-page .wheel-container.medium { width: 400px; height: 400px; }
-                .randomizer-page .wheel-container.large { width: 500px; height: 500px; }
+                .randomizer-page .wheel-container { position: relative; width: 400px; height: 400px; transition: all 0.3s ease; }
                 .randomizer-page .wheel-border { position: absolute; inset: -20px; background: linear-gradient(135deg, var(--border-color) 0%, var(--bg-secondary) 100%); border-radius: 50%; padding: 20px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), inset 0 2px 4px rgba(255, 255, 255, 0.1); }
                 .randomizer-page .wheel { width: 100%; height: 100%; border-radius: 50%; position: relative; overflow: hidden; transition: transform 8s cubic-bezier(0.23, 1, 0.32, 1); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), inset 0 0 80px rgba(0, 0, 0, 0.3); }
                 .randomizer-page .wheel canvas { width: 100%; height: 100%; }
@@ -590,14 +598,8 @@ const RandomizerWheel = () => {
                 .randomizer-page .modal-header { display: flex; justify-content: space-between; margin-bottom: 24px; }
                 .randomizer-page .modal-title { font-size: 24px; font-weight: 600; }
                 .randomizer-page .close-btn { background: var(--bg-hover); border: none; border-radius: 8px; cursor: pointer; padding: 5px; color: var(--text-primary); }
-                .randomizer-page .setting-item { margin-bottom: 20px; }
-                .randomizer-page .toggle-switch { position: relative; width: 50px; height: 28px; background: var(--border-color); border-radius: 14px; cursor: pointer; }
-                .randomizer-page .toggle-switch.active { background: var(--accent-gradient); }
-                .randomizer-page .toggle-slider { position: absolute; width: 24px; height: 24px; background: white; border-radius: 50%; top: 2px; left: 2px; transition: transform 0.3s; }
-                .randomizer-page .toggle-switch.active .toggle-slider { transform: translateX(22px); }
-                .randomizer-page .radio-group { display: flex; gap: 10px; }
-                .randomizer-page .radio-option { flex: 1; padding: 10px; background: var(--bg-hover); border: 2px solid var(--border-color); border-radius: 10px; text-align: center; cursor: pointer; }
-                .randomizer-page .radio-option.active { background: var(--accent-gradient); border-color: var(--accent-blue); color: white; }
+                .randomizer-page .setting-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 4px; border-bottom: 1px solid var(--border-color); }
+                .randomizer-page .setting-item:last-of-type { border-bottom: none; }
                 .randomizer-page .team-badge { font-size: 11px; padding: 2px 6px; color: white; border-radius: 4px; margin-right: 8px; font-weight: 600; }
                 .randomizer-page .team-1 { background: linear-gradient(135deg, #FF6B6B, #FF5252); }
                 .randomizer-page .team-2 { background: linear-gradient(135deg, #4ECDC4, #44A08D); }
@@ -671,14 +673,11 @@ const RandomizerWheel = () => {
                 <div className="header">
                     <h1 className="title">Decision Wheel Pro</h1>
                     <p className="subtitle">Let chance make the choice</p>
-                    <button className="header-btn share-btn" onClick={generateShareLink} title="Share Wheel">
+                    <button className="header-btn share-btn" onClick={generateShareLink} title="Share Wheel (S)">
                         <Share2 size={20}/>
                     </button>
                     <button className="header-btn hide-all-btn" onClick={() => setIsPresentationMode(p => !p)} title="Presentation Mode (P)">
                         <Monitor size={20}/>
-                    </button>
-                    <button className="header-btn settings-btn" onClick={() => setIsSettingsOpen(true)}>
-                       <Settings size={20}/>
                     </button>
                 </div>
 
@@ -758,6 +757,19 @@ const RandomizerWheel = () => {
                             </div>
                         </div>
 
+                         {/* Settings Section */}
+                         <div className="panel-section">
+                            <div className="section-title">Settings</div>
+                            <div className="setting-item">
+                                <Label htmlFor="removeWinnerToggle">Remove winner after spin</Label>
+                                <Switch id="removeWinnerToggle" checked={settings.removeWinner} onCheckedChange={(checked) => handleSettingChange('removeWinner', checked)} />
+                            </div>
+                             <div className="setting-item">
+                                <Label htmlFor="soundToggle">Sound Effects</Label>
+                                <Switch id="soundToggle" checked={settings.soundEnabled} onCheckedChange={(checked) => handleSettingChange('soundEnabled', checked)} />
+                            </div>
+                        </div>
+
                         {/* Recent Winners */}
                         <div className="panel-section">
                             <div className="section-title">Recent Winners</div>
@@ -775,7 +787,7 @@ const RandomizerWheel = () => {
                     </div>
 
                     <div className="wheel-section">
-                        <div className={cn("wheel-container", wheelSize)}>
+                        <div className={cn("wheel-container")}>
                             <div className="wheel-border">
                                 <div ref={wheelRef} className="wheel" style={{ transform: `rotate(${currentRotation}deg)` }}>
                                     <canvas ref={canvasRef} />
@@ -794,36 +806,6 @@ const RandomizerWheel = () => {
                     </div>
                 </div>
 
-                {isSettingsOpen && (
-                    <div className="modal-overlay active">
-                        <div className="modal">
-                            <div className="modal-header">
-                                <h2 className="modal-title">Settings</h2>
-                                <button className="close-btn" onClick={() => setIsSettingsOpen(false)}><X size={20}/></button>
-                            </div>
-                            <div className="setting-item">
-                                <label className="setting-label">Remove winner after spin</label>
-                                <div className={cn("toggle-switch", settings.removeWinner && 'active')} onClick={() => setSettings(s => ({...s, removeWinner: !s.removeWinner}))}><div className="toggle-slider"></div></div>
-                            </div>
-                            <div className="setting-item">
-                                <label className="setting-label">Sound Effects</label>
-                                <div className={cn("toggle-switch", settings.soundEnabled && 'active')} onClick={() => setSettings(s => ({...s, soundEnabled: !s.soundEnabled}))}><div className="toggle-slider"></div></div>
-                            </div>
-                             <div className="setting-item">
-                                <label className="setting-label">Theme</label>
-                                <div className={cn("toggle-switch", theme === 'light' && 'active')} onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}><div className="toggle-slider"></div></div>
-                            </div>
-                            <div className="setting-item">
-                                <label className="setting-label">Wheel Size</label>
-                                <div className="radio-group">
-                                    <div className={cn('radio-option', wheelSize==='small' && 'active')} onClick={() => setWheelSize('small')}>Small</div>
-                                    <div className={cn('radio-option', wheelSize==='medium' && 'active')} onClick={() => setWheelSize('medium')}>Medium</div>
-                                    <div className={cn('radio-option', wheelSize==='large' && 'active')} onClick={() => setWheelSize('large')}>Large</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
                  {isShareOpen && (
                     <div className="modal-overlay active">
                         <div className="modal">
