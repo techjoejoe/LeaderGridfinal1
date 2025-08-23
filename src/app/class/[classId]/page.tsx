@@ -8,7 +8,7 @@ import { useState, useEffect, useMemo } from "react";
 import { doc, onSnapshot } from "firebase/firestore";
 import { SignInDialog } from "@/components/sign-in-dialog";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Timer, MessageCircleQuestion } from "lucide-react";
+import { ArrowLeft, MessageCircleQuestion } from "lucide-react";
 import { DashboardCard } from "@/components/dashboard-card";
 import type { Class } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -107,8 +107,7 @@ export default function ClassDashboardPage() {
       disabled: true 
     },
     { 
-      icon: Timer, 
-      title: "Class Timer", 
+      icon: <Image src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/Tickr.png?alt=media&token=0ea8fafc-822b-4cfc-bc88-6fbbd8959479" alt="Class Timer" width={175} height={175} data-ai-hint="timer clock" />,
       description: "A shared timer for activities, breaks, or presentations.", 
       href: `/timer?classId=${classId}`,
       disabled: true
