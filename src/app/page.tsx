@@ -18,7 +18,7 @@ const dashboardTools = [
     disabled: true,
   },
   {
-    title: "Photo Contest",
+    title: "PicPick Photo Contest",
     description: "Run a photo contest and let users vote for the best one.",
     icon: Trophy,
     href: "/contests",
@@ -97,4 +97,3 @@ export default function Home() {
     </>
   );
 }
-

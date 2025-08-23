@@ -27,7 +27,7 @@ export function Header({ user, onSignInClick }: HeaderProps) {
         <Link href="/" className="flex items-center gap-3 font-bold font-headline text-lg">
             <Image
                 src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/logo-light.png?alt=media&token=576a43d9-43ef-4307-868f-130e212228c1"
-                alt="PicVote Logo"
+                alt="PicPick Logo"
                 width={140}
                 height={40}
                 className="dark:hidden"
@@ -35,7 +35,7 @@ export function Header({ user, onSignInClick }: HeaderProps) {
             />
             <Image
                 src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/logo-dark.png?alt=media&token=e3d5ffd5-84bb-41e1-8f58-885d394c667f"
-                alt="PicVote Logo"
+                alt="PicPick Logo"
                 width={140}
                 height={40}
                 className="hidden dark:block"
