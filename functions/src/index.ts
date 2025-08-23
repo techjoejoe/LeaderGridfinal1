@@ -84,9 +84,10 @@ export const deleteContest = functions.https.onCall(async (data, context) => {
     const usersSnapshot = await db.collection("users").get();
     functions.logger.log(`Checking ${usersSnapshot.size} users for vote data to delete.`);
     
-    const userVotePromises = usersSnapshot.docs.map(userDoc => {
+    // Create promises for deleting user votes from subcollections
+    usersSnapshot.docs.forEach(userDoc => {
       const userVoteRef = userDoc.ref.collection("user_votes").doc(contestId);
-      return batch.delete(userVoteRef);
+      batch.delete(userVoteRef);
     });
 
     // 3. Delete the contest itself
