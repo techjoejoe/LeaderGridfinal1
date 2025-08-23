@@ -95,11 +95,6 @@ function ContestCard({ contest }: { contest: Contest }) {
                 View Contest
               </Link>
             </Button>
-            <Button asChild className="w-full" variant="secondary">
-               <Link href={`/leaderboard?contestId=${contest.id}`}>
-                View Leaderboard
-              </Link>
-            </Button>
         </CardFooter>
       </Card>
   );
