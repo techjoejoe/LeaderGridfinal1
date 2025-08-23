@@ -32,7 +32,7 @@ export type Contest = {
     imageShape: ContestImageShape;
     hasPassword?: boolean;
     password?: string;
-    classId: string; // Link to the Class
+    classId?: string; // Link to the Class
 }
 
 // Represents a user's document in the 'users' collection
