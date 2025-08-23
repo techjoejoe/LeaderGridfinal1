@@ -13,9 +13,15 @@ import { LeaderboardDialog } from "@/components/leaderboard-dialog";
 import { SignInDialog } from "@/components/sign-in-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Upload } from "lucide-react";
+import { Upload, HelpCircle, ArrowDown } from "lucide-react";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { getToday, isWeekday } from "@/lib/date-utils";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 
 export default function Home() {
@@ -230,6 +236,13 @@ export default function Home() {
       setUploadOpen(true);
     }
   };
+  
+  const handleLetsGoClick = () => {
+    const gallery = document.getElementById('gallery');
+    if (gallery) {
+      gallery.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
 
   const { votesLeft, canVoteToday, hasVotedForImage } = useMemo(() => {
     const today = getToday();
@@ -271,7 +284,37 @@ export default function Home() {
       />
       <main className="container mx-auto px-4 py-8">
         <div className="w-full">
-            <div className="mb-6">
+            <div className="mb-8 p-4 border rounded-lg bg-card">
+              <Accordion type="single" collapsible defaultValue="item-1">
+                <AccordionItem value="item-1">
+                  <AccordionTrigger>
+                    <div className="flex items-center gap-2 font-headline text-lg">
+                      <HelpCircle className="h-5 w-5" />
+                      How It Works
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="pt-2">
+                    <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
+                      <li>Upload your best photo to enter the contest.</li>
+                      <li>Vote for your favorite photos uploaded by others.</li>
+                      <li>Voting is open on weekdays (Mon-Fri).</li>
+                      <li>You get 4 votes to cast each day.</li>
+                      <li>You can vote for the same image a maximum of 2 times.</li>
+                      <li>The top 3 photos with the most votes win a spot on the podium!</li>
+                    </ul>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </div>
+
+            <div className="text-center mb-12">
+               <Button size="lg" onClick={handleLetsGoClick}>
+                  Let's Go!
+                  <ArrowDown className="ml-2 h-4 w-4 animate-bounce" />
+               </Button>
+            </div>
+
+            <div id="gallery" className="mb-6 scroll-mt-20">
               <div className="flex justify-between items-center mb-1">
                 <h2 className="text-3xl font-headline font-bold">PicPick</h2>
                 <div className="flex items-center gap-2">
@@ -357,3 +400,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
