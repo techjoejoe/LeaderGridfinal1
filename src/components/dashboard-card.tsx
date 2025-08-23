@@ -1,4 +1,3 @@
-
 "use client";
 
 import React from "react";
@@ -36,13 +35,13 @@ export function DashboardCard({ icon: Icon, title, description, href, disabled =
         )}
     >
       <CardHeader className="items-center">
-        <div className={cn("flex items-center gap-3 mb-2", !title && "justify-center")}>
+        <div className={cn("flex items-center justify-center gap-3 mb-2")}>
             {renderIcon()}
             {title && <CardTitle className="font-headline text-lg">{title}</CardTitle>}
         </div>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
-      <CardFooter className="mt-auto">
+      <CardFooter>
         <Button className="w-full" disabled={disabled} variant={disabled ? "outline" : "default"}>
           {disabled ? "Coming Soon" : "Launch"}
         </Button>
