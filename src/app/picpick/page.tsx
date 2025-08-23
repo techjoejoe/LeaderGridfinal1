@@ -348,8 +348,7 @@ function PicPickContent() {
                 <AccordionContent className="pt-2">
                   <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
                     <li>Upload your best photo to enter the contest.</li>
-                    <li>Vote for your favorite photos uploaded by others.</li>
-                    <li>You get 4 votes to cast each day.</li>
+                    <li>You get 4 votes to cast each day for this contest.</li>
                     <li>You can vote for the same image a maximum of 2 times.</li>
                     <li>The top 3 photos with the most votes win a spot on the podium!</li>
                   </ul>
@@ -363,7 +362,7 @@ function PicPickContent() {
               <div>
                 <h2 className="text-3xl font-headline font-bold">{contest?.name ?? 'PicPick'}</h2>
                 <p className="text-lg text-muted-foreground">
-                  {user ? `You have ${votesLeft} votes left today. Happy picking!` : "Sign in to vote for your favorite photo!"}
+                  {user ? `You have ${votesLeft} votes left today for this contest. Happy picking!` : "Sign in to vote for your favorite photo!"}
                 </p>
               </div>
             </div>
@@ -472,7 +471,3 @@ function HeaderWrapper() {
         </>
     );
 }
-
-    
-
-    
