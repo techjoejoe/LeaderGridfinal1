@@ -1,34 +1,23 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Contests can be read by anyone, but only created/updated by authenticated users.
-    // Deletion is handled by a cloud function, so `delete` is not needed here.
-    match /contests/{contestId} {
-      allow read: if true;
-      allow create: if request.auth != null;
-      allow update: if request.auth != null && request.auth.uid == resource.data.creatorUid;
-    }
 
-    // Images can be read by anyone, created by authenticated users.
-    // Votes are updated via a transaction, so we need write access.
-    // Deletion is handled by a cloud function.
-    match /images/{imageId} {
-        allow read: if true;
-        allow create: if request.auth != null;
-        allow update, delete: if request.auth != null;
-    }
-
-    // User-specific data, like voting history, can only be accessed by the user themselves.
-    match /users/{userId}/{document=**} {
-      allow read, write, create, delete: if request.auth != null && request.auth.uid == userId;
-    }
-    
-    // Allow users to read and write their own randomizer list.
+    // Randomizer lists can only be read/written by the owner.
     match /randomizer_lists/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Classes can be created by any authenticated user.
+    // They can only be read or modified by the user whose UID matches the trainerUid.
+    match /classes/{classId} {
+      allow read, update, delete: if request.auth != null && resource.data.trainerUid == request.auth.uid;
+      allow create: if request.auth != null;
+    }
+
+    // Default deny all other access
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
