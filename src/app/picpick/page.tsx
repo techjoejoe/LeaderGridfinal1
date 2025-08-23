@@ -399,7 +399,7 @@ function PicPickContent() {
                         </div>
                     )}
                     {otherImages.length > 0 && (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 items-end">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-8 items-end">
                         {otherImages.map((image, index) => (
                             <ImageCard
                               key={image.id}
