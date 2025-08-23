@@ -9,7 +9,6 @@ import type { PicVoteImage, UserVoteData } from "@/lib/types";
 import { Header } from "@/components/header";
 import { ImageCard } from "@/components/image-card";
 import { UploadDialog } from "@/components/upload-dialog";
-import { LeaderboardDialog } from "@/components/leaderboard-dialog";
 import { SignInDialog } from "@/components/sign-in-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -30,7 +29,6 @@ export default function Home() {
   const [userVoteData, setUserVoteData] = useState<UserVoteData | null>(null);
   
   const [isUploadOpen, setUploadOpen] = useState(false);
-  const [isLeaderboardOpen, setLeaderboardOpen] = useState(false);
   const [isSignInOpen, setSignInOpen] = useState(false);
 
   const { toast } = useToast();
@@ -269,11 +267,10 @@ export default function Home() {
   }, [podiumImages]);
   
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <>
       <Header 
         user={user}
         onSignInClick={() => setSignInOpen(true)}
-        onLeaderboardClick={() => setLeaderboardOpen(true)}
       />
       <main className="container mx-auto px-4 py-8">
         <div className="w-full">
@@ -374,15 +371,10 @@ export default function Home() {
         onOpenChange={setUploadOpen}
         onUpload={handleUpload}
       />
-      <LeaderboardDialog
-        isOpen={isLeaderboardOpen}
-        onOpenChange={setLeaderboardOpen}
-        images={sortedImages}
-      />
       <SignInDialog
         isOpen={isSignInOpen}
         onOpenChange={setSignInOpen}
       />
-    </div>
+    </>
   );
 }

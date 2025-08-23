@@ -6,7 +6,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { FirebaseAnalyticsProvider } from '@/components/firebase-analytics-provider';
 
 export const metadata: Metadata = {
-  title: 'PicPick',
+  title: 'PicVote',
   description: 'Vote for your favorite pictures!',
 };
 
@@ -30,7 +30,9 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            {children}
+            <div className="min-h-screen bg-background text-foreground">
+              {children}
+            </div>
             <Toaster />
           </ThemeProvider>
         </FirebaseAnalyticsProvider>

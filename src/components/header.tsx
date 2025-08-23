@@ -1,5 +1,5 @@
 
-import { Trophy, Users, Award, MoreVertical } from "lucide-react";
+import { Users, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
 import { ThemeToggle } from "./theme-toggle";
@@ -17,10 +17,9 @@ import type { User } from "firebase/auth";
 type HeaderProps = {
   user: User | null;
   onSignInClick: () => void;
-  onLeaderboardClick: () => void;
 };
 
-export function Header({ user, onSignInClick, onLeaderboardClick }: HeaderProps) {
+export function Header({ user, onSignInClick }: HeaderProps) {
   return (
     <header className="bg-card border-b sticky top-0 z-10 shadow-sm">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
@@ -53,9 +52,11 @@ export function Header({ user, onSignInClick, onLeaderboardClick }: HeaderProps)
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={onLeaderboardClick}>
-                <Users className="mr-2 h-4 w-4" />
-                <span>Leaderboard</span>
+              <DropdownMenuItem asChild>
+                <Link href="/leaderboard">
+                  <Users className="mr-2 h-4 w-4" />
+                  <span>Leaderboard</span>
+                </Link>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
