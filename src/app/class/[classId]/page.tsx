@@ -87,7 +87,7 @@ export default function ClassDashboardPage({ params }: { params: { classId: stri
       disabled: false
     },
     { 
-      icon: <Image src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/randomizer.png?alt=media&token=1acfebed-1dfe-4651-af05-23b96d3c66e6" alt="Randomizer Wheel" width={64} height={64} />, 
+      icon: <Image src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/randomizer.png?alt=media&token=1acfebed-1dfe-4651-af05-23b96d3c66e6" alt="Randomizer Wheel" width={128} height={128} data-ai-hint="randomizer wheel" />, 
       description: "A spinning wheel to randomly select learners or topics.", 
       href: `/randomizer?classId=${params.classId}`,
       disabled: false
