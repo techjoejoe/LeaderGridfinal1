@@ -15,7 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { HelpCircle, ArrowLeft, Trophy, Upload } from "lucide-react";
 import { onAuthStateChanged, User } from "firebase/auth";
-import { getToday, isWeekday } from "@/lib/date-utils";
+import { getToday } from "@/lib/date-utils";
 import {
   Accordion,
   AccordionContent,
@@ -86,6 +86,7 @@ function PicPickContent() {
               ...data,
               votesToday: 4,
               imageVotes: {},
+              lastVotedDate: today,
             };
             await setDoc(userVoteRef, resetData, { merge: true });
             setUserVoteData(resetData);
@@ -96,8 +97,7 @@ function PicPickContent() {
           // No vote data exists, create it for the first time.
           const initialData: UserVoteData = {
             votesToday: 4,
-            lastVotedDate: "1970-01-01",
-            lastVotedWeekday: -1,
+            lastVotedDate: today,
             imageVotes: {},
           };
           await setDoc(userVoteRef, initialData);
@@ -160,14 +160,12 @@ function PicPickContent() {
         }
 
         const today = getToday();
-        const currentDay = new Date().getDay();
         
         let currentVoteData: UserVoteData;
         if (!userVoteDoc.exists()) {
           currentVoteData = {
             votesToday: 4,
             lastVotedDate: "1970-01-01",
-            lastVotedWeekday: -1,
             imageVotes: {},
           };
         } else {
@@ -178,10 +176,6 @@ function PicPickContent() {
         if (currentVoteData.lastVotedDate !== today) {
           currentVoteData.votesToday = 4;
           currentVoteData.imageVotes = {};
-        }
-
-        if (!isWeekday(currentDay)) {
-          throw new Error("Voting is only allowed on weekdays (Mon-Fri).");
         }
         
         if (currentVoteData.votesToday <= 0) {
@@ -200,7 +194,6 @@ function PicPickContent() {
           ...currentVoteData,
           votesToday: currentVoteData.votesToday - 1,
           lastVotedDate: today,
-          lastVotedWeekday: currentDay,
           imageVotes: {
             ...currentVoteData.imageVotes,
             [id]: imageVoteCount + 1,
@@ -277,15 +270,12 @@ function PicPickContent() {
   }, [images]);
 
   const { votesLeft, canVoteToday, hasVotedForImage } = useMemo(() => {
-    const today = getToday();
-    const currentDay = new Date().getDay();
-    
     if (!user || !userVoteData) {
       return { votesLeft: 0, canVoteToday: false, hasVotedForImage: () => false };
     }
 
     const votesLeft = userVoteData.votesToday;
-    const canVoteTodayResult = isWeekday(currentDay) && votesLeft > 0;
+    const canVoteTodayResult = votesLeft > 0;
 
     const hasVotedForImageFunc = (imageId: string) => (userVoteData.imageVotes?.[imageId] ?? 0) >= 2;
 
@@ -355,7 +345,6 @@ function PicPickContent() {
                   <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
                     <li>Upload your best photo to enter the contest.</li>
                     <li>Vote for your favorite photos uploaded by others.</li>
-                    <li>Voting is open on weekdays (Mon-Fri).</li>
                     <li>You get 4 votes to cast each day.</li>
                     <li>You can vote for the same image a maximum of 2 times.</li>
                     <li>The top 3 photos with the most votes win a spot on the podium!</li>
@@ -478,5 +467,7 @@ function HeaderWrapper() {
         </>
     );
 }
+
+    
 
     
