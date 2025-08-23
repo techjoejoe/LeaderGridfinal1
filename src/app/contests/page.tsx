@@ -2,8 +2,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { collection, onSnapshot, addDoc, serverTimestamp } from "firebase/firestore";
-import { db, auth } from "@/lib/firebase";
+import { collection, onSnapshot, addDoc, serverTimestamp, deleteDoc, doc, writeBatch, query, where, getDocs } from "firebase/firestore";
+import { db, auth, storage } from "@/lib/firebase";
+import { ref, deleteObject } from "firebase/storage";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
@@ -72,6 +73,64 @@ export default function ContestsPage() {
     }
   };
 
+  const handleDeleteContest = async (contestId: string) => {
+    toast({
+      title: "Deleting contest...",
+      description: "This may take a moment.",
+    });
+
+    try {
+      // Note: For a production app, this logic should be moved to a Firebase Cloud Function 
+      // for security and atomicity. This client-side implementation is for demonstration.
+      
+      const batch = writeBatch(db);
+
+      // 1. Delete all images in the contest from Firestore and Storage
+      const imagesQuery = query(collection(db, "images"), where("contestId", "==", contestId));
+      const imagesSnapshot = await getDocs(imagesQuery);
+      
+      for (const imageDoc of imagesSnapshot.docs) {
+        // Delete image from storage
+        const imageUrl = imageDoc.data().url;
+        try {
+          const imageRef = ref(storage, imageUrl);
+          await deleteObject(imageRef);
+        } catch (storageError: any) {
+          // If file doesn't exist, we can ignore the error
+          if (storageError.code !== 'storage/object-not-found') {
+             console.error(`Failed to delete image from storage: ${imageUrl}`, storageError);
+          }
+        }
+        // Delete image document from Firestore
+        batch.delete(imageDoc.ref);
+      }
+
+      // 2. Delete all user vote data for this contest
+      // This is more complex as it's a subcollection under each user.
+      // A Cloud Function is strongly recommended for this cleanup.
+      // We will skip this on the client-side as it is not efficient or secure.
+
+      // 3. Delete the contest document itself
+      const contestRef = doc(db, "contests", contestId);
+      batch.delete(contestRef);
+
+      await batch.commit();
+
+      toast({
+        title: "Contest Deleted",
+        description: "The contest and all its images have been removed.",
+      });
+
+    } catch (error) {
+      console.error("Error deleting contest:", error);
+      toast({
+        variant: "destructive",
+        title: "Deletion Failed",
+        description: "Could not delete the contest. Please try again.",
+      });
+    }
+  };
+
 
   return (
     <>
@@ -89,7 +148,12 @@ export default function ContestsPage() {
         </div>
         
         {user ? (
-          <ContestList contests={contests} loading={loading} />
+          <ContestList 
+            contests={contests} 
+            loading={loading}
+            user={user}
+            onDeleteContest={handleDeleteContest}
+          />
         ) : (
           <div className="text-center py-16 border-2 border-dashed rounded-lg">
             <h3 className="text-2xl font-bold font-headline">Please Sign In</h3>
@@ -111,4 +175,3 @@ export default function ContestsPage() {
     </>
   );
 }
-

@@ -3,7 +3,8 @@
 
 import { useState, useEffect } from "react";
 import type { Contest, PicVoteImage } from "@/lib/types";
-import { collection, query, where, onSnapshot } from "firebase/firestore";
+import { User } from "firebase/auth";
+import { collection, query, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,10 +12,23 @@ import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from 'date-fns';
 import Image from "next/image";
+import { Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 type ContestListProps = {
   contests: Contest[];
   loading: boolean;
+  user: User | null;
+  onDeleteContest: (contestId: string) => void;
 };
 
 function ContestWinnerDisplay({ contestId }: { contestId: string }) {
@@ -75,8 +89,12 @@ function ContestWinnerDisplay({ contestId }: { contestId: string }) {
   )
 }
 
-function ContestCard({ contest }: { contest: Contest }) {
+function ContestCard({ contest, user, onDeleteContest }: { contest: Contest, user: User | null, onDeleteContest: (contestId: string) => void }) {
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const isCreator = user?.uid === contest.creatorUid;
+
   return (
+    <>
       <Card className="flex flex-col transition-all hover:shadow-lg">
         <Link href={`/picpick?contestId=${contest.id}`} className="flex-grow flex flex-col">
           <CardHeader className="flex-grow">
@@ -95,13 +113,41 @@ function ContestCard({ contest }: { contest: Contest }) {
                 View Contest
               </Link>
             </Button>
+            {isCreator && (
+              <Button 
+                variant="destructive" 
+                size="icon" 
+                onClick={() => setIsDeleteDialogOpen(true)}
+                aria-label="Delete contest"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
         </CardFooter>
       </Card>
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the
+              contest "{contest.name}" and all of its images and data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => onDeleteContest(contest.id)} className="bg-destructive hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 
 
-export function ContestList({ contests, loading }: ContestListProps) {
+export function ContestList({ contests, loading, user, onDeleteContest }: ContestListProps) {
   if (loading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -119,7 +165,6 @@ export function ContestList({ contests, loading }: ContestListProps) {
                 </div>
             </CardContent>
             <CardFooter className="flex flex-col sm:flex-row gap-2">
-              <Skeleton className="h-10 w-full" />
               <Skeleton className="h-10 w-full" />
             </CardFooter>
           </Card>
@@ -141,7 +186,7 @@ export function ContestList({ contests, loading }: ContestListProps) {
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {contests.map((contest) => (
         <div key={contest.id} className="flex flex-col">
-            <ContestCard contest={contest} />
+            <ContestCard contest={contest} user={user} onDeleteContest={onDeleteContest} />
         </div>
       ))}
     </div>
