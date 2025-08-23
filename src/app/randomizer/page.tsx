@@ -54,7 +54,7 @@ class SoundEffects {
 
     startSpinning() {
         this.stopSpinning();
-        const spinDuration = 5700;
+        const spinDuration = 7700; // Adjusted to match animation
         const startTime = Date.now();
         const playTick = () => {
             const elapsed = Date.now() - startTime;
@@ -246,7 +246,7 @@ const RandomizerWheel = () => {
             }
 
             setIsSpinning(false);
-        }, 6000);
+        }, 8000);
     }, [isSpinning, items, settings.removeWinner, settings.soundEnabled, currentRotation, saveUndoState, showResult]);
 
     // Keyboard shortcuts
@@ -498,7 +498,7 @@ const RandomizerWheel = () => {
                 .randomizer-page .wheel-container.medium { width: 400px; height: 400px; }
                 .randomizer-page .wheel-container.large { width: 500px; height: 500px; }
                 .randomizer-page .wheel-border { position: absolute; inset: -20px; background: linear-gradient(135deg, var(--border-color) 0%, var(--bg-secondary) 100%); border-radius: 50%; padding: 20px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), inset 0 2px 4px rgba(255, 255, 255, 0.1); }
-                .randomizer-page .wheel { width: 100%; height: 100%; border-radius: 50%; position: relative; overflow: hidden; transition: transform 6s cubic-bezier(0.23, 1, 0.32, 1); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), inset 0 0 80px rgba(0, 0, 0, 0.3); }
+                .randomizer-page .wheel { width: 100%; height: 100%; border-radius: 50%; position: relative; overflow: hidden; transition: transform 8s cubic-bezier(0.23, 1, 0.32, 1); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), inset 0 0 80px rgba(0, 0, 0, 0.3); }
                 .randomizer-page .wheel canvas { width: 100%; height: 100%; }
                 .randomizer-page .pointer { position: absolute; top: -30px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 20px solid transparent; border-right: 20px solid transparent; border-top: 40px solid var(--text-primary); filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3)); z-index: 10; }
                 .randomizer-page .action-buttons { display: flex; gap: 12px; margin-top: 30px; justify-content: center; align-items: center; }
@@ -755,3 +755,4 @@ export default function RandomizerPage() {
     
 
     
+
