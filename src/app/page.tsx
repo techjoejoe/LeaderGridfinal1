@@ -38,7 +38,7 @@ export default function Home() {
               Upload your best shots, vote for your favorites, and climb the leaderboard to victory.
             </p>
             <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90">
-              <Link href="/picpick">
+              <Link href="/contests">
                 Enter the Contest
               </Link>
             </Button>
@@ -48,7 +48,8 @@ export default function Home() {
              <Image 
                 src="https://placehold.co/600x600.png"
                 alt="Photo contest winner holding a trophy"
-                layout="fill"
+                fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 className="rounded-full object-cover shadow-lg border-8 border-card"
                 data-ai-hint="photo contest"
              />
