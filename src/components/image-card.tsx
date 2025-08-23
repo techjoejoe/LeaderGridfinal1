@@ -32,23 +32,24 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting, i
   };
 
   const podiumClasses = {
-    container: cn("drop-shadow-lg", {
+    container: cn("drop-shadow-lg w-full", {
         "z-20": rank === 0,
         "z-10": rank === 1,
         "self-end": rank === 1 || rank === 2,
     }),
     imageContainer: cn(
-        "relative shadow-2xl transition-all p-1",
+        "relative shadow-2xl transition-all p-1 w-full",
         shapeClasses[imageShape],
         {
             "w-48 h-48 md:w-60 md:h-60": rank === 0 && (imageShape === 'circular' || imageShape === 'square'),
             "w-36 h-36 md:w-44 md:h-44": rank === 1 && (imageShape === 'circular' || imageShape === 'square'),
             "w-32 h-32 md:w-36 md:h-36": rank === 2 && (imageShape === 'circular' || imageShape === 'square'),
-            "w-48 md:w-60": rank === 0 && imageShape === 'original',
-            "w-36 md:w-44": rank === 1 && imageShape === 'original',
-            "w-32 md:w-36": rank === 2 && imageShape === 'original',
+            "w-48 md:w-60 max-h-80": rank === 0 && imageShape === 'original',
+            "w-36 md:w-44 max-h-64": rank === 1 && imageShape === 'original',
+            "w-32 md:w-36 max-h-56": rank === 2 && imageShape === 'original',
             "overflow-visible": rank === 0,
             "aspect-square": imageShape === 'circular' || imageShape === 'square',
+            "aspect-auto": imageShape === 'original',
         }
     ),
     imageBorder: cn("border-4 w-full h-full", shapeClasses[imageShape], {
@@ -60,11 +61,13 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting, i
 
   const nonPodiumClasses = {
       imageContainer: cn(
-        "shadow-2xl p-1 drop-shadow-lg transition-all duration-300 dark:shadow-primary-foreground/10 dark:hover:shadow-primary-foreground/20", 
+        "shadow-2xl p-1 drop-shadow-lg transition-all duration-300 dark:shadow-primary-foreground/10 dark:hover:shadow-primary-foreground/20 w-full", 
         shapeClasses[imageShape],
         {
           "w-32 h-32 md:w-36 md:h-36": (imageShape === 'circular' || imageShape === 'square'),
-          "w-full": imageShape === 'original',
+          "aspect-square": imageShape === 'circular' || imageShape === 'square',
+          "aspect-auto": imageShape === 'original',
+          "max-h-64": imageShape === 'original',
         }
       ),
       imageBorder: cn("border-4 border-card w-full h-full", shapeClasses[imageShape])
@@ -80,13 +83,13 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting, i
     : "(max-width: 768px) 25vw, (max-width: 1200px) 15vw, 144px";
 
   return (
-    <div className={cn("flex flex-col items-center gap-3 relative w-full", isPodium ? podiumClasses.container : "")}>
+    <div className={cn("flex flex-col items-center gap-3 relative", isPodium ? podiumClasses.container : "w-full")}>
       {rank === 0 && (
         <span className="absolute -top-24 text-9xl transform -rotate-12 animate-float z-20 drop-shadow-lg" role="img" aria-label="crown">👑</span>
       )}
       <div 
         className={cn(
-          "relative group transition-transform duration-300 w-full",
+          "relative group transition-transform duration-300",
           isPodium ? "hover:scale-105" : "hover:scale-125",
           isPodium ? podiumClasses.imageContainer : nonPodiumClasses.imageContainer,
            isVoting && "animate-pulse-glow"
