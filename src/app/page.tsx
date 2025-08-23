@@ -7,7 +7,7 @@ import { auth } from "@/lib/firebase";
 import { useState, useEffect } from "react";
 import { SignInDialog } from "@/components/sign-in-dialog";
 import { DashboardCard } from "@/components/dashboard-card";
-import { PieChart, Trophy, Vote, Timer, Zap, HelpCircle, QrCode } from "lucide-react";
+import { Timer, Zap, HelpCircle, QrCode } from "lucide-react";
 import Image from "next/image";
 
 const dashboardTools = [
@@ -39,9 +39,15 @@ const dashboardTools = [
     disabled: false,
   },
   {
-    title: "Live Poll",
     description: "Create and run live polls to gather real-time feedback.",
-    icon: Vote,
+    icon: (
+      <Image
+        src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/Livevote.png?alt=media&token=821a851e-8449-4ede-8005-9be175576be4"
+        alt="Live Poll Logo"
+        width={140}
+        height={40}
+      />
+    ),
     href: "#",
     disabled: true,
   },
