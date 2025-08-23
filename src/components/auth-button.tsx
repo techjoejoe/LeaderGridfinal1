@@ -5,7 +5,7 @@ import { signOut, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LogIn, LogOut } from "lucide-react";
+import { LogIn, LogOut, LayoutDashboard, Shuffle, Trophy } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import Link from "next/link";
 
 type AuthButtonProps = {
   user: User | null;
@@ -43,6 +44,25 @@ export function AuthButton({ user, onSignInClick }: AuthButtonProps) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
                 <DropdownMenuLabel>{user.displayName}</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                 <DropdownMenuItem asChild>
+                    <Link href="/trainerhome">
+                        <LayoutDashboard className="mr-2 h-4 w-4" />
+                        <span>Trainer Home</span>
+                    </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                    <Link href="/randomizer">
+                        <Shuffle className="mr-2 h-4 w-4" />
+                        <span>Randomizer</span>
+                    </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                    <Link href="/contests">
+                        <Trophy className="mr-2 h-4 w-4" />
+                        <span>PicPick Contests</span>
+                    </Link>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut}>
                     <LogOut className="mr-2 h-4 w-4" />
