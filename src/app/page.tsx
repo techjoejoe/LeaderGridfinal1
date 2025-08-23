@@ -13,7 +13,7 @@ import { LeaderboardDialog } from "@/components/leaderboard-dialog";
 import { SignInDialog } from "@/components/sign-in-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Upload, HelpCircle, ArrowDown } from "lucide-react";
+import { Upload, HelpCircle } from "lucide-react";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { getToday, isWeekday } from "@/lib/date-utils";
 import {
@@ -236,13 +236,6 @@ export default function Home() {
       setUploadOpen(true);
     }
   };
-  
-  const handleLetsGoClick = () => {
-    const gallery = document.getElementById('gallery');
-    if (gallery) {
-      gallery.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
 
   const { votesLeft, canVoteToday, hasVotedForImage } = useMemo(() => {
     const today = getToday();
@@ -305,13 +298,6 @@ export default function Home() {
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>
-            </div>
-
-            <div className="text-center mb-12">
-               <Button size="lg" onClick={handleLetsGoClick}>
-                  Let's Go!
-                  <ArrowDown className="ml-2 h-4 w-4 animate-bounce" />
-               </Button>
             </div>
 
             <div id="gallery" className="mb-6 scroll-mt-20">
@@ -400,5 +386,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
