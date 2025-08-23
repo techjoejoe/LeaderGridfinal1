@@ -12,9 +12,15 @@ import Image from "next/image";
 
 const dashboardTools = [
   {
-    title: "Randomizer Wheel",
     description: "Spin a wheel to randomly select a name or item.",
-    icon: PieChart,
+    icon: (
+      <Image
+        src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/randomizer.png?alt=media&token=fea43a6c-38f3-4db6-9e1c-d4a82d1cf4b4"
+        alt="Randomizer Wheel Logo"
+        width={140}
+        height={40}
+      />
+    ),
     href: "#",
     disabled: true,
   },
