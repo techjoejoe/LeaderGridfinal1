@@ -48,16 +48,16 @@ export function LeaderboardDialog({ isOpen, onOpenChange, images }: LeaderboardD
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-16">Rank</TableHead>
-                <TableHead>Contestant</TableHead>
-                <TableHead className="text-right">Votes</TableHead>
+                <TableHead className="w-16 px-6">Rank</TableHead>
+                <TableHead className="px-6">Contestant</TableHead>
+                <TableHead className="text-right px-6">Votes</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {images.map((image, index) => (
                 <TableRow key={image.id}>
-                  <TableCell className="font-bold text-lg text-center">{getMedal(index)}</TableCell>
-                  <TableCell>
+                  <TableCell className="font-bold text-lg text-center px-6">{getMedal(index)}</TableCell>
+                  <TableCell className="px-6">
                       <div className="flex items-center gap-3">
                         <Image src={image.url} alt={image.name} width={40} height={40} className="rounded-full object-cover" />
                         <div>
@@ -66,7 +66,7 @@ export function LeaderboardDialog({ isOpen, onOpenChange, images }: LeaderboardD
                         </div>
                       </div>
                   </TableCell>
-                  <TableCell className="text-right font-bold text-lg">{image.votes}</TableCell>
+                  <TableCell className="text-right font-bold text-lg px-6">{image.votes}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
