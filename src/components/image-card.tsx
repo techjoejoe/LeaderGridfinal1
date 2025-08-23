@@ -31,40 +31,19 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting, i
     original: 'rounded-lg'
   };
 
-  const podiumClasses = {
-    container: cn("drop-shadow-lg w-full", {
-        "z-20": rank === 0,
-        "z-10": rank === 1,
-        "self-end": rank === 1 || rank === 2,
-    }),
-    imageContainer: cn(
-        "relative shadow-2xl transition-all p-1 w-full",
-        shapeClasses[imageShape],
-        {
-            "w-48 md:w-60": rank === 0,
-            "w-36 md:w-44": rank === 1,
-            "w-32 md:w-36": rank === 2,
-            "overflow-visible": rank === 0,
-        }
-    ),
-    imageBorder: cn("border-4 w-full h-full", shapeClasses[imageShape], {
-      "border-transparent": rank === 0,
-      "border-silver dark:shadow-[0_0_15px_2px_hsl(var(--silver))]": rank === 1,
-      "border-bronze dark:shadow-[0_0_15px_2px_hsl(var(--bronze))]": rank === 2,
-    }),
-  };
+  const podiumContainerClasses = cn("drop-shadow-lg w-full", {
+    "z-20 w-48 md:w-60": rank === 0,
+    "z-10 w-36 md:w-44 self-end": rank === 1,
+    "w-32 md:w-36 self-end": rank === 2,
+  });
 
-  const nonPodiumClasses = {
-      imageContainer: cn(
-        "shadow-2xl p-1 drop-shadow-lg transition-all duration-300 dark:shadow-primary-foreground/10 dark:hover:shadow-primary-foreground/20 w-full", 
-        shapeClasses[imageShape],
-        {
-          "w-32 md:w-36": true,
-        }
-      ),
-      imageBorder: cn("border-4 border-card w-full h-full", shapeClasses[imageShape])
-  };
-
+  const imageBorderClasses = cn("border-4 w-full h-full", shapeClasses[imageShape], {
+    "border-transparent": isPodium && rank === 0,
+    "border-silver dark:shadow-[0_0_15px_2px_hsl(var(--silver))]": isPodium && rank === 1,
+    "border-bronze dark:shadow-[0_0_15px_2px_hsl(var(--bronze))]": isPodium && rank === 2,
+    "border-card": !isPodium,
+  });
+  
   const handleVoteClick = () => {
     setShowConfetti(true);
     onVote(image.id);
@@ -74,34 +53,29 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting, i
     ? "(max-width: 768px) 30vw, 240px" 
     : "(max-width: 768px) 25vw, (max-width: 1200px) 15vw, 144px";
 
-  const imageContainerAspectRatio = imageShape === 'original' ? 'auto' : '1/1';
-
   return (
-    <div className={cn("flex flex-col items-center gap-3 relative", isPodium ? podiumClasses.container : "w-full")}>
+    <div className={cn("flex flex-col items-center gap-3 relative", isPodium ? podiumContainerClasses : "w-full")}>
       {rank === 0 && (
         <span className="absolute -top-24 text-9xl transform -rotate-12 animate-float z-20 drop-shadow-lg" role="img" aria-label="crown">👑</span>
       )}
       <div 
         className={cn(
-          "relative group transition-transform duration-300",
+          "relative group transition-transform duration-300 w-full",
           isPodium ? "hover:scale-105" : "hover:scale-125",
-          isPodium ? podiumClasses.imageContainer : nonPodiumClasses.imageContainer,
-           isVoting && "animate-pulse-glow"
+          isVoting && "animate-pulse-glow"
         )}
       >
-        <div className="absolute inset-0 z-0">
-          <div className={cn(
-              "w-full h-full",
-              shapeClasses[imageShape],
-              { "bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-700 dark:shadow-[0_0_25px_5px_hsl(var(--gold))]": rank === 0 }
-          )} />
-        </div>
         <div className={cn(
-          "relative h-full w-full",
-           isPodium ? podiumClasses.imageBorder : nonPodiumClasses.imageBorder
+          "absolute inset-0 z-0",
+          shapeClasses[imageShape],
+          { "bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-700 dark:shadow-[0_0_25px_5px_hsl(var(--gold))]": rank === 0 }
+        )} />
+        <div className={cn(
+          "relative h-full w-full p-1 shadow-2xl",
+          shapeClasses[imageShape]
         )}>
-            <div className={cn(
-              "w-full bg-card shadow-lg", 
+           <div className={cn(
+              "relative w-full bg-card shadow-lg", 
               shapeClasses[imageShape], 
               'overflow-hidden',
               imageShape === 'original' ? 'aspect-auto' : 'aspect-square'
@@ -136,3 +110,4 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting, i
     </div>
   );
 }
+
