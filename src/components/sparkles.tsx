@@ -25,9 +25,9 @@ const SparkleIcon = ({ color = DEFAULT_COLOR, className, ...rest }) => {
   );
 };
 
-const randomNumber = (min, max) => Math.random() * (max - min) + min;
+const randomNumber = (min: number, max: number) => Math.random() * (max - min) + min;
 
-const generateSparkle = (color) => {
+const generateSparkle = (color: string) => {
   return {
     id: String(randomNumber(10000, 99999)),
     createdAt: Date.now(),
@@ -47,11 +47,13 @@ export const Sparkles = ({
   className,
   ...rest
 }) => {
-  const [sparkles, setSparkles] = useState(() => {
-    return Array.from({ length: count }).map(() => generateSparkle(color));
-  });
+  const [sparkles, setSparkles] = useState<ReturnType<typeof generateSparkle>[]>([]);
 
-  // No need for an interval, the staggered animation delays will create a continuous effect.
+  useEffect(() => {
+    const newSparkles = Array.from({ length: count }).map(() => generateSparkle(color));
+    setSparkles(newSparkles);
+  }, [color, count]);
+
 
   return (
     <div className={cn("absolute inset-[-10px] pointer-events-none z-10", className)} {...rest}>
