@@ -111,6 +111,30 @@ export default function ClassDashboardPage() {
       href: `/timer?classId=${classId}`,
       disabled: true
     },
+    { 
+      icon: <Image src="https://placehold.co/175x175.png" alt="Word Cloud" width={175} height={175} data-ai-hint="word cloud" />,
+      description: "Visualize real-time feedback with a dynamic word cloud.", 
+      href: `/wordcloud?classId=${classId}`,
+      disabled: true
+    },
+    { 
+      icon: <Image src="https://placehold.co/175x175.png" alt="Buzzer" width={175} height={175} data-ai-hint="buzzer button" />,
+      description: "A virtual buzzer system for class competitions and games.", 
+      href: `/buzzer?classId=${classId}`,
+      disabled: true
+    },
+    { 
+      icon: <Image src="https://placehold.co/175x175.png" alt="Parking Lot" width={175} height={175} data-ai-hint="parking lot" />,
+      description: "A digital space to 'park' questions or ideas for later.", 
+      href: `/parking-lot?classId=${classId}`,
+      disabled: true
+    },
+    { 
+      icon: <Image src="https://placehold.co/175x175.png" alt="QR Code Points" width={175} height={175} data-ai-hint="qrcode points" />,
+      description: "Award points to learners by scanning a unique QR code.", 
+      href: `/qrcode-points?classId=${classId}`,
+      disabled: true
+    },
   ], [classId]);
 
   return (
@@ -160,7 +184,6 @@ export default function ClassDashboardPage() {
                         <DashboardCard 
                             key={index}
                             icon={tool.icon}
-                            title={tool.title}
                             description={tool.description}
                             href={tool.href}
                             disabled={tool.disabled}
