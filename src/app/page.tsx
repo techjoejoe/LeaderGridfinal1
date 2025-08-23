@@ -84,8 +84,8 @@ const dashboardTools = [
         <Image
             src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/LeaderGridMascotLogo.png?alt=media&token=98f67c05-c876-4426-9f91-26cdbc73bbf6"
             alt="LeaderGrid Mascot Logo"
-            width={80}
-            height={80}
+            width={120}
+            height={120}
         />
     ),
     href: "#",
