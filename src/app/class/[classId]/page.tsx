@@ -35,10 +35,9 @@ export default function ClassDashboardPage({ params }: { params: { classId: stri
   }, []);
 
   useEffect(() => {
-    const classId = params.classId;
-    if (user && classId) {
+    if (user && params.classId) {
       setLoading(true);
-      const docRef = doc(db, "classes", classId);
+      const docRef = doc(db, "classes", params.classId);
       const unsubscribe = onSnapshot(docRef, (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data() as Omit<Class, 'id'>;
