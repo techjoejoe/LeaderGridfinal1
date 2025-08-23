@@ -2,8 +2,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { collection, onSnapshot, addDoc, serverTimestamp, deleteDoc, doc } from "firebase/firestore";
+import { collection, onSnapshot, addDoc, serverTimestamp } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
+import { getFunctions, httpsCallable } from "firebase/functions";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
@@ -74,27 +75,42 @@ export default function ContestsPage() {
   };
 
   const handleDeleteContest = async (contestId: string) => {
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Authentication Error",
+        description: "You must be signed in to delete a contest.",
+      });
+      return;
+    }
+    
     toast({
       title: "Deleting contest...",
-      description: "This will trigger a cleanup process in the background.",
+      description: "This may take a moment. The page will update automatically.",
     });
 
     try {
-      // The secure deletion logic is now handled by a Cloud Function 
-      // triggered by this document deletion.
-      await deleteDoc(doc(db, "contests", contestId));
+      const functions = getFunctions();
+      const deleteContestCallable = httpsCallable(functions, 'deleteContest');
+      const result = await deleteContestCallable({ contestId });
+      
+      const { success, message } = result.data as { success: boolean; message: string };
 
-      toast({
-        title: "Contest Deletion Started",
-        description: "The contest and its data are being removed.",
-      });
+      if (success) {
+        toast({
+          title: "Contest Deleted",
+          description: message,
+        });
+      } else {
+        throw new Error(message);
+      }
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting contest:", error);
       toast({
         variant: "destructive",
         title: "Deletion Failed",
-        description: "Could not delete the contest. Please check permissions and try again.",
+        description: error.message || "Could not delete the contest. Please check permissions and try again.",
       });
     }
   };
