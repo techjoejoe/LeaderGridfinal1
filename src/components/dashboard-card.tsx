@@ -31,12 +31,12 @@ export function DashboardCard({ icon: Icon, title, description, href, disabled =
   const cardContent = (
     <Card 
         className={cn(
-            "flex flex-col w-full min-h-[225px] transition-all text-center", 
+            "flex flex-col min-h-[225px] transition-all text-center", 
             disabled ? "bg-muted/50 text-muted-foreground" : "hover:shadow-lg hover:-translate-y-1"
         )}
     >
       <CardHeader className="flex-grow items-center">
-        <div className={cn("flex items-center gap-3 mb-2 justify-center", title && "justify-start")}>
+        <div className={cn("flex items-center gap-3 mb-2", title ? "justify-start" : "justify-center")}>
             {renderIcon()}
             {title && <CardTitle className="font-headline text-lg">{title}</CardTitle>}
         </div>
