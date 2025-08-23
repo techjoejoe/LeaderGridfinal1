@@ -23,15 +23,14 @@ function ContestWinnerDisplay({ contestId }: { contestId: string }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const winnersQuery = query(
+    const imagesQuery = query(
       collection(db, "images"),
-      where("contestId", "==", contestId),
-      orderBy("votes", "desc"),
-      limit(3)
+      where("contestId", "==", contestId)
     );
-    const unsubscribe = onSnapshot(winnersQuery, (snapshot) => {
-      const winnerData = snapshot.docs.map(doc => ({...doc.data(), id: doc.id} as PicVoteImage));
-      setWinners(winnerData);
+    const unsubscribe = onSnapshot(imagesQuery, (snapshot) => {
+      const allImages = snapshot.docs.map(doc => ({...doc.data(), id: doc.id} as PicVoteImage));
+      const sortedWinners = allImages.sort((a, b) => b.votes - a.votes).slice(0, 3);
+      setWinners(sortedWinners);
       setLoading(false);
     });
     return () => unsubscribe();
