@@ -51,8 +51,6 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting }:
       imageBorder: "border-4 border-card rounded-full w-full h-full"
   };
 
-  const uploaderName = [image.firstName, image.lastName].filter(Boolean).join(" ") || "Anonymous";
-
   const handleVoteClick = () => {
     setShowConfetti(true);
     onVote(image.id);
@@ -104,7 +102,7 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting }:
       </div>
       <div className="text-center w-36 relative">
         <p className="font-bold truncate text-sm" title={image.name}>{image.name}</p>
-        <p className="text-xs text-muted-foreground truncate" title={`by ${uploaderName}`}>by {uploaderName}</p>
+        <p className="text-xs text-muted-foreground truncate" title={`by ${image.firstName || 'Anonymous'}`}>by {image.firstName || 'Anonymous'}</p>
         <Button onClick={handleVoteClick} disabled={disabled || isVoting} size="sm" className="w-full mt-2" variant={"outline"}>
             {isVoting ? <Loader2 className="animate-spin" /> : <Vote />}
             {isVoting ? "Voting..." : `Vote (${image.votes})`}
@@ -116,3 +114,4 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting }:
     </div>
   );
 }
+

@@ -336,7 +336,7 @@ function PicPickContent() {
                 </AccordionTrigger>
                 <AccordionContent className="pt-2">
                   <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
-                    <li>Upload your best photo to enter the contest from the Contests page.</li>
+                    <li>Upload your best photo to enter the contest.</li>
                     <li>Vote for your favorite photos uploaded by others.</li>
                     <li>Voting is open on weekdays (Mon-Fri).</li>
                     <li>You get 4 votes to cast each day.</li>
@@ -461,3 +461,4 @@ function HeaderWrapper() {
         </>
     );
 }
+
