@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { collection, onSnapshot, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, onSnapshot, addDoc, serverTimestamp, Timestamp } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { onAuthStateChanged, User } from "firebase/auth";
@@ -44,7 +44,7 @@ export default function ContestsPage() {
     return () => unsubscribe();
   }, []);
 
-  const handleCreateContest = async (contestName: string, imageShape: ContestImageShape) => {
+  const handleCreateContest = async (contestName: string, imageShape: ContestImageShape, startDate: Date, endDate: Date) => {
     if (!user) {
       setSignInOpen(true);
       return;
@@ -58,6 +58,8 @@ export default function ContestsPage() {
         status: "active",
         createdAt: serverTimestamp(),
         imageShape: imageShape,
+        startDate: Timestamp.fromDate(startDate),
+        endDate: Timestamp.fromDate(endDate),
       });
       toast({
         title: "Contest Created!",

@@ -27,6 +27,8 @@ export type Contest = {
     creatorName: string;
     status: 'active' | 'finished';
     createdAt: Timestamp;
+    startDate: Timestamp;
+    endDate: Timestamp;
     imageShape: ContestImageShape;
 }
 

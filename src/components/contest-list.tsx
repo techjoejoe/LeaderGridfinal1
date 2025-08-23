@@ -10,9 +10,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatDistanceToNow } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import Image from "next/image";
-import { Trash2, Share2 } from "lucide-react";
+import { Trash2, Share2, Calendar } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -122,9 +122,15 @@ function ContestCard({ contest, user, onDeleteContest }: { contest: Contest, use
             <CardTitle>{contest.name}</CardTitle>
             <CardDescription>
               Created by {contest.creatorName}
-              {contest.createdAt && 
-                ` - ${formatDistanceToNow(contest.createdAt.toDate(), { addSuffix: true })}`}
             </CardDescription>
+            {contest.startDate && contest.endDate && (
+              <div className="text-xs text-muted-foreground flex items-center gap-2 pt-1">
+                <Calendar className="h-3 w-3" />
+                <span>{format(contest.startDate.toDate(), "MMM d")}</span>
+                <span>-</span>
+                <span>{format(contest.endDate.toDate(), "MMM d, yyyy")}</span>
+              </div>
+            )}
           </CardHeader>
           <ContestWinnerDisplay contestId={contest.id} />
         </Link>

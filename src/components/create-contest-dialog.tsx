@@ -15,25 +15,53 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { ContestImageShape } from "@/lib/types";
+import { Calendar as CalendarIcon } from "lucide-react"
+import { format } from "date-fns"
+import { cn } from "@/lib/utils"
+import { Calendar } from "@/components/ui/calendar"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 
 type CreateContestDialogProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onCreate: (contestName: string, imageShape: ContestImageShape) => void;
+  onCreate: (contestName: string, imageShape: ContestImageShape, startDate: Date, endDate: Date) => void;
 };
 
 export function CreateContestDialog({ isOpen, onOpenChange, onCreate }: CreateContestDialogProps) {
   const [contestName, setContestName] = useState("");
   const [imageShape, setImageShape] = useState<ContestImageShape>("circular");
+  const [startDate, setStartDate] = useState<Date | undefined>(new Date());
+  const [endDate, setEndDate] = useState<Date | undefined>();
   const [error, setError] = useState("");
 
   const handleSubmit = () => {
+    let hasError = false;
+    let newError = "";
     if (!contestName.trim()) {
-      setError("Contest name is required.");
-      return;
+      newError += "Contest name is required. ";
+      hasError = true;
     }
-    setError("");
-    onCreate(contestName, imageShape);
+    if (!startDate) {
+      newError += "Start date is required. ";
+      hasError = true;
+    }
+    if (!endDate) {
+      newError += "End date is required. ";
+      hasError = true;
+    }
+    if (startDate && endDate && startDate > endDate) {
+      newError += "End date cannot be before the start date.";
+      hasError = true;
+    }
+    
+    setError(newError);
+    if (hasError || !startDate || !endDate) return;
+    
+    onCreate(contestName, imageShape, startDate, endDate);
   };
 
   const handleOpenChange = (open: boolean) => {
@@ -41,6 +69,8 @@ export function CreateContestDialog({ isOpen, onOpenChange, onCreate }: CreateCo
       setContestName("");
       setError("");
       setImageShape("circular");
+      setStartDate(new Date());
+      setEndDate(undefined);
     }
     onOpenChange(open);
   }
@@ -63,7 +93,59 @@ export function CreateContestDialog({ isOpen, onOpenChange, onCreate }: CreateCo
               onChange={(e) => setContestName(e.target.value)}
               placeholder="e.g., 'Summer Adventures'"
             />
-            {error && <p className="text-sm text-destructive">{error}</p>}
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Start Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !startDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {startDate ? format(startDate, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={startDate}
+                    onSelect={setStartDate}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+             <div className="space-y-2">
+              <Label>End Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !endDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {endDate ? format(endDate, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={endDate}
+                    onSelect={setEndDate}
+                    disabled={(date) => startDate ? date < startDate : false}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
            <div className="space-y-2">
             <Label>Photo Shape</Label>
@@ -104,6 +186,7 @@ export function CreateContestDialog({ isOpen, onOpenChange, onCreate }: CreateCo
               </div>
             </RadioGroup>
           </div>
+          {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
         <DialogFooter>
           <Button onClick={handleSubmit} className="bg-accent text-accent-foreground hover:bg-accent/90">

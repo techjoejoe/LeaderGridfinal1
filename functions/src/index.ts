@@ -43,8 +43,33 @@ export const deleteContest = functions.https.onCall(async (data, context) => {
         "You do not have permission to delete this contest."
       );
     }
+    
+    // Deleting the document will trigger the onDelete cloud function for cleanup.
+    await contestRef.delete();
 
+    functions.logger.log(`Successfully initiated deletion for contest ${contestId}`);
+    return { success: true, message: "Contest deletion process started." };
+
+  } catch (error: any) {
+    functions.logger.error(`Error deleting contest ${contestId}:`, error);
+    if (error instanceof functions.https.HttpsError) {
+      throw error;
+    }
+    throw new functions.https.HttpsError(
+      "internal",
+      "An unexpected error occurred while trying to delete the contest."
+    );
+  }
+});
+
+
+// This function is triggered when a contest document is deleted.
+export const onContestDeleted = functions.firestore
+  .document("contests/{contestId}")
+  .onDelete(async (snap, context) => {
+    const { contestId } = context.params;
     functions.logger.log(`Starting cleanup for contest: ${contestId}`);
+
     const bucket = getStorage().bucket();
     const batch = db.batch();
 
@@ -79,34 +104,46 @@ export const deleteContest = functions.https.onCall(async (data, context) => {
         batch.delete(doc.ref);
       });
     }
-    
+
     // 2. Delete all user vote data for this contest
     const usersSnapshot = await db.collection("users").get();
     functions.logger.log(`Checking ${usersSnapshot.size} users for vote data to delete.`);
     
-    // Create promises for deleting user votes from subcollections
     usersSnapshot.docs.forEach(userDoc => {
       const userVoteRef = userDoc.ref.collection("user_votes").doc(contestId);
       batch.delete(userVoteRef);
     });
 
-    // 3. Delete the contest itself
-    batch.delete(contestRef);
-
-    // 4. Commit all batched writes
+    // 3. Commit all batched writes
     await batch.commit();
 
-    functions.logger.log(`Successfully cleaned up and deleted contest ${contestId}`);
-    return { success: true, message: "Contest and all its data have been successfully deleted." };
+    functions.logger.log(`Successfully cleaned up contest ${contestId}`);
+  });
 
-  } catch (error: any) {
-    functions.logger.error(`Error deleting contest ${contestId}:`, error);
-    if (error instanceof functions.https.HttpsError) {
-      throw error;
-    }
-    throw new functions.https.HttpsError(
-      "internal",
-      "An unexpected error occurred while trying to delete the contest."
-    );
+// Scheduled function to run daily and check for contests to delete
+export const scheduledContestCleanup = functions.pubsub.schedule('every 24 hours').onRun(async (context) => {
+  functions.logger.log('Running scheduled contest cleanup');
+  
+  const now = admin.firestore.Timestamp.now();
+  const twoDaysAgo = new admin.firestore.Timestamp(now.seconds - 172800, now.nanoseconds);
+
+  const query = db.collection('contests').where('endDate', '<=', twoDaysAgo);
+  const contestsToDelete = await query.get();
+
+  if (contestsToDelete.empty) {
+    functions.logger.log('No contests found for cleanup.');
+    return null;
   }
+
+  functions.logger.log(`Found ${contestsToDelete.size} contests to delete.`);
+
+  const promises = contestsToDelete.docs.map(doc => {
+    functions.logger.log(`Deleting contest ${doc.id} which ended on ${doc.data().endDate.toDate()}`);
+    return doc.ref.delete(); // This will trigger the onContestDeleted function for each contest
+  });
+
+  await Promise.all(promises);
+  
+  functions.logger.log('Scheduled contest cleanup finished.');
+  return null;
 });
