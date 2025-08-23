@@ -44,12 +44,11 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting, i
             "w-48 h-48 md:w-60 md:h-60": rank === 0 && (imageShape === 'circular' || imageShape === 'square'),
             "w-36 h-36 md:w-44 md:h-44": rank === 1 && (imageShape === 'circular' || imageShape === 'square'),
             "w-32 h-32 md:w-36 md:h-36": rank === 2 && (imageShape === 'circular' || imageShape === 'square'),
-            "h-48 md:h-60": rank === 0 && imageShape === 'original',
-            "h-36 md:h-44": rank === 1 && imageShape === 'original',
-            "h-32 md:h-36": rank === 2 && imageShape === 'original',
+            "w-48 md:w-60": rank === 0 && imageShape === 'original',
+            "w-36 md:w-44": rank === 1 && imageShape === 'original',
+            "w-32 md:w-36": rank === 2 && imageShape === 'original',
             "overflow-visible": rank === 0,
             "aspect-square": imageShape === 'circular' || imageShape === 'square',
-            "aspect-auto": imageShape === 'original',
         }
     ),
     imageBorder: cn("border-4 w-full h-full", shapeClasses[imageShape], {
@@ -65,7 +64,7 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting, i
         shapeClasses[imageShape],
         {
           "w-32 h-32 md:w-36 md:h-36": (imageShape === 'circular' || imageShape === 'square'),
-          "h-32 md:h-36 aspect-auto": imageShape === 'original'
+          "w-full": imageShape === 'original',
         }
       ),
       imageBorder: cn("border-4 border-card w-full h-full", shapeClasses[imageShape])
@@ -81,13 +80,13 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting, i
     : "(max-width: 768px) 25vw, (max-width: 1200px) 15vw, 144px";
 
   return (
-    <div className={cn("flex flex-col items-center gap-3 relative", isPodium ? podiumClasses.container : "")}>
+    <div className={cn("flex flex-col items-center gap-3 relative w-full", isPodium ? podiumClasses.container : "")}>
       {rank === 0 && (
         <span className="absolute -top-24 text-9xl transform -rotate-12 animate-float z-20 drop-shadow-lg" role="img" aria-label="crown">👑</span>
       )}
       <div 
         className={cn(
-          "relative group transition-transform duration-300",
+          "relative group transition-transform duration-300 w-full",
           isPodium ? "hover:scale-105" : "hover:scale-125",
           isPodium ? podiumClasses.imageContainer : nonPodiumClasses.imageContainer,
            isVoting && "animate-pulse-glow"
@@ -101,10 +100,10 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting, i
           )} />
         </div>
         <div className={cn(
-          "relative h-full",
+          "relative h-full w-full",
            isPodium ? podiumClasses.imageBorder : nonPodiumClasses.imageBorder
         )}>
-            <div className={cn("w-full h-full relative bg-card shadow-lg", shapeClasses[imageShape], { 'overflow-hidden': rank !== 0 || imageShape !== 'circular' })}>
+            <div className={cn("w-full h-full relative bg-card shadow-lg", shapeClasses[imageShape], 'overflow-hidden')}>
                 {rank < 3 && (
                   <Sparkles
                     color={rank === 0 ? '#FFC700' : rank === 1 ? '#C0C0C0' : '#CD7F32'}
@@ -114,7 +113,7 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting, i
                     src={image.url}
                     alt={image.name ?? 'photo'}
                     fill
-                    className={cn("object-contain p-1", shapeClasses[imageShape])}
+                    className={cn("object-cover", shapeClasses[imageShape])}
                     sizes={imageSizes}
                     data-ai-hint={image.name.toLowerCase().split(' ').slice(0, 2).join(' ')}
                 />
