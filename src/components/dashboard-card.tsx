@@ -10,7 +10,7 @@ import type { LucideIcon } from "lucide-react";
 
 type DashboardCardProps = {
     icon: LucideIcon | React.ReactNode;
-    title: string;
+    title?: string;
     description: string;
     href: string;
     disabled?: boolean;
@@ -36,7 +36,7 @@ export function DashboardCard({ icon: Icon, title, description, href, disabled =
       <CardHeader className="flex-grow">
         <div className="flex items-center gap-3 mb-2">
             {renderIcon()}
-            <CardTitle className="font-headline text-lg">{title}</CardTitle>
+            {title && <CardTitle className="font-headline text-lg">{title}</CardTitle>}
         </div>
         <CardDescription>{description}</CardDescription>
       </CardHeader>

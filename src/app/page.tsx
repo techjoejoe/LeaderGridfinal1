@@ -19,14 +19,13 @@ const dashboardTools = [
     disabled: true,
   },
   {
-    title: "PicPick Photo Contest",
     description: "Run a photo contest and let users vote for the best one.",
     icon: (
       <Image
-        src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/logo-light.png?alt=media&token=576a43d9-43ef-4307-868f-130e212228c1"
+        src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/JoeODesignLogo.png?alt=media&token=98b4c8d8-90ef-4af9-bd40-5025052bb4c2"
         alt="PicPick Logo"
-        width={24}
-        height={24}
+        width={140}
+        height={40}
         className="dark:hidden"
       />
     ),
@@ -94,9 +93,9 @@ export default function Home() {
           <p className="text-muted-foreground">Welcome back! Select a tool to get started.</p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {dashboardTools.map((tool) => (
+          {dashboardTools.map((tool, index) => (
             <DashboardCard
-              key={tool.title}
+              key={tool.title || index}
               title={tool.title}
               description={tool.description}
               icon={tool.icon}
