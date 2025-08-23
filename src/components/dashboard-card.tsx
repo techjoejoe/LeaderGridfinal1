@@ -31,7 +31,7 @@ export function DashboardCard({ icon: Icon, title, description, href, disabled =
   const cardContent = (
     <Card 
         className={cn(
-            "flex flex-col min-h-[225px] transition-all text-center", 
+            "flex flex-col h-full transition-all text-center", 
             disabled ? "bg-muted/50 text-muted-foreground" : "hover:shadow-lg hover:-translate-y-1"
         )}
     >
@@ -52,14 +52,14 @@ export function DashboardCard({ icon: Icon, title, description, href, disabled =
 
   if (disabled) {
     return (
-        <div className="cursor-not-allowed">
+        <div className="cursor-not-allowed h-full">
             {cardContent}
         </div>
     );
   }
 
   return (
-    <Link href={href} className="flex">
+    <Link href={href} className="flex h-full">
         {cardContent}
     </Link>
   );
