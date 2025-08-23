@@ -8,6 +8,7 @@ import { useState, useEffect } from "react";
 import { SignInDialog } from "@/components/sign-in-dialog";
 import { DashboardCard } from "@/components/dashboard-card";
 import { PieChart, Trophy, Vote, Timer, Zap, HelpCircle, QrCode } from "lucide-react";
+import Image from "next/image";
 
 const dashboardTools = [
   {
@@ -20,7 +21,15 @@ const dashboardTools = [
   {
     title: "PicPick Photo Contest",
     description: "Run a photo contest and let users vote for the best one.",
-    icon: Trophy,
+    icon: (
+      <Image
+        src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/logo-light-thumbnail.png?alt=media&token=8de725c1-e7c6-4318-9c57-6de9c9225793"
+        alt="PicPick Logo"
+        width={24}
+        height={24}
+        className="dark:hidden"
+      />
+    ),
     href: "/contests",
     disabled: false,
   },

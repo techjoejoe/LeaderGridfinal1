@@ -1,6 +1,7 @@
 
 "use client";
 
+import React from "react";
 import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,7 @@ import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
 
 type DashboardCardProps = {
-    icon: LucideIcon;
+    icon: LucideIcon | React.ReactNode;
     title: string;
     description: string;
     href: string;
@@ -16,6 +17,14 @@ type DashboardCardProps = {
 }
 
 export function DashboardCard({ icon: Icon, title, description, href, disabled = false }: DashboardCardProps) {
+
+  const renderIcon = () => {
+    if (React.isValidElement(Icon)) {
+      return Icon;
+    }
+    const IconComponent = Icon as LucideIcon;
+    return <IconComponent className="h-6 w-6 text-accent" />;
+  }
 
   const cardContent = (
     <Card 
@@ -26,7 +35,7 @@ export function DashboardCard({ icon: Icon, title, description, href, disabled =
     >
       <CardHeader className="flex-grow">
         <div className="flex items-center gap-3 mb-2">
-            <Icon className="h-6 w-6 text-accent" />
+            {renderIcon()}
             <CardTitle className="font-headline text-lg">{title}</CardTitle>
         </div>
         <CardDescription>{description}</CardDescription>
