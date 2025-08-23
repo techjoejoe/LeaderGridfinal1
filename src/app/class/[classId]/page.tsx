@@ -8,7 +8,7 @@ import { useState, useEffect } from "react";
 import { doc, onSnapshot } from "firebase/firestore";
 import { SignInDialog } from "@/components/sign-in-dialog";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Trophy, Timer, BarChart, MessageCircleQuestion } from "lucide-react";
+import { ArrowLeft, Trophy, Timer, MessageCircleQuestion } from "lucide-react";
 import { DashboardCard } from "@/components/dashboard-card";
 import type { Class } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -92,8 +92,7 @@ export default function ClassDashboardPage({ params }: { params: { classId: stri
       disabled: false
     },
     { 
-      icon: <Image src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/Livevote.png?alt=media&token=821a851e-8449-4ede-8005-9be175576be4" alt="Live Polls" width={64} height={64} data-ai-hint="live poll chart" />, 
-      title: "Live Polls", 
+      icon: <Image src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/Livevote.png?alt=media&token=821a851e-8449-4ede-8005-9be175576be4" alt="Live Polls" width={128} height={128} data-ai-hint="live poll chart" />,
       description: "Engage your class with real-time polls and see instant results.", 
       href: `/polls?classId=${params.classId}`,
       disabled: true
