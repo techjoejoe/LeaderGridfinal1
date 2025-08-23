@@ -328,12 +328,6 @@ function PicPickContent() {
                 <Upload className="mr-2 h-4 w-4" />
                 Upload Photo
               </Button>
-              <Button asChild variant="outline" size="sm">
-                <Link href={`/leaderboard?contestId=${contestId}`}>
-                  <Trophy className="mr-2 h-4 w-4" />
-                  View Leaderboard
-                </Link>
-              </Button>
             </div>
           </div>
           <div className="mb-8 p-4 border rounded-lg bg-card">
@@ -400,7 +394,7 @@ function PicPickContent() {
                     )}
                     {otherImages.length > 0 && (
                         <div className="flex justify-center my-16">
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-y-16 gap-x-16 items-end">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-y-16 gap-x-12 items-end">
                             {otherImages.map((image, index) => (
                                 <ImageCard
                                   key={image.id}
@@ -480,3 +474,4 @@ function HeaderWrapper() {
     
 
     
+
