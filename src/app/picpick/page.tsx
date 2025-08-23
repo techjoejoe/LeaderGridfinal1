@@ -77,7 +77,13 @@ function PicPickContent() {
       const userVoteRef = doc(db, "users", user.uid, "user_votes", contestId);
       const unsubscribeVotes = onSnapshot(userVoteRef, (doc) => {
         if (doc.exists()) {
-          setUserVoteData(doc.data() as UserVoteData);
+          const data = doc.data() as UserVoteData;
+          const today = getToday();
+          if (data.lastVotedDate !== today) {
+            data.votesToday = 4; // Reset votes for a new day
+            data.imageVotes = {}; // Reset image-specific votes
+          }
+          setUserVoteData(data);
         } else {
           const initialData: UserVoteData = {
             votesToday: 4,
@@ -158,9 +164,10 @@ function PicPickContent() {
           currentVoteData = userVoteDoc.data() as UserVoteData;
         }
 
+        // Reset votes if last voted date is not today
         if (currentVoteData.lastVotedDate !== today) {
           currentVoteData.votesToday = 4;
-          currentVoteData.lastVotedDate = today;
+          currentVoteData.imageVotes = {}; // Also reset image-specific votes
         }
 
         if (!isWeekday(currentDay)) {
@@ -267,7 +274,7 @@ function PicPickContent() {
       return { votesLeft: 0, canVoteToday: false, hasVotedForImage: () => false };
     }
 
-    const votesLeft = userVoteData.lastVotedDate === today ? userVoteData.votesToday : 4;
+    const votesLeft = userVoteData.votesToday;
     const canVoteTodayResult = isWeekday(currentDay) && votesLeft > 0;
 
     const hasVotedForImageFunc = (imageId: string) => (userVoteData.imageVotes?.[imageId] ?? 0) >= 2;
@@ -461,4 +468,3 @@ function HeaderWrapper() {
         </>
     );
 }
-
