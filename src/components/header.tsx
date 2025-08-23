@@ -45,22 +45,6 @@ export function Header({ user, onSignInClick }: HeaderProps) {
         <div className="flex items-center gap-2">
           <AuthButton user={user} onSignInClick={onSignInClick} />
           <ThemeToggle />
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <MoreVertical className="h-5 w-5" />
-                <span className="sr-only">Open menu</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem asChild>
-                <Link href="/contests">
-                  <Trophy className="mr-2 h-4 w-4" />
-                  <span>Contests</span>
-                </Link>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </div>
     </header>
