@@ -7,7 +7,7 @@ import { auth } from "@/lib/firebase";
 import { useState, useEffect } from "react";
 import { SignInDialog } from "@/components/sign-in-dialog";
 import { DashboardCard } from "@/components/dashboard-card";
-import { Timer, Zap, HelpCircle, QrCode } from "lucide-react";
+import { Zap, HelpCircle, QrCode } from "lucide-react";
 import Image from "next/image";
 
 const dashboardTools = [
@@ -52,9 +52,15 @@ const dashboardTools = [
     disabled: true,
   },
   {
-    title: "Activity Timer",
     description: "Set a countdown timer for activities and breaks.",
-    icon: Timer,
+    icon: (
+        <Image
+            src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/Tickr.png?alt=media&token=0ea8fafc-822b-4cfc-bc88-6fbbd8959479"
+            alt="Tickr Logo"
+            width={140}
+            height={40}
+        />
+    ),
     href: "#",
     disabled: true,
   },
