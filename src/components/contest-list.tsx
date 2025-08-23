@@ -12,7 +12,7 @@ import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from 'date-fns';
 import Image from "next/image";
-import { Trash2 } from "lucide-react";
+import { Trash2, Share2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,6 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { useToast } from "@/hooks/use-toast";
 
 type ContestListProps = {
   contests: Contest[];
@@ -92,6 +93,26 @@ function ContestWinnerDisplay({ contestId }: { contestId: string }) {
 function ContestCard({ contest, user, onDeleteContest }: { contest: Contest, user: User | null, onDeleteContest: (contestId: string) => void }) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const isCreator = user?.uid === contest.creatorUid;
+  const { toast } = useToast();
+
+  const handleShare = () => {
+    const contestUrl = `${window.location.origin}/picpick?contestId=${contest.id}`;
+    navigator.clipboard.writeText(contestUrl)
+      .then(() => {
+        toast({
+          title: "Link Copied!",
+          description: "Contest link copied to your clipboard.",
+        });
+      })
+      .catch(err => {
+        console.error("Failed to copy link:", err);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Could not copy link. Please try again.",
+        });
+      });
+  };
 
   return (
     <>
@@ -107,11 +128,19 @@ function ContestCard({ contest, user, onDeleteContest }: { contest: Contest, use
           </CardHeader>
           <ContestWinnerDisplay contestId={contest.id} />
         </Link>
-        <CardFooter className="flex flex-col sm:flex-row gap-2">
+        <CardFooter className="flex gap-2">
             <Button asChild className="w-full">
               <Link href={`/picpick?contestId=${contest.id}`}>
                 View Contest
               </Link>
+            </Button>
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={handleShare}
+              aria-label="Share contest"
+            >
+              <Share2 className="h-4 w-4" />
             </Button>
             {isCreator && (
               <Button 
