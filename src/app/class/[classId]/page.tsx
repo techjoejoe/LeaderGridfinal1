@@ -14,12 +14,15 @@ import type { Class } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { Card, CardFooter, CardHeader } from "@/components/ui/card";
 import Image from "next/image";
 
 
-export default function ClassDashboardPage({ params }: { params: { classId: string } }) {
+export default function ClassDashboardPage() {
+  const params = useParams<{ classId: string }>();
+  const classId = params.classId;
+
   const [user, setUser] = useState<User | null>(null);
   const [isSignInOpen, setSignInOpen] = useState(false);
   const [classData, setClassData] = useState<Class | null>(null);
@@ -35,9 +38,9 @@ export default function ClassDashboardPage({ params }: { params: { classId: stri
   }, []);
 
   useEffect(() => {
-    if (user && params.classId) {
+    if (user && classId) {
       setLoading(true);
-      const docRef = doc(db, "classes", params.classId);
+      const docRef = doc(db, "classes", classId);
       const unsubscribe = onSnapshot(docRef, (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data() as Omit<Class, 'id'>;
@@ -75,43 +78,43 @@ export default function ClassDashboardPage({ params }: { params: { classId: stri
         // Handle case where user is not logged in
         setLoading(false);
     }
-  }, [user, params.classId, toast, router]);
+  }, [user, classId, toast, router]);
   
   const tools = useMemo(() => [
     { 
       icon: Trophy, 
       title: "PicPick Contest", 
       description: "Run a photo contest where learners vote for their favorite images.", 
-      href: `/contests?classId=${params.classId}`,
+      href: `/contests?classId=${classId}`,
       disabled: false
     },
     { 
       icon: <Image src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/randomizer.png?alt=media&token=1acfebed-1dfe-4651-af05-23b96d3c66e6" alt="Randomizer Wheel" width={175} height={175} data-ai-hint="randomizer wheel" />, 
       description: "A spinning wheel to randomly select learners or topics.", 
-      href: `/randomizer?classId=${params.classId}`,
+      href: `/randomizer?classId=${classId}`,
       disabled: false
     },
     { 
       icon: <Image src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/Livevote.png?alt=media&token=821a851e-8449-4ede-8005-9be175576be4" alt="Live Polls" width={175} height={175} data-ai-hint="live poll chart" />,
       description: "Engage your class with real-time polls and see instant results.", 
-      href: `/polls?classId=${params.classId}`,
+      href: `/polls?classId=${classId}`,
       disabled: true
     },
     { 
       icon: MessageCircleQuestion, 
       title: "Quizzes", 
       description: "Test knowledge with fun, interactive quizzes and leaderboards.", 
-      href: `/quizzes?classId=${params.classId}`,
+      href: `/quizzes?classId=${classId}`,
       disabled: true 
     },
     { 
       icon: Timer, 
       title: "Class Timer", 
       description: "A shared timer for activities, breaks, or presentations.", 
-      href: `/timer?classId=${params.classId}`,
+      href: `/timer?classId=${classId}`,
       disabled: true
     },
-  ], [params.classId]);
+  ], [classId]);
 
   return (
     <>
