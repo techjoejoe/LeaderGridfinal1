@@ -35,14 +35,14 @@ export function DashboardCard({ icon: Icon, title, description, href, disabled =
             disabled ? "bg-muted/50 text-muted-foreground" : "hover:shadow-lg hover:-translate-y-1"
         )}
     >
-      <CardHeader className="flex-grow items-center">
+      <CardHeader className="items-center">
         <div className={cn("flex items-center gap-3 mb-2", !title && "justify-center")}>
             {renderIcon()}
             {title && <CardTitle className="font-headline text-lg">{title}</CardTitle>}
         </div>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
-      <CardFooter>
+      <CardFooter className="mt-auto">
         <Button className="w-full" disabled={disabled} variant={disabled ? "outline" : "default"}>
           {disabled ? "Coming Soon" : "Launch"}
         </Button>
