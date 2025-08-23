@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
+import { Card, CardFooter, CardHeader } from "@/components/ui/card";
 
 
 export default function ClassDashboardPage({ params }: { params: { classId: string } }) {
@@ -24,7 +25,6 @@ export default function ClassDashboardPage({ params }: { params: { classId: stri
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const router = useRouter();
-  const classId = params.classId;
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
@@ -34,6 +34,7 @@ export default function ClassDashboardPage({ params }: { params: { classId: stri
   }, []);
 
   useEffect(() => {
+    const classId = params.classId;
     if (user && classId) {
       setLoading(true);
       const docRef = doc(db, "classes", classId);
@@ -74,42 +75,42 @@ export default function ClassDashboardPage({ params }: { params: { classId: stri
         // Handle case where user is not logged in
         setLoading(false);
     }
-  }, [user, classId, toast, router]);
+  }, [user, params.classId, toast, router]);
   
   const tools = [
     { 
       icon: Trophy, 
       title: "PicPick Contest", 
       description: "Run a photo contest where learners vote for their favorite images.", 
-      href: `/contests?classId=${classId}`,
+      href: `/contests?classId=${params.classId}`,
       disabled: false
     },
     { 
       icon: Shuffle, 
       title: "Randomizer Wheel", 
       description: "A spinning wheel to randomly select learners or topics.", 
-      href: `/randomizer?classId=${classId}`,
+      href: `/randomizer?classId=${params.classId}`,
       disabled: false
     },
     { 
       icon: BarChart, 
       title: "Live Polls", 
       description: "Engage your class with real-time polls and see instant results.", 
-      href: `/polls?classId=${classId}`,
+      href: `/polls?classId=${params.classId}`,
       disabled: true
     },
     { 
       icon: MessageCircleQuestion, 
       title: "Quizzes", 
       description: "Test knowledge with fun, interactive quizzes and leaderboards.", 
-      href: `/quizzes?classId=${classId}`,
+      href: `/quizzes?classId=${params.classId}`,
       disabled: true 
     },
     { 
       icon: Timer, 
       title: "Class Timer", 
       description: "A shared timer for activities, breaks, or presentations.", 
-      href: `/timer?classId=${classId}`,
+      href: `/timer?classId=${params.classId}`,
       disabled: true
     },
   ];
