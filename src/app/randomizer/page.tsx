@@ -7,8 +7,7 @@ import { auth } from "@/lib/firebase";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { SignInDialog } from "@/components/sign-in-dialog";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { ArrowLeft, Settings, X, Share2, Monitor, Shuffle, Scale, Undo, Trash2, Upload, Volume2, VolumeX, Sun, Moon } from "lucide-react";
+import { Settings, X, Share2, Monitor, Shuffle, Scale, Undo, Trash2, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Papa from "papaparse";
 
@@ -141,7 +140,7 @@ const RandomizerWheel = () => {
                     name,
                     team: `Team ${(index % numberOfTeams) + 1}`,
                     teamNumber: (index % numberOfTeams) + 1,
-                })).sort((a,b) => a.teamNumber - b.teamNumber);
+                })).sort((a,b) => (a.teamNumber ?? 0) - (b.teamNumber ?? 0));
                 setItems(newTeamItems);
             } else {
                 setItems(prev => [...prev, ...newItemsRaw.map(name => ({ name }))]);
@@ -247,7 +246,7 @@ const RandomizerWheel = () => {
                 skipEmptyLines: true,
                 complete: (results) => {
                     saveUndoState();
-                    const newItems = results.data.map((row: any) => {
+                    const newItems = (results.data as string[][]).map((row: any) => {
                         const name = row[0]?.trim();
                         if (!name) return null;
                         if (currentMode === 'team' && row[1]) {
@@ -311,7 +310,7 @@ const RandomizerWheel = () => {
                 team: `Team ${(index % numberOfTeams) + 1}`,
                 teamNumber: (index % numberOfTeams) + 1,
             }));
-            setItems(teamItems.sort((a,b) => a.teamNumber - b.teamNumber));
+            setItems(teamItems.sort((a,b) => (a.teamNumber ?? 0) - (b.teamNumber ?? 0)));
             showResult('Switched to Team Mode');
         } else {
             setItems(items.map(({ name }) => ({ name })));
@@ -321,7 +320,7 @@ const RandomizerWheel = () => {
     
     const teamCounts = React.useMemo(() => {
         if (currentMode !== 'team') return {};
-        const counts: {[key: number]: number} = {};
+        const counts: {[key: string]: number} = {};
         for(let i=1; i<=numberOfTeams; i++) counts[i] = 0;
         items.forEach(item => {
             if(item.teamNumber) counts[item.teamNumber]++;
@@ -339,12 +338,12 @@ const RandomizerWheel = () => {
     const shuffleTeams = () => {
         if (items.length === 0) return;
         saveUndoState();
-        const shuffled = items.sort(() => 0.5 - Math.random());
+        const shuffled = [...items].sort(() => 0.5 - Math.random());
         const newTeamItems = shuffled.map((item, index) => ({
             name: item.name,
             team: `Team ${(index % numberOfTeams) + 1}`,
             teamNumber: (index % numberOfTeams) + 1,
-        })).sort((a,b) => a.teamNumber - b.teamNumber);
+        })).sort((a,b) => (a.teamNumber ?? 0) - (b.teamNumber ?? 0));
         setItems(newTeamItems);
         showResult('Teams shuffled!');
     };
@@ -357,7 +356,7 @@ const RandomizerWheel = () => {
             name,
             team: `Team ${(index % numberOfTeams) + 1}`,
             teamNumber: (index % numberOfTeams) + 1,
-        })).sort((a,b) => a.teamNumber - b.teamNumber);
+        })).sort((a,b) => (a.teamNumber ?? 0) - (b.teamNumber ?? 0));
         setItems(balancedItems);
         showResult('Teams balanced!');
     };
@@ -366,7 +365,7 @@ const RandomizerWheel = () => {
         const name = teamAddInputRef.current?.value.trim();
         if (!name) return;
         saveUndoState();
-        const minTeam = Object.keys(teamCounts).reduce((a, b) => teamCounts[parseInt(a)] <= teamCounts[parseInt(b)] ? a : b);
+        const minTeam = Object.keys(teamCounts).reduce((a, b) => teamCounts[a] <= teamCounts[b] ? a : b);
         const teamNum = parseInt(minTeam);
         setItems(prev => [...prev, { name, team: `Team ${teamNum}`, teamNumber: teamNum }].sort((a,b) => (a.teamNumber || 0) - (b.teamNumber || 0)));
         if(teamAddInputRef.current) teamAddInputRef.current.value = "";
@@ -393,7 +392,7 @@ const RandomizerWheel = () => {
                 }
                 .randomizer-page.light {
                     --bg-primary: linear-gradient(180deg, #f5f5f7 0%, #e3e3e8 100%);
-                    --bg-secondary: rgba(255, 255, 255, 0.8);
+                    --bg-secondary: rgba(0, 0, 0, 0.03);
                     --bg-hover: rgba(0, 0, 0, 0.05);
                     --border-color: rgba(0, 0, 0, 0.1);
                     --text-primary: #1d1d1f;
@@ -469,6 +468,10 @@ const RandomizerWheel = () => {
                 .randomizer-page .team-3 { background: linear-gradient(135deg, #45B7D1, #2196F3); }
                 .randomizer-page .team-4 { background: linear-gradient(135deg, #96CEB4, #4CAF50); }
                 .randomizer-page .team-5 { background: linear-gradient(135deg, #FECA57, #FF9800); }
+                .mode-toggle { display: flex; background: var(--bg-hover); border-radius: 10px; padding: 4px; margin-bottom: 12px; }
+                .mode-btn { flex: 1; padding: 8px; background: transparent; border: none; border-radius: 8px; color: var(--text-secondary); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+                .mode-btn.active { background: var(--accent-gradient); color: white; }
+                .team-input { width: 100%; padding: 8px 12px; background: var(--bg-hover); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary); font-size: 14px; }
                 @media (max-width: 768px) {
                     .randomizer-page .main-content { grid-template-columns: 1fr; }
                     .randomizer-page .wheel-container.large { width: 350px; height: 350px; }
@@ -503,21 +506,21 @@ const RandomizerWheel = () => {
                         {/* Mode Section */}
                         <div className="panel-section">
                             <div className="section-title">Mode</div>
-                            <div className="mode-toggle" style={{display: 'flex', background: 'var(--bg-hover)', borderRadius: '10px', padding: '4px', marginBottom: '12px'}}>
+                            <div className="mode-toggle">
                                 <button className={cn('mode-btn', currentMode === 'normal' && 'active')} onClick={() => changeMode('normal')}>Normal</button>
                                 <button className={cn('mode-btn', currentMode === 'team' && 'active')} onClick={() => changeMode('team')}>Teams</button>
                             </div>
                             {currentMode === 'team' && (
                                 <div style={{marginTop: '12px'}}>
                                     <div style={{display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px'}}>
-                                        <label style={{fontSize: '13px'}}>Teams:</label>
+                                        <label style={{fontSize: '13px', color: 'var(--text-secondary)'}}>Teams:</label>
                                         <select value={numberOfTeams} onChange={e => setNumberOfTeams(Number(e.target.value))} style={{flex: 1, padding: '6px', background: 'var(--bg-hover)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)'}}>
                                             <option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option>
                                         </select>
                                     </div>
                                     <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px'}}>
-                                        <button className="button button-primary" onClick={shuffleTeams}><Shuffle size={14}/> Shuffle</button>
-                                        <button className="button" onClick={balanceTeams}><Scale size={14}/> Balance</button>
+                                        <Button className="button-primary" onClick={shuffleTeams}><Shuffle size={14}/> Shuffle</Button>
+                                        <Button onClick={balanceTeams}><Scale size={14}/> Balance</Button>
                                     </div>
                                 </div>
                             )}
@@ -527,7 +530,7 @@ const RandomizerWheel = () => {
                         <div className="panel-section">
                             <div className="section-title">Import Data</div>
                             <input type="file" id="csvFile" accept=".csv" ref={fileInputRef} onChange={handleFileChange} style={{display: 'none'}}/>
-                            <button className="button" onClick={() => fileInputRef.current?.click()} style={{width: '100%', display: 'flex', justifyContent: 'center', gap: '8px'}}><Upload size={14}/> Choose CSV</button>
+                            <Button className="w-full justify-center gap-2" onClick={() => fileInputRef.current?.click()}><Upload size={14}/> Choose CSV</Button>
                         </div>
                         
                         {/* Items Input */}
@@ -536,12 +539,12 @@ const RandomizerWheel = () => {
                             {currentMode === 'normal' ? (
                                 <>
                                     <textarea ref={textInputRef} className="text-input" placeholder="Enter items (one per line)..."></textarea>
-                                    <button className="button button-primary" onClick={addTextItems}>Add to Wheel</button>
+                                    <Button className="button-primary" onClick={addTextItems}>Add to Wheel</Button>
                                 </>
                             ) : (
                                 <>
-                                    <input type="text" ref={teamAddInputRef} className="team-input" placeholder="Enter name to add to teams" style={{width: '100%', marginBottom: '8px'}} onKeyDown={(e) => e.key === 'Enter' && addToTeam()} />
-                                    <button className="button button-primary" onClick={addToTeam}>Add to Teams</button>
+                                    <input type="text" ref={teamAddInputRef} className="team-input" placeholder="Enter name to add to teams" onKeyDown={(e) => e.key === 'Enter' && addToTeam()} />
+                                    <Button className="button-primary" onClick={addToTeam}>Add to Teams</Button>
                                 </>
                             )}
                         </div>
@@ -569,8 +572,8 @@ const RandomizerWheel = () => {
                                 )}
                             </div>
                             <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '8px'}}>
-                                <button className="button" onClick={clearItems}><Trash2 size={14}/> Clear</button>
-                                <button className="button" onClick={undoLastAction}><Undo size={14}/> Undo</button>
+                                <Button onClick={clearItems}><Trash2 size={14}/> Clear</Button>
+                                <Button onClick={undoLastAction}><Undo size={14}/> Undo</Button>
                             </div>
                         </div>
 
@@ -582,11 +585,11 @@ const RandomizerWheel = () => {
                                 recentWinners.map((winner, index) => (
                                     <div key={index} className="winner-item" style={{borderLeftColor: teamColors[index % teamColors.length]}}>
                                         <span><span style={{marginRight: '8px'}}>{index+1}.</span>{winner.name}</span>
-                                        <span>{winner.time}</span>
+                                        <span style={{fontSize: '11px', color: 'var(--text-secondary)'}}>{winner.time}</span>
                                     </div>
                                 ))}
                             </div>
-                            <button className="button" style={{marginTop: '8px'}} onClick={() => setRecentWinners([])}>Clear History</button>
+                            <Button style={{marginTop: '8px'}} onClick={() => setRecentWinners([])}>Clear History</Button>
                         </div>
                     </div>
 
@@ -596,14 +599,13 @@ const RandomizerWheel = () => {
                                 <div ref={wheelRef} className="wheel" style={{ transform: `rotate(${currentRotation}deg)` }}>
                                     {items.map((item, index) => {
                                         const segmentAngle = 360 / items.length;
-                                        const rotation = index * segmentAngle + (segmentAngle / 2) - 90;
                                         const colorSet = currentMode === 'team' && item.teamNumber ? teamColorSets[item.teamNumber - 1] || teamColors : teamColors;
                                         const color = colorSet[index % colorSet.length];
-                                        const background = `conic-gradient(from ${index * segmentAngle - 90 - (segmentAngle/2)}deg, ${color} 0deg, ${color} ${segmentAngle}deg, transparent ${segmentAngle}deg)`;
+                                        
                                         return (
-                                            <div key={index} className="wheel-segment" style={{ transform: `rotate(${index * segmentAngle}deg)`, clipPath: `polygon(50% 50%, 0% 0%, 100% 0%)` }}>
-                                                 <div style={{ position: 'absolute', width: '100%', height: '100%', background, transform: `rotate(${segmentAngle/2}deg)`}}>
-                                                     <div style={{transform: `rotate(${90-segmentAngle/2}deg) translateY(-80%)`, textAlign: 'center', color: 'white', fontWeight: 600 }}>{item.name}</div>
+                                            <div key={index} className="wheel-segment" style={{ transform: `rotate(${index * segmentAngle}deg)`, clipPath: 'polygon(50% 50%, 0% 0%, 100% 0%)' }}>
+                                                 <div style={{ position: 'absolute', width: '200%', height: '200%', left: '-50%', top: '-50%', background: `conic-gradient(from -${segmentAngle/2}deg, ${color} 0deg, ${color} ${segmentAngle}deg, transparent ${segmentAngle}deg)`}}>
+                                                     <div style={{position: 'absolute', left: '50%', top: '25%', transform: `translate(-50%, -50%) rotate(${90}deg)`, textAlign: 'center', color: 'white', fontWeight: 600, width: '50%' }}>{item.name}</div>
                                                  </div>
                                             </div>
                                         )
@@ -663,7 +665,7 @@ const RandomizerWheel = () => {
                              <p style={{color: 'var(--text-secondary)', marginBottom: '15px'}}>Copy this link to share your wheel:</p>
                              <div style={{display: 'flex', gap: '10px'}}>
                                  <input type="text" readOnly value={shareLink} style={{flex: 1, padding: '10px', background: 'var(--bg-hover)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)'}}/>
-                                 <button className="copy-btn" onClick={copyShareLink}>Copy</button>
+                                 <Button onClick={copyShareLink}>Copy</Button>
                              </div>
                         </div>
                     </div>
@@ -702,3 +704,5 @@ export default function RandomizerPage() {
     </>
   );
 }
+
+    
