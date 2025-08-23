@@ -8,7 +8,7 @@ import { useState, useEffect } from "react";
 import { doc, onSnapshot } from "firebase/firestore";
 import { SignInDialog } from "@/components/sign-in-dialog";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Shuffle, Trophy, Timer, BarChart, MessageCircleQuestion } from "lucide-react";
+import { ArrowLeft, Trophy, Timer, BarChart, MessageCircleQuestion } from "lucide-react";
 import { DashboardCard } from "@/components/dashboard-card";
 import type { Class } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,6 +16,7 @@ import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { Card, CardFooter, CardHeader } from "@/components/ui/card";
+import Image from "next/image";
 
 
 export default function ClassDashboardPage({ params }: { params: { classId: string } }) {
@@ -86,7 +87,7 @@ export default function ClassDashboardPage({ params }: { params: { classId: stri
       disabled: false
     },
     { 
-      icon: Shuffle, 
+      icon: <Image src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/randomizer.png?alt=media&token=1acfebed-1dfe-4651-af05-23b96d3c66e6" alt="Randomizer Wheel" width={24} height={24} />, 
       title: "Randomizer Wheel", 
       description: "A spinning wheel to randomly select learners or topics.", 
       href: `/randomizer?classId=${params.classId}`,
