@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Crop, Upload } from "lucide-react";
-import { getCroppedImg } from "@/lib/image-utils";
+import { getCroppedImg, createImage } from "@/lib/image-utils";
 import type { ContestImageShape } from "@/lib/types";
 
 type UploadDialogProps = {
@@ -37,6 +37,7 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload, uploaderName, ima
   const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+  const [aspectRatio, setAspectRatio] = useState(1);
   
   const [nameError, setNameError] = useState("");
   const [fileError, setFileError] = useState("");
@@ -80,7 +81,18 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload, uploaderName, ima
       }
       
       let imageDataUrl = await readFile(file);
-      setImageSrc(imageDataUrl);
+      try {
+        const image = await createImage(imageDataUrl);
+        if (imageShape === 'original') {
+          setAspectRatio(image.width / image.height);
+        } else {
+          setAspectRatio(1);
+        }
+        setImageSrc(imageDataUrl);
+      } catch (error) {
+        console.error("Error loading image for aspect ratio calculation:", error);
+        setFileError("Could not load image. Please try another file.");
+      }
     }
   };
 
@@ -118,7 +130,7 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload, uploaderName, ima
       
       const compressedBlob = await imageCompression(croppedImageBlob, {
         maxSizeMB: 1,
-        maxWidthOrHeight: 1024, // Increased resolution a bit
+        maxWidthOrHeight: 1024,
         useWebWorker: true,
         fileType: 'image/webp',
       });
@@ -142,11 +154,6 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload, uploaderName, ima
       resetState();
     }
     onOpenChange(open);
-  }
-
-  const getAspectRatio = () => {
-    if (imageShape === 'square' || imageShape === 'circular') return 1;
-    return 4/3; // Default for 'original' - can be adjusted
   }
 
   return (
@@ -184,7 +191,7 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload, uploaderName, ima
                       image={imageSrc}
                       crop={crop}
                       zoom={zoom}
-                      aspect={getAspectRatio()}
+                      aspect={aspectRatio}
                       onCropChange={setCrop}
                       onZoomChange={setZoom}
                       onCropComplete={onCropComplete}

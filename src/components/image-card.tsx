@@ -49,7 +49,6 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting, i
             "w-32 md:w-36": rank === 2 && imageShape === 'original',
             "overflow-visible": rank === 0,
             "aspect-square": imageShape === 'circular' || imageShape === 'square',
-            "aspect-[4/5]": imageShape === 'original',
         }
     ),
     imageBorder: cn("border-4 w-full h-full", shapeClasses[imageShape], {
@@ -65,7 +64,7 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting, i
         shapeClasses[imageShape],
         {
           "w-32 h-32 md:w-36 md:h-36": (imageShape === 'circular' || imageShape === 'square'),
-          "w-32 md:w-36 aspect-[4/5]": imageShape === 'original'
+          "w-32 md:w-36": imageShape === 'original'
         }
       ),
       imageBorder: cn("border-4 border-card w-full h-full", shapeClasses[imageShape])
