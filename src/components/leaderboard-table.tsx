@@ -23,7 +23,7 @@ export function LeaderboardTable({ images }: LeaderboardTableProps) {
     if (rank === 0) return "🥇";
     if (rank === 1) return "🥈";
     if (rank === 2) return "🥉";
-    return <Badge variant="outline">{rank + 1}</Badge>;
+    return <div className="flex items-center justify-center w-6 h-6"><Badge variant="outline">{rank + 1}</Badge></div>;
   }
 
   return (
@@ -59,4 +59,3 @@ export function LeaderboardTable({ images }: LeaderboardTableProps) {
     </Table>
   );
 }
-
