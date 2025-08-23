@@ -54,15 +54,9 @@ export function Header({ user, onSignInClick }: HeaderProps) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem asChild>
-                <Link href="/picpick">
+                <Link href="/contests">
                   <Trophy className="mr-2 h-4 w-4" />
-                  <span>Contest</span>
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/leaderboard">
-                  <Users className="mr-2 h-4 w-4" />
-                  <span>Leaderboard</span>
+                  <span>Contests</span>
                 </Link>
               </DropdownMenuItem>
             </DropdownMenuContent>

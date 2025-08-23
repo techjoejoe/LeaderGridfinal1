@@ -1,4 +1,6 @@
 
+import type { Timestamp } from "firebase/firestore";
+
 export type PicVoteImage = {
   id: string;
   name: string;
@@ -7,6 +9,7 @@ export type PicVoteImage = {
   firstName: string;
   lastName: string;
   uploaderUid: string;
+  contestId: string;
 };
 
 export type UserVoteData = {
@@ -15,3 +18,12 @@ export type UserVoteData = {
   lastVotedDate: string; // YYYY-MM-DD
   imageVotes: { [imageId: string]: number };
 };
+
+export type Contest = {
+    id: string;
+    name: string;
+    creatorUid: string;
+    creatorName: string;
+    status: 'active' | 'finished';
+    createdAt: Timestamp;
+}
