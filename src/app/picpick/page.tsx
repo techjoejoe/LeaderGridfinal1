@@ -399,19 +399,21 @@ function PicPickContent() {
                         </div>
                     )}
                     {otherImages.length > 0 && (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-8 items-end my-8">
-                        {otherImages.map((image, index) => (
-                            <ImageCard
-                              key={image.id}
-                              image={image}
-                              rank={index + 3}
-                              onVote={handleVote}
-                              disabled={!user || !canVoteToday || hasVotedForImage(image.id)}
-                              hasVoted={hasVotedForImage(image.id)}
-                              isVoting={votingImageId === image.id}
-                              imageShape={contest?.imageShape}
-                            />
-                        ))}
+                        <div className="flex justify-center">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-8 items-end my-8">
+                            {otherImages.map((image, index) => (
+                                <ImageCard
+                                  key={image.id}
+                                  image={image}
+                                  rank={index + 3}
+                                  onVote={handleVote}
+                                  disabled={!user || !canVoteToday || hasVotedForImage(image.id)}
+                                  hasVoted={hasVotedForImage(image.id)}
+                                  isVoting={votingImageId === image.id}
+                                  imageShape={contest?.imageShape}
+                                />
+                            ))}
+                            </div>
                         </div>
                     )}
                   </div>
@@ -474,3 +476,5 @@ function HeaderWrapper() {
         </>
     );
 }
+
+    
