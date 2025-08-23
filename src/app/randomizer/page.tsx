@@ -95,6 +95,7 @@ const RandomizerWheel = () => {
     const [wheelSize, setWheelSize] = useState('medium');
 
     const wheelRef = useRef<HTMLDivElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
     const textInputRef = useRef<HTMLTextAreaElement>(null);
     const teamAddInputRef = useRef<HTMLInputElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -109,6 +110,61 @@ const RandomizerWheel = () => {
     ];
     const teamColors = teamColorSets.flat();
 
+    const drawWheel = useCallback(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+    
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        ctx.scale(dpr, dpr);
+    
+        const [width, height] = [rect.width, rect.height];
+        const [cx, cy] = [width / 2, height / 2];
+        const radius = Math.min(width, height) / 2;
+    
+        if (items.length === 0) {
+            ctx.clearRect(0, 0, width, height);
+            return;
+        }
+    
+        const segmentAngle = 2 * Math.PI / items.length;
+    
+        items.forEach((item, i) => {
+            const colorSet = currentMode === 'team' && item.teamNumber ? teamColorSets[item.teamNumber - 1] || teamColors : teamColors;
+            const color = colorSet[i % colorSet.length];
+    
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.arc(cx, cy, radius, i * segmentAngle, (i + 1) * segmentAngle);
+            ctx.closePath();
+            ctx.fillStyle = color;
+            ctx.fill();
+        });
+    
+        items.forEach((item, i) => {
+            const angle = i * segmentAngle + segmentAngle / 2;
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(angle);
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif';
+            ctx.shadowColor = 'rgba(0,0,0,0.5)';
+            ctx.shadowBlur = 3;
+            ctx.shadowOffsetX = 1;
+            ctx.shadowOffsetY = 1;
+            ctx.fillText(item.name, radius * 0.6, 5);
+            ctx.restore();
+        });
+    }, [items, currentMode, teamColorSets, teamColors]);
+
+    useEffect(() => {
+        drawWheel();
+    }, [drawWheel, items, wheelSize]);
 
     const saveUndoState = useCallback(() => {
         setUndoHistory(prev => {
@@ -167,8 +223,8 @@ const RandomizerWheel = () => {
         setCurrentRotation(newRotation);
 
         const segmentAngle = 360 / items.length;
-        const normalizedAngle = ((360 - (newRotation % 360)) + 90) % 360;
-        const winningIndex = Math.floor(normalizedAngle / segmentAngle);
+        const finalAngle = newRotation % 360;
+        const winningIndex = Math.floor((360 - finalAngle) / segmentAngle);
         const winner = items[winningIndex % items.length];
 
         setTimeout(() => {
@@ -373,18 +429,6 @@ const RandomizerWheel = () => {
         showResult(`Added "${name}" to Team ${teamNum}`);
     };
 
-    const getConicGradient = () => {
-        if (items.length === 0) return 'var(--bg-secondary)';
-        const segmentAngle = 360 / items.length;
-        let stops = '';
-        items.forEach((item, index) => {
-            const colorSet = currentMode === 'team' && item.teamNumber ? teamColorSets[item.teamNumber - 1] || teamColors : teamColors;
-            const color = colorSet[index % colorSet.length];
-            stops += `${color} ${index * segmentAngle}deg, ${color} ${(index + 1) * segmentAngle}deg, `;
-        });
-        return `conic-gradient(${stops.slice(0, -2)})`;
-    }
-
     return (
         <div className={cn("randomizer-page", theme, isPresentationMode && "presentation-mode")}>
              <style>{`
@@ -455,6 +499,7 @@ const RandomizerWheel = () => {
                 .randomizer-page .wheel-container.large { width: 500px; height: 500px; }
                 .randomizer-page .wheel-border { position: absolute; inset: -20px; background: linear-gradient(135deg, var(--border-color) 0%, var(--bg-secondary) 100%); border-radius: 50%; padding: 20px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), inset 0 2px 4px rgba(255, 255, 255, 0.1); }
                 .randomizer-page .wheel { width: 100%; height: 100%; border-radius: 50%; position: relative; overflow: hidden; transition: transform 6s cubic-bezier(0.23, 1, 0.32, 1); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), inset 0 0 80px rgba(0, 0, 0, 0.3); }
+                .randomizer-page .wheel canvas { width: 100%; height: 100%; }
                 .randomizer-page .pointer { position: absolute; top: -30px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 20px solid transparent; border-right: 20px solid transparent; border-top: 40px solid var(--text-primary); filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3)); z-index: 10; }
                 .randomizer-page .action-buttons { display: flex; gap: 12px; margin-top: 30px; justify-content: center; align-items: center; }
                 .randomizer-page .spin-button { padding: 14px 48px; background: var(--accent-gradient); border: none; border-radius: 14px; color: white; font-size: 16px; font-weight: 600; cursor: pointer; }
@@ -486,19 +531,6 @@ const RandomizerWheel = () => {
                 .mode-btn.active { background: var(--accent-gradient); color: white; }
                 .team-input { width: 100%; padding: 8px 12px; background: var(--bg-hover); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary); font-size: 14px; }
                 
-                .wheel-segment-text {
-                    position: absolute;
-                    left: 50%;
-                    top: 25%;
-                    transform-origin: center center;
-                    transform: translate(-50%, -50%);
-                    text-align: center;
-                    color: white;
-                    font-weight: 600;
-                    width: 50%;
-                    font-size: 12px;
-                }
-
                 @media (max-width: 768px) {
                     .randomizer-page .main-content { grid-template-columns: 1fr; }
                     .randomizer-page .wheel-container.large { width: 350px; height: 350px; }
@@ -623,16 +655,8 @@ const RandomizerWheel = () => {
                     <div className="wheel-section">
                         <div className={cn("wheel-container", wheelSize)}>
                             <div className="wheel-border">
-                                <div ref={wheelRef} className="wheel" style={{ transform: `rotate(${currentRotation}deg)`, background: getConicGradient() }}>
-                                    {items.map((item, index) => {
-                                        const segmentAngle = 360 / items.length;
-                                        const rotation = index * segmentAngle + segmentAngle / 2;
-                                        return (
-                                            <div key={index} className="wheel-segment-text" style={{ transform: `rotate(${rotation}deg)` }}>
-                                                {item.name}
-                                            </div>
-                                        )
-                                    })}
+                                <div ref={wheelRef} className="wheel" style={{ transform: `rotate(${currentRotation}deg)` }}>
+                                    <canvas ref={canvasRef} />
                                 </div>
                             </div>
                             <div className="pointer"></div>
