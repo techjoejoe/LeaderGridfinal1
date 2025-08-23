@@ -383,7 +383,7 @@ function PicPickContent() {
               {images.length > 0 ? (
                   <div className="flex flex-col gap-8">
                     {podiumImages.length > 0 && (
-                        <div className="flex justify-center items-end gap-4 md:gap-8 mb-12 border-b pb-12 pt-16 min-h-[320px]">
+                        <div className="flex justify-center items-end gap-4 md:gap-8 mb-12 pt-16 min-h-[320px]">
                         {displayedPodium.map(({ image, rank }) => (
                             <ImageCard
                               key={image.id}
