@@ -75,7 +75,7 @@ class SoundEffects {
     }
 }
 
-type Item = { name: string; team?: string; teamNumber?: number };
+type Item = { name: string; team?: string; teamNumber?: number; color: string; };
 type Winner = { name: string; time: string };
 type UndoState = { items: Item[], winners: Winner[] };
 
@@ -183,9 +183,7 @@ const RandomizerWheel = () => {
         const segmentAngle = 2 * Math.PI / items.length;
     
         items.forEach((item, i) => {
-            const colorSet = currentMode === 'team' && item.teamNumber ? teamColorSets[item.teamNumber - 1] || teamColors : teamColors;
-            const color = colorSet[i % colorSet.length];
-    
+            const color = item.color;
             ctx.beginPath();
             ctx.moveTo(cx, cy);
             ctx.arc(cx, cy, radius, i * segmentAngle, (i + 1) * segmentAngle);
@@ -209,7 +207,7 @@ const RandomizerWheel = () => {
             ctx.fillText(item.name, radius * 0.6, 5);
             ctx.restore();
         });
-    }, [items, currentMode, teamColorSets, teamColors]);
+    }, [items, wheelSize]);
 
     useEffect(() => {
         drawWheel();
@@ -247,19 +245,24 @@ const RandomizerWheel = () => {
                 const existingNames = items.map(item => item.name);
                 const allNames = [...existingNames, ...newItemsRaw];
                 const shuffled = allNames.sort(() => 0.5 - Math.random());
-                const newTeamItems = shuffled.map((name, index) => ({
-                    name,
-                    team: `Team ${(index % numberOfTeams) + 1}`,
-                    teamNumber: (index % numberOfTeams) + 1,
-                })).sort((a,b) => (a.teamNumber ?? 0) - (b.teamNumber ?? 0));
+                const newTeamItems = shuffled.map((name, index) => {
+                    const teamNumber = (index % numberOfTeams) + 1;
+                    return {
+                        name,
+                        team: `Team ${teamNumber}`,
+                        teamNumber: teamNumber,
+                        color: teamColorSets[teamNumber - 1][Math.floor(Math.random() * teamColorSets[teamNumber - 1].length)],
+                    };
+                }).sort((a,b) => (a.teamNumber ?? 0) - (b.teamNumber ?? 0));
                 updateItems(newTeamItems);
             } else {
-                updateItems([...items, ...newItemsRaw.map(name => ({ name }))]);
+                 const newItems = newItemsRaw.map(name => ({ name, color: teamColors[Math.floor(Math.random() * teamColors.length)] }));
+                updateItems([...items, ...newItems]);
             }
             if(textInputRef.current) textInputRef.current.value = "";
             showResult(`Added ${newItemsRaw.length} item(s)`);
         }
-    }, [currentMode, items, numberOfTeams, saveUndoState, showResult]);
+    }, [currentMode, items, numberOfTeams, saveUndoState, showResult, teamColors]);
 
     const closeWinnerOverlay = () => {
         if (!winner) return;
@@ -307,7 +310,7 @@ const RandomizerWheel = () => {
             
             setIsSpinning(false);
         }, 8000);
-    }, [isSpinning, items, settings.removeWinner, settings.soundEnabled, currentRotation, saveUndoState, showResult, recentWinners]);
+    }, [isSpinning, items, settings.removeWinner, settings.soundEnabled, currentRotation, recentWinners, saveStateToFirestore]);
 
     // Keyboard shortcuts
     useEffect(() => {
@@ -367,10 +370,11 @@ const RandomizerWheel = () => {
                     const newItems = (results.data as string[][]).map((row: any) => {
                         const name = row[0]?.trim();
                         if (!name) return null;
+                         const color = teamColors[Math.floor(Math.random() * teamColors.length)];
                         if (currentMode === 'team' && row[1]) {
-                            return { name, team: row[1].trim(), teamNumber: 0 }; // teamNumber will be assigned
+                            return { name, team: row[1].trim(), teamNumber: 0, color }; // teamNumber will be assigned
                         }
-                        return { name };
+                        return { name, color };
                     }).filter(Boolean) as Item[];
                     
                     if (currentMode === 'team') {
@@ -428,12 +432,13 @@ const RandomizerWheel = () => {
                 name: item.name,
                 team: `Team ${(index % numberOfTeams) + 1}`,
                 teamNumber: (index % numberOfTeams) + 1,
+                color: item.color,
             }));
             const sortedTeamItems = teamItems.sort((a,b) => (a.teamNumber ?? 0) - (b.teamNumber ?? 0));
             updateItems(sortedTeamItems);
             showResult('Switched to Team Mode');
         } else {
-            const newItems = items.map(({ name }) => ({ name }));
+            const newItems = items.map(({ name, color }) => ({ name, color }));
             updateItems(newItems);
             showResult('Switched to Normal Mode');
         }
@@ -464,6 +469,7 @@ const RandomizerWheel = () => {
             name: item.name,
             team: `Team ${(index % numberOfTeams) + 1}`,
             teamNumber: (index % numberOfTeams) + 1,
+            color: item.color,
         })).sort((a,b) => (a.teamNumber ?? 0) - (b.teamNumber ?? 0));
         updateItems(newTeamItems);
         showResult('Teams shuffled!');
@@ -472,11 +478,12 @@ const RandomizerWheel = () => {
     const balanceTeams = () => {
         if (items.length === 0) return;
         saveUndoState();
-        const allNames = items.map(item => item.name);
-        const balancedItems = allNames.map((name, index) => ({
-            name,
+        const allItems = [...items];
+        const balancedItems = allItems.map((item, index) => ({
+            name: item.name,
             team: `Team ${(index % numberOfTeams) + 1}`,
             teamNumber: (index % numberOfTeams) + 1,
+            color: item.color,
         })).sort((a,b) => (a.teamNumber ?? 0) - (b.teamNumber ?? 0));
         updateItems(balancedItems);
         showResult('Teams balanced!');
@@ -488,7 +495,8 @@ const RandomizerWheel = () => {
         saveUndoState();
         const minTeam = Object.keys(teamCounts).reduce((a, b) => teamCounts[a] <= teamCounts[b] ? a : b);
         const teamNum = parseInt(minTeam);
-        const newItems = [...items, { name, team: `Team ${teamNum}`, teamNumber: teamNum }].sort((a,b) => (a.teamNumber || 0) - (b.teamNumber || 0));
+        const color = teamColorSets[teamNum - 1][Math.floor(Math.random() * teamColorSets[teamNum - 1].length)];
+        const newItems = [...items, { name, team: `Team ${teamNum}`, teamNumber: teamNum, color }].sort((a,b) => (a.teamNumber || 0) - (b.teamNumber || 0));
         updateItems(newItems);
         if(teamAddInputRef.current) teamAddInputRef.current.value = "";
         showResult(`Added "${name}" to Team ${teamNum}`);
@@ -865,7 +873,3 @@ export default function RandomizerPage() {
     </>
   );
 }
-
-    
-
-    
