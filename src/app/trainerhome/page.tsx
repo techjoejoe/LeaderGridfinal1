@@ -25,7 +25,7 @@ function ClassCard({ classData }: { classData: Class }) {
         </CardHeader>
         <CardFooter>
             <Button asChild className="w-full">
-              <Link href="/contests">Enter Class</Link>
+              <Link href={`/class/${classData.id}`}>Enter Class</Link>
             </Button>
         </CardFooter>
     </Card>
