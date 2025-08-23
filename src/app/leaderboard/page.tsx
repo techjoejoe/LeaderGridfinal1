@@ -72,7 +72,7 @@ function LeaderboardContent() {
     };
   }, [contestId, toast]);
 
-  const handleUpload = async (photoName: string, uploaderName: string, dataUrl: string) => {
+  const handleUpload = async (photoName: string, dataUrl: string) => {
     if (!user || !contestId) {
       setSignInOpen(true);
       return;
@@ -94,7 +94,7 @@ function LeaderboardContent() {
       
       const newImage: Omit<PicVoteImage, 'id'> = {
         name: photoName,
-        firstName: uploaderName || user.displayName || "Anonymous",
+        firstName: user.displayName || "Anonymous",
         lastName: "",
         url: downloadURL,
         votes: 0,
@@ -174,6 +174,7 @@ function LeaderboardContent() {
         isOpen={isUploadOpen}
         onOpenChange={setUploadOpen}
         onUpload={handleUpload}
+        uploaderName={user?.displayName ?? undefined}
       />
        <SignInDialog
         isOpen={isSignInOpen}

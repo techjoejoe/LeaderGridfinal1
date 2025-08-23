@@ -80,15 +80,15 @@ function PicPickContent() {
         const today = getToday();
         if (docSnap.exists()) {
           const data = docSnap.data() as UserVoteData;
+          // This check is now crucial. If the date doesn't match, we must reset.
           if (data.lastVotedDate !== today) {
             // It's a new day, reset the votes in Firestore and then update state
             const resetData: UserVoteData = {
-              ...data,
               votesToday: 4,
               imageVotes: {},
               lastVotedDate: today,
             };
-            await setDoc(userVoteRef, resetData, { merge: true });
+            await setDoc(userVoteRef, resetData); // Don't merge, replace old data
             setUserVoteData(resetData);
           } else {
             setUserVoteData(data);
@@ -152,9 +152,11 @@ function PicPickContent() {
         const userVoteRef = doc(db, "users", user.uid, "user_votes", contestId);
         const imageRef = doc(db, "images", id);
 
+        // It is crucial to get the user vote data inside the transaction
+        // to avoid race conditions.
         const userVoteDoc = await transaction.get(userVoteRef);
         const imageDoc = await transaction.get(imageRef);
-
+        
         if (!imageDoc.exists()) {
           throw new Error("Image does not exist!");
         }
@@ -162,22 +164,19 @@ function PicPickContent() {
         const today = getToday();
         
         let currentVoteData: UserVoteData;
-        if (!userVoteDoc.exists()) {
+        
+        // If the user has no vote document or if the last voted date is not today,
+        // we create a fresh slate for them.
+        if (!userVoteDoc.exists() || userVoteDoc.data().lastVotedDate !== today) {
           currentVoteData = {
             votesToday: 4,
-            lastVotedDate: "1970-01-01",
+            lastVotedDate: today,
             imageVotes: {},
           };
         } else {
           currentVoteData = userVoteDoc.data() as UserVoteData;
         }
 
-        // This check is now mostly a safeguard, as the listener should handle resets.
-        if (currentVoteData.lastVotedDate !== today) {
-          currentVoteData.votesToday = 4;
-          currentVoteData.imageVotes = {};
-        }
-        
         if (currentVoteData.votesToday <= 0) {
           throw new Error("You have no votes left for today.");
         }
@@ -187,25 +186,30 @@ function PicPickContent() {
           throw new Error("You can only vote for the same image twice.");
         }
 
+        // Increment image votes
         const newImageData = { votes: imageDoc.data().votes + 1 };
         transaction.update(imageRef, newImageData);
         
+        // Decrement user's votes for the day and record the specific image vote
         const newUserVoteData: UserVoteData = {
           ...currentVoteData,
           votesToday: currentVoteData.votesToday - 1,
-          lastVotedDate: today,
+          lastVotedDate: today, // Ensure date is always set
           imageVotes: {
             ...currentVoteData.imageVotes,
             [id]: imageVoteCount + 1,
           },
         };
-        transaction.set(userVoteRef, newUserVoteData);
+        transaction.set(userVoteRef, newUserVoteData); // Use set to either create or overwrite
         
-        toast({
-          title: "Vote Cast!",
-          description: `Your vote for ${imageDoc.data().name} has been counted.`,
-        });
+        // This will be reflected in the UI via the snapshot listener
       });
+
+      toast({
+        title: "Vote Cast!",
+        description: `Your vote has been counted.`,
+      });
+
     } catch (error: any) {
       console.error("Error casting vote:", error);
       toast({
@@ -218,7 +222,7 @@ function PicPickContent() {
     }
   };
 
-  const handleUpload = async (photoName: string, uploaderName: string, dataUrl: string) => {
+  const handleUpload = async (photoName: string, dataUrl: string) => {
     if (!user || !contestId) {
       setSignInOpen(true);
       return;
@@ -240,7 +244,7 @@ function PicPickContent() {
       
       const newImage: Omit<PicVoteImage, 'id'> = {
         name: photoName,
-        firstName: uploaderName || user.displayName || "Anonymous",
+        firstName: user.displayName || "Anonymous",
         lastName: "",
         url: downloadURL,
         votes: 0,
@@ -427,6 +431,7 @@ function PicPickContent() {
         isOpen={isUploadOpen}
         onOpenChange={setUploadOpen}
         onUpload={handleUpload}
+        uploaderName={user?.displayName ?? undefined}
       />
     </>
   );

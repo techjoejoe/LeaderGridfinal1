@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import Cropper from 'react-easy-crop';
 import type { Point, Area } from 'react-easy-crop';
 import imageCompression from 'browser-image-compression';
@@ -24,13 +24,14 @@ import { getCroppedImg } from "@/lib/image-utils";
 type UploadDialogProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onUpload: (photoName: string, uploaderName: string, dataUrl: string) => void;
+  onUpload: (photoName: string, dataUrl: string) => void;
+  uploaderName?: string;
 };
 
-export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogProps) {
+export function UploadDialog({ isOpen, onOpenChange, onUpload, uploaderName }: UploadDialogProps) {
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [photoName, setPhotoName] = useState("");
-  const [uploaderName, setUploaderName] = useState("");
+  const [currentUploaderName, setCurrentUploaderName] = useState("");
   const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
@@ -40,10 +41,19 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
   
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    if (uploaderName) {
+      setCurrentUploaderName(uploaderName);
+    }
+  }, [uploaderName])
+
   const resetState = useCallback(() => {
     setImageSrc(null);
     setPhotoName("");
-    setUploaderName("");
+    // Don't reset uploader name if it's passed as a prop
+    if (!uploaderName) {
+      setCurrentUploaderName("");
+    }
     setCrop({ x: 0, y: 0 });
     setZoom(1);
     setCroppedAreaPixels(null);
@@ -52,7 +62,7 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
-  }, []);
+  }, [uploaderName]);
 
   const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -115,7 +125,7 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
       reader.readAsDataURL(compressedBlob);
       reader.onloadend = () => {
         const base64data = reader.result;
-        onUpload(photoName, uploaderName, base64data as string);
+        onUpload(photoName, base64data as string);
         onOpenChange(false);
       };
       
@@ -148,8 +158,8 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload }: UploadDialogPro
                 {nameError && <p className="text-sm text-destructive">{nameError}</p>}
             </div>
              <div className="space-y-2">
-                <Label htmlFor="uploaderName">Your Name (Optional)</Label>
-                <Input id="uploaderName" value={uploaderName} onChange={(e) => setUploaderName(e.target.value)} placeholder="e.g., 'Jane Doe'"/>
+                <Label htmlFor="uploaderName">Your Name</Label>
+                <Input id="uploaderName" value={currentUploaderName} onChange={(e) => setCurrentUploaderName(e.target.value)} placeholder="e.g., 'Jane Doe'" readOnly={!!uploaderName} />
             </div>
             <div className="space-y-2">
                 <Label htmlFor="file">Image</Label>
