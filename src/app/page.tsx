@@ -7,7 +7,7 @@ import { auth } from "@/lib/firebase";
 import { useState, useEffect } from "react";
 import { SignInDialog } from "@/components/sign-in-dialog";
 import { DashboardCard } from "@/components/dashboard-card";
-import { PieChart, Trophy, Vote, Timer, Zap, HelpCircle } from "lucide-react";
+import { PieChart, Trophy, Vote, Timer, Zap, HelpCircle, QrCode } from "lucide-react";
 
 const dashboardTools = [
   {
@@ -49,6 +49,13 @@ const dashboardTools = [
     title: "Quiz",
     description: "Create and administer quizzes with automated scoring.",
     icon: HelpCircle,
+    href: "#",
+    disabled: true,
+  },
+  {
+    title: "QR Code Points Game",
+    description: "A fun, interactive game where users scan QR codes to earn points.",
+    icon: QrCode,
     href: "#",
     disabled: true,
   },
