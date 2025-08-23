@@ -4,7 +4,7 @@
 import { Header } from "@/components/header";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { doc, onSnapshot } from "firebase/firestore";
 import { SignInDialog } from "@/components/sign-in-dialog";
 import { Button } from "@/components/ui/button";
@@ -77,7 +77,7 @@ export default function ClassDashboardPage({ params }: { params: { classId: stri
     }
   }, [user, params.classId, toast, router]);
   
-  const tools = [
+  const tools = useMemo(() => [
     { 
       icon: Trophy, 
       title: "PicPick Contest", 
@@ -111,7 +111,7 @@ export default function ClassDashboardPage({ params }: { params: { classId: stri
       href: `/timer?classId=${params.classId}`,
       disabled: true
     },
-  ];
+  ], [params.classId]);
 
   return (
     <>
