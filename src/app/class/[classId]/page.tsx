@@ -8,7 +8,7 @@ import { useState, useEffect, useMemo } from "react";
 import { doc, onSnapshot } from "firebase/firestore";
 import { SignInDialog } from "@/components/sign-in-dialog";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, MessageCircleQuestion } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { DashboardCard } from "@/components/dashboard-card";
 import type { Class } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -100,8 +100,7 @@ export default function ClassDashboardPage() {
       disabled: true
     },
     { 
-      icon: MessageCircleQuestion, 
-      title: "Quizzes", 
+      icon: <Image src="https://placehold.co/175x175.png" alt="Quizzes" width={175} height={175} data-ai-hint="quiz test" />, 
       description: "Test knowledge with fun, interactive quizzes and leaderboards.", 
       href: `/quizzes?classId=${classId}`,
       disabled: true 
