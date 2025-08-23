@@ -100,7 +100,7 @@ export default function ClassDashboardPage() {
       disabled: true
     },
     { 
-      icon: <Image src="https://placehold.co/175x175.png" alt="Quizzes" width={175} height={175} data-ai-hint="quiz test" />, 
+      icon: <Image src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/QuizBattle.png?alt=media&token=dc8b0db6-2b84-4ae6-a57e-ff071b1b347a" alt="Quizzes" width={175} height={175} data-ai-hint="quiz test" />, 
       title: "Quizzes",
       description: "Test knowledge with fun, interactive quizzes and leaderboards.", 
       href: `/quizzes?classId=${classId}`,
