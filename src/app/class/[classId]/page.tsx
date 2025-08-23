@@ -92,7 +92,7 @@ export default function ClassDashboardPage({ params }: { params: { classId: stri
       disabled: false
     },
     { 
-      icon: BarChart, 
+      icon: <Image src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/Livevote.png?alt=media&token=821a851e-8449-4ede-8005-9be175576be4" alt="Live Polls" width={64} height={64} data-ai-hint="live poll chart" />, 
       title: "Live Polls", 
       description: "Engage your class with real-time polls and see instant results.", 
       href: `/polls?classId=${params.classId}`,
