@@ -359,7 +359,7 @@ const RandomizerWheel = () => {
     
     // Load from URL params on mount
     useEffect(() => {
-        const params = new URLSearchParams(window.location().search);
+        const params = new URLSearchParams(window.location.search);
         if (params.has('items')) {
             try {
                 const sharedItems: Item[] = JSON.parse(atob(params.get('items')!));
@@ -855,3 +855,5 @@ export default function RandomizerPage() {
     </>
   );
 }
+
+    
