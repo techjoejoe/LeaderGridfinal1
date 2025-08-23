@@ -26,7 +26,7 @@ export function Header({ user, onSignInClick }: HeaderProps) {
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
         <Link href="/" className="flex items-center gap-3 font-bold font-headline text-lg">
             <Image
-                src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/JoeODesignLogo.png?alt=media&token=2547d766-033a-4c8f-b187-555b65b4cf04"
+                src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/JoeODesignLogo.png?alt=media&token=98b4c8d8-90ef-4af9-bd40-5025052bb4c2"
                 alt="Joe O Design Logo"
                 width={140}
                 height={40}
@@ -34,7 +34,7 @@ export function Header({ user, onSignInClick }: HeaderProps) {
                 priority
             />
             <Image
-                src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/JoeODesignLogo.png?alt=media&token=2547d766-033a-4c8f-b187-555b65b4cf04"
+                src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/JoeODesignLogo.png?alt=media&token=98b4c8d8-90ef-4af9-bd40-5025052bb4c2"
                 alt="Joe O Design Logo"
                 width={140}
                 height={40}
