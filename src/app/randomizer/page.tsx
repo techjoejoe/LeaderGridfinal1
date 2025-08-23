@@ -93,7 +93,6 @@ const RandomizerWheel = () => {
     const [numberOfTeams, setNumberOfTeams] = useState(2);
     const [isPresentationMode, setIsPresentationMode] = useState(false);
     const [isShareOpen, setIsShareOpen] = useState(false);
-    const [resultText, setResultText] = useState("Add items to get started");
     const [shareLink, setShareLink] = useState("");
     const [winner, setWinner] = useState<{item: Item, text: string} | null>(null);
 
@@ -242,16 +241,6 @@ const RandomizerWheel = () => {
         });
     }, [items, recentWinners]);
 
-    const showResult = useCallback((text: string) => {
-        setResultText(text);
-        const el = document.getElementById('resultText');
-        if(el) {
-            el.classList.remove('show');
-            void el.offsetWidth; // trigger reflow
-            el.classList.add('show');
-        }
-    }, []);
-
     const updateItems = (newItems: Item[]) => {
         setItems(newItems);
         saveStateToFirestore({ items: newItems });
@@ -281,9 +270,8 @@ const RandomizerWheel = () => {
                 updateItems([...items, ...newItems]);
             }
             if(textInputRef.current) textInputRef.current.value = "";
-            showResult(`Added ${newItemsRaw.length} item(s)`);
         }
-    }, [currentMode, items, numberOfTeams, saveUndoState, showResult, teamColors, teamColorSets]);
+    }, [currentMode, items, numberOfTeams, saveUndoState, teamColors, teamColorSets]);
 
     const closeWinnerOverlay = () => {
         if (!winner) return;
@@ -364,7 +352,6 @@ const RandomizerWheel = () => {
             try {
                 const sharedItems: Item[] = JSON.parse(atob(params.get('items')!));
                 setItems(sharedItems);
-                showResult('Wheel loaded from shared link!');
             } catch (e) { console.error('Failed to load shared items'); }
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -376,7 +363,6 @@ const RandomizerWheel = () => {
         if (fileInputRef.current) fileInputRef.current.value = "";
         if (textInputRef.current) textInputRef.current.value = "";
         if (teamAddInputRef.current) teamAddInputRef.current.value = "";
-        showResult('All items cleared');
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -406,7 +392,6 @@ const RandomizerWheel = () => {
                     } else {
                         updateItems(newItems);
                     }
-                    showResult('CSV loaded successfully!');
                 }
             });
         }
@@ -417,7 +402,6 @@ const RandomizerWheel = () => {
         const removedItem = items[index];
         const newItems = items.filter((_, i) => i !== index)
         updateItems(newItems);
-        showResult(`Removed ${removedItem.name}`);
     };
 
     const undoLastAction = () => {
@@ -426,7 +410,6 @@ const RandomizerWheel = () => {
             updateItems(lastState.items);
             setRecentWinners(lastState.winners);
             setUndoHistory(prev => prev.slice(0, -1));
-            showResult('Action undone!');
         }
     };
 
@@ -442,7 +425,6 @@ const RandomizerWheel = () => {
 
     const copyShareLink = () => {
         navigator.clipboard.writeText(shareLink);
-        showResult('Link copied to clipboard!');
     };
 
     const changeMode = (mode: 'normal' | 'team') => {
@@ -455,11 +437,9 @@ const RandomizerWheel = () => {
             }));
             const sortedTeamItems = teamItems.sort((a,b) => (a.teamNumber ?? 0) - (b.teamNumber ?? 0));
             updateItems(sortedTeamItems);
-            showResult('Switched to Team Mode');
         } else {
             const newItems = items.map(({ name, color }) => ({ name, color }));
             updateItems(newItems);
-            showResult('Switched to Normal Mode');
         }
     };
     
@@ -491,7 +471,6 @@ const RandomizerWheel = () => {
             color: item.color,
         })).sort((a,b) => (a.teamNumber ?? 0) - (b.teamNumber ?? 0));
         updateItems(newTeamItems);
-        showResult('Teams shuffled!');
     };
     
     const balanceTeams = () => {
@@ -505,7 +484,6 @@ const RandomizerWheel = () => {
             color: item.color,
         })).sort((a,b) => (a.teamNumber ?? 0) - (b.teamNumber ?? 0));
         updateItems(balancedItems);
-        showResult('Teams balanced!');
     };
 
     const addToTeam = () => {
@@ -518,7 +496,6 @@ const RandomizerWheel = () => {
         const newItems = [...items, { name, team: `Team ${teamNum}`, teamNumber: teamNum, color }].sort((a,b) => (a.teamNumber || 0) - (b.teamNumber || 0));
         updateItems(newItems);
         if(teamAddInputRef.current) teamAddInputRef.current.value = "";
-        showResult(`Added "${name}" to Team ${teamNum}`);
     };
 
     const updateRecentWinners = (newWinners: Winner[]) => {
@@ -589,9 +566,6 @@ const RandomizerWheel = () => {
                 .randomizer-page .pointer { position: absolute; top: -30px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 20px solid transparent; border-right: 20px solid transparent; border-top: 40px solid var(--text-primary); filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3)); z-index: 10; }
                 .randomizer-page .action-buttons { display: flex; gap: 12px; margin-top: 30px; justify-content: center; align-items: center; }
                 .randomizer-page .spin-button { padding: 14px 48px; background: var(--accent-gradient); border: none; border-radius: 14px; color: white; font-size: 16px; font-weight: 600; cursor: pointer; }
-                .randomizer-page .result-container { margin-top: 30px; padding: 20px; background: var(--bg-secondary); backdrop-filter: blur(50px); border-radius: 16px; border: 1px solid var(--border-color); text-align: center; min-height: 70px; display: flex; align-items: center; justify-content: center; }
-                .randomizer-page .result-text { font-size: 24px; font-weight: 600; opacity: 0; transform: scale(0.8); transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
-                .randomizer-page .result-text.show { opacity: 1; transform: scale(1); }
                 .randomizer-page .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(10px); z-index: 1000; display: none; align-items: center; justify-content: center; }
                 .randomizer-page .modal-overlay.active { display: flex; }
                 .randomizer-page .modal { background: var(--bg-secondary); backdrop-filter: blur(50px); border: 1px solid var(--border-color); border-radius: 20px; padding: 30px; max-width: 400px; width: 90%; }
@@ -799,9 +773,6 @@ const RandomizerWheel = () => {
                             <button className="spin-button" onClick={spinWheel} disabled={isSpinning || items.length === 0}>
                                 Spin!
                             </button>
-                        </div>
-                        <div className="result-container">
-                            <div className="result-text" id="resultText">{resultText}</div>
                         </div>
                     </div>
                 </div>
