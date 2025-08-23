@@ -101,6 +101,7 @@ export default function ClassDashboardPage() {
     },
     { 
       icon: <Image src="https://placehold.co/175x175.png" alt="Quizzes" width={175} height={175} data-ai-hint="quiz test" />, 
+      title: "Quizzes",
       description: "Test knowledge with fun, interactive quizzes and leaderboards.", 
       href: `/quizzes?classId=${classId}`,
       disabled: true 
