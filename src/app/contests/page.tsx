@@ -44,23 +44,33 @@ export default function ContestsPage() {
     return () => unsubscribe();
   }, []);
 
-  const handleCreateContest = async (contestName: string, imageShape: ContestImageShape, startDate: Date, endDate: Date) => {
+  const handleCreateContest = async (contestName: string, imageShape: ContestImageShape, startDate: Date, endDate: Date, password?: string) => {
     if (!user) {
       setSignInOpen(true);
       return;
     }
 
     try {
-      await addDoc(collection(db, "contests"), {
+      const newContest: Omit<Contest, 'id' | 'createdAt'> = {
         name: contestName,
         creatorUid: user.uid,
         creatorName: user.displayName || "Anonymous",
         status: "active",
-        createdAt: serverTimestamp(),
         imageShape: imageShape,
         startDate: Timestamp.fromDate(startDate),
         endDate: Timestamp.fromDate(endDate),
+      };
+
+      if (password) {
+        newContest.hasPassword = true;
+        newContest.password = password;
+      }
+
+      await addDoc(collection(db, "contests"), {
+        ...newContest,
+        createdAt: serverTimestamp(),
       });
+
       toast({
         title: "Contest Created!",
         description: `Your contest "${contestName}" is now active.`,

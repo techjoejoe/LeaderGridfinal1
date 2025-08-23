@@ -4,15 +4,16 @@
 import { useState, useEffect } from "react";
 import type { Contest, PicVoteImage } from "@/lib/types";
 import { User } from "firebase/auth";
-import { collection, query, onSnapshot, where } from "firebase/firestore";
+import { collection, query, onSnapshot, where, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { useRouter } from 'next/navigation';
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, formatDistanceToNow } from 'date-fns';
 import Image from "next/image";
-import { Trash2, Share2, Calendar } from "lucide-react";
+import { Trash2, Share2, Calendar, Lock } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,6 +25,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast";
+import { PasswordPromptDialog } from "@/components/password-prompt-dialog";
 
 type ContestListProps = {
   contests: Contest[];
@@ -92,6 +94,8 @@ function ContestWinnerDisplay({ contestId }: { contestId: string }) {
 
 function ContestCard({ contest, user, onDeleteContest }: { contest: Contest, user: User | null, onDeleteContest: (contestId: string) => void }) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isPasswordPromptOpen, setIsPasswordPromptOpen] = useState(false);
+  const router = useRouter();
   const isCreator = user?.uid === contest.creatorUid;
   const { toast } = useToast();
 
@@ -114,12 +118,41 @@ function ContestCard({ contest, user, onDeleteContest }: { contest: Contest, use
       });
   };
 
+  const handleNavigation = () => {
+    const sessionKey = `contest_access_${contest.id}`;
+    if (contest.hasPassword && sessionStorage.getItem(sessionKey) !== 'granted') {
+      setIsPasswordPromptOpen(true);
+    } else {
+      router.push(`/picpick?contestId=${contest.id}`);
+    }
+  };
+
+  const handlePasswordSubmit = async (password: string) => {
+    const contestRef = doc(db, "contests", contest.id);
+    const contestDoc = await getDoc(contestRef);
+    if (contestDoc.exists() && contestDoc.data().password === password) {
+      const sessionKey = `contest_access_${contest.id}`;
+      sessionStorage.setItem(sessionKey, 'granted');
+      setIsPasswordPromptOpen(false);
+      router.push(`/picpick?contestId=${contest.id}`);
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Incorrect Password",
+        description: "The password you entered is incorrect.",
+      });
+    }
+  };
+
   return (
     <>
       <Card className="flex flex-col transition-all hover:shadow-lg">
-        <Link href={`/picpick?contestId=${contest.id}`} className="flex-grow flex flex-col">
+        <div onClick={handleNavigation} className="flex-grow flex flex-col cursor-pointer">
           <CardHeader className="flex-grow">
-            <CardTitle>{contest.name}</CardTitle>
+            <div className="flex justify-between items-start">
+              <CardTitle>{contest.name}</CardTitle>
+              {contest.hasPassword && <Lock className="h-4 w-4 text-muted-foreground" />}
+            </div>
             <CardDescription>
               Created by {contest.creatorName}
             </CardDescription>
@@ -133,12 +166,10 @@ function ContestCard({ contest, user, onDeleteContest }: { contest: Contest, use
             )}
           </CardHeader>
           <ContestWinnerDisplay contestId={contest.id} />
-        </Link>
+        </div>
         <CardFooter className="flex gap-2">
-            <Button asChild className="w-full">
-              <Link href={`/picpick?contestId=${contest.id}`}>
-                View Contest
-              </Link>
+            <Button onClick={handleNavigation} className="w-full">
+              View Contest
             </Button>
             <Button 
               variant="outline" 
@@ -177,6 +208,12 @@ function ContestCard({ contest, user, onDeleteContest }: { contest: Contest, use
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <PasswordPromptDialog
+        isOpen={isPasswordPromptOpen}
+        onOpenChange={setIsPasswordPromptOpen}
+        onSubmit={handlePasswordSubmit}
+        contestName={contest.name}
+      />
     </>
   );
 }

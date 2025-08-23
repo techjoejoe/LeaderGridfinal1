@@ -30,6 +30,6 @@ export type Contest = {
     startDate: Timestamp;
     endDate: Timestamp;
     imageShape: ContestImageShape;
+    hasPassword?: boolean;
+    password?: string;
 }
-
-    

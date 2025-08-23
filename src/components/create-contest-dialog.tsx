@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { ContestImageShape } from "@/lib/types";
-import { Calendar as CalendarIcon } from "lucide-react"
+import { Calendar as CalendarIcon, Eye, EyeOff } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { Calendar } from "@/components/ui/calendar"
@@ -28,7 +28,7 @@ import {
 type CreateContestDialogProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onCreate: (contestName: string, imageShape: ContestImageShape, startDate: Date, endDate: Date) => void;
+  onCreate: (contestName: string, imageShape: ContestImageShape, startDate: Date, endDate: Date, password?: string) => void;
 };
 
 export function CreateContestDialog({ isOpen, onOpenChange, onCreate }: CreateContestDialogProps) {
@@ -36,6 +36,8 @@ export function CreateContestDialog({ isOpen, onOpenChange, onCreate }: CreateCo
   const [imageShape, setImageShape] = useState<ContestImageShape>("circular");
   const [startDate, setStartDate] = useState<Date | undefined>(new Date());
   const [endDate, setEndDate] = useState<Date | undefined>();
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
 
   const handleSubmit = () => {
@@ -61,7 +63,7 @@ export function CreateContestDialog({ isOpen, onOpenChange, onCreate }: CreateCo
     setError(newError);
     if (hasError || !startDate || !endDate) return;
     
-    onCreate(contestName, imageShape, startDate, endDate);
+    onCreate(contestName, imageShape, startDate, endDate, password.trim() ? password.trim() : undefined);
   };
 
   const handleOpenChange = (open: boolean) => {
@@ -71,6 +73,8 @@ export function CreateContestDialog({ isOpen, onOpenChange, onCreate }: CreateCo
       setImageShape("circular");
       setStartDate(new Date());
       setEndDate(undefined);
+      setPassword("");
+      setShowPassword(false);
     }
     onOpenChange(open);
   }
@@ -81,7 +85,7 @@ export function CreateContestDialog({ isOpen, onOpenChange, onCreate }: CreateCo
         <DialogHeader>
           <DialogTitle className="font-headline">Create a New Contest</DialogTitle>
           <DialogDescription>
-            Give your new photo contest a name and choose the image style.
+            Fill out the details for your new photo contest.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -94,6 +98,27 @@ export function CreateContestDialog({ isOpen, onOpenChange, onCreate }: CreateCo
               placeholder="e.g., 'Summer Adventures'"
             />
           </div>
+           <div className="space-y-2">
+              <Label htmlFor="password">Contest Password (Optional)</Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Leave blank for a public contest"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1 h-7 w-7"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Start Date</Label>

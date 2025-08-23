@@ -2,8 +2,8 @@
 "use client";
 
 import { useState, useEffect, useMemo, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
-import { collection, onSnapshot, query, where, doc, setDoc } from "firebase/firestore";
+import { useSearchParams, useRouter } from "next/navigation";
+import { collection, onSnapshot, query, where, doc, setDoc, getDoc } from "firebase/firestore";
 import { ref, uploadString, getDownloadURL } from "firebase/storage";
 import { db, auth, storage } from "@/lib/firebase";
 import type { PicVoteImage, Contest } from "@/lib/types";
@@ -17,9 +17,12 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 import { UploadDialog } from "@/components/upload-dialog";
+import { PasswordPromptDialog } from "@/components/password-prompt-dialog";
+
 
 function LeaderboardContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const contestId = searchParams.get('contestId');
   
   const [images, setImages] = useState<PicVoteImage[]>([]);
@@ -28,6 +31,9 @@ function LeaderboardContent() {
   const [isUploadOpen, setUploadOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [isSignInOpen, setSignInOpen] = useState(false);
+  const [isPasswordPromptOpen, setIsPasswordPromptOpen] = useState(false);
+  const [accessGranted, setAccessGranted] = useState(false);
+
   const { toast } = useToast();
 
   useEffect(() => {
@@ -39,14 +45,28 @@ function LeaderboardContent() {
 
   useEffect(() => {
     if (!contestId) {
-        setLoading(false);
-        return;
+      setLoading(false);
+      return;
     }
-    setLoading(true);
+
+    const sessionKey = `contest_access_${contestId}`;
+  
     const contestRef = doc(db, "contests", contestId);
-    const unsubscribeContest = onSnapshot(contestRef, (doc) => {
-        if (doc.exists()) {
-            setContest({ ...doc.data(), id: doc.id } as Contest);
+    const unsubscribeContest = onSnapshot(contestRef, (docSnap) => {
+        if (docSnap.exists()) {
+            const contestData = { ...docSnap.data(), id: docSnap.id } as Contest;
+            setContest(contestData);
+
+            if (contestData.hasPassword) {
+              if (sessionStorage.getItem(sessionKey) === 'granted') {
+                setAccessGranted(true);
+              } else {
+                setAccessGranted(false);
+                setIsPasswordPromptOpen(true);
+              }
+            } else {
+              setAccessGranted(true);
+            }
         } else {
             toast({
                 variant: "destructive",
@@ -54,9 +74,40 @@ function LeaderboardContent() {
                 description: "This contest does not exist.",
             });
             setContest(null);
+            setAccessGranted(false);
+            router.push('/contests');
         }
     });
 
+    return () => unsubscribeContest();
+  }, [contestId, toast, router]);
+
+  const handlePasswordSubmit = async (password: string) => {
+    if (!contest) return;
+    const contestRef = doc(db, "contests", contest.id);
+    const contestDoc = await getDoc(contestRef);
+    if (contestDoc.exists() && contestDoc.data().password === password) {
+      const sessionKey = `contest_access_${contest.id}`;
+      sessionStorage.setItem(sessionKey, 'granted');
+      setIsPasswordPromptOpen(false);
+      setAccessGranted(true);
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Incorrect Password",
+        description: "The password you entered is incorrect.",
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (!contestId || !accessGranted) {
+        setImages([]);
+        setLoading(false);
+        return;
+    }
+    setLoading(true);
+    
     const imagesQuery = query(collection(db, "images"), where("contestId", "==", contestId));
     const unsubscribeImages = onSnapshot(imagesQuery, (snapshot) => {
       const imagesData = snapshot.docs.map(
@@ -64,13 +115,13 @@ function LeaderboardContent() {
       );
       setImages(imagesData);
       setLoading(false);
+    }, (error) => {
+        console.error("Error loading images:", error);
+        setLoading(false);
     });
 
-    return () => {
-        unsubscribeContest();
-        unsubscribeImages();
-    };
-  }, [contestId, toast]);
+    return () => unsubscribeImages();
+  }, [contestId, accessGranted]);
 
   const handleUpload = async (photoName: string, dataUrl: string) => {
     if (!user || !contestId) {
@@ -131,6 +182,20 @@ function LeaderboardContent() {
                 <Link href="/contests">Go to Contests</Link>
             </Button>
         </div>
+    )
+  }
+
+  if (!accessGranted) {
+    return (
+      <PasswordPromptDialog
+        isOpen={isPasswordPromptOpen}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) router.push('/contests');
+          setIsPasswordPromptOpen(isOpen);
+        }}
+        onSubmit={handlePasswordSubmit}
+        contestName={contest?.name ?? "this contest"}
+      />
     )
   }
 

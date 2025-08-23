@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, Suspense } from "react";
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { collection, onSnapshot, doc, updateDoc, setDoc, getDoc, runTransaction, query, where, getDocs } from "firebase/firestore";
 import { ref, uploadString, getDownloadURL } from "firebase/storage";
 import { db, auth, storage } from "@/lib/firebase";
@@ -11,6 +11,7 @@ import { Header } from "@/components/header";
 import { ImageCard } from "@/components/image-card";
 import { SignInDialog } from "@/components/sign-in-dialog";
 import { UploadDialog } from "@/components/upload-dialog";
+import { PasswordPromptDialog } from "@/components/password-prompt-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { HelpCircle, ArrowLeft, Trophy, Upload } from "lucide-react";
@@ -28,6 +29,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 function PicPickContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const contestId = searchParams.get('contestId');
 
   const [images, setImages] = useState<PicVoteImage[]>([]);
@@ -37,6 +39,8 @@ function PicPickContent() {
   
   const [isSignInOpen, setSignInOpen] = useState(false);
   const [isUploadOpen, setUploadOpen] = useState(false);
+  const [isPasswordPromptOpen, setIsPasswordPromptOpen] = useState(false);
+  const [accessGranted, setAccessGranted] = useState(false);
 
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -44,26 +48,60 @@ function PicPickContent() {
 
   useEffect(() => {
     if (!contestId) {
-        setLoading(false);
-        return;
+      setLoading(false);
+      return;
     }
+  
+    const sessionKey = `contest_access_${contestId}`;
+  
     const contestRef = doc(db, "contests", contestId);
-    const unsubscribeContest = onSnapshot(contestRef, (doc) => {
-        if (doc.exists()) {
-            setContest({ ...doc.data(), id: doc.id } as Contest);
+    const unsubscribeContest = onSnapshot(contestRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const contestData = { ...docSnap.data(), id: docSnap.id } as Contest;
+        setContest(contestData);
+        
+        if (contestData.hasPassword) {
+          if (sessionStorage.getItem(sessionKey) === 'granted') {
+            setAccessGranted(true);
+          } else {
+            setAccessGranted(false);
+            setIsPasswordPromptOpen(true);
+          }
         } else {
-            toast({
-                variant: "destructive",
-                title: "Error",
-                description: "This contest does not exist.",
-            });
-            setContest(null);
+          setAccessGranted(true);
         }
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "This contest does not exist.",
+        });
+        setContest(null);
+        setAccessGranted(false);
+        router.push("/contests");
+      }
     });
-
+  
     return () => unsubscribeContest();
-  }, [contestId, toast]);
+  }, [contestId, toast, router]);
 
+  const handlePasswordSubmit = async (password: string) => {
+    if (!contest) return;
+    const contestRef = doc(db, "contests", contest.id);
+    const contestDoc = await getDoc(contestRef);
+    if (contestDoc.exists() && contestDoc.data().password === password) {
+      const sessionKey = `contest_access_${contest.id}`;
+      sessionStorage.setItem(sessionKey, 'granted');
+      setIsPasswordPromptOpen(false);
+      setAccessGranted(true);
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Incorrect Password",
+        description: "The password you entered is incorrect.",
+      });
+    }
+  };
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
@@ -73,28 +111,25 @@ function PicPickContent() {
   }, []);
 
   useEffect(() => {
-    if (user && contestId) {
+    if (user && contestId && accessGranted) {
       const userVoteRef = doc(db, "users", user.uid, "user_votes", contestId);
   
       const unsubscribeVotes = onSnapshot(userVoteRef, async (docSnap) => {
         const today = getToday();
         if (docSnap.exists()) {
           const data = docSnap.data() as UserVoteData;
-          // This check is now crucial. If the date doesn't match, we must reset.
           if (data.lastVotedDate !== today) {
-            // It's a new day, reset the votes in Firestore and then update state
             const resetData: UserVoteData = {
               votesToday: 4,
               imageVotes: {},
               lastVotedDate: today,
             };
-            await setDoc(userVoteRef, resetData); // Don't merge, replace old data
+            await setDoc(userVoteRef, resetData);
             setUserVoteData(resetData);
           } else {
             setUserVoteData(data);
           }
         } else {
-          // No vote data exists, create it for the first time.
           const initialData: UserVoteData = {
             votesToday: 4,
             lastVotedDate: today,
@@ -109,10 +144,10 @@ function PicPickContent() {
     } else {
       setUserVoteData(null);
     }
-  }, [user, contestId]);
+  }, [user, contestId, accessGranted]);
 
   useEffect(() => {
-    if (!contestId) {
+    if (!contestId || !accessGranted) {
       setImages([]);
       setLoading(false);
       return;
@@ -136,7 +171,7 @@ function PicPickContent() {
     });
 
     return () => unsubscribe();
-  }, [contestId, toast]);
+  }, [contestId, toast, accessGranted]);
 
   const handleVote = async (id: string) => {
     if (!user) {
@@ -151,72 +186,41 @@ function PicPickContent() {
       await runTransaction(db, async (transaction) => {
         const userVoteRef = doc(db, "users", user.uid, "user_votes", contestId);
         const imageRef = doc(db, "images", id);
-
-        // It is crucial to get the user vote data inside the transaction
-        // to avoid race conditions.
         const userVoteDoc = await transaction.get(userVoteRef);
         const imageDoc = await transaction.get(imageRef);
         
-        if (!imageDoc.exists()) {
-          throw new Error("Image does not exist!");
-        }
-
-        const today = getToday();
+        if (!imageDoc.exists()) throw new Error("Image does not exist!");
         
+        const today = getToday();
         let currentVoteData: UserVoteData;
         
-        // If the user has no vote document or if the last voted date is not today,
-        // we create a fresh slate for them.
         if (!userVoteDoc.exists() || userVoteDoc.data().lastVotedDate !== today) {
-          currentVoteData = {
-            votesToday: 4,
-            lastVotedDate: today,
-            imageVotes: {},
-          };
+          currentVoteData = { votesToday: 4, lastVotedDate: today, imageVotes: {} };
         } else {
           currentVoteData = userVoteDoc.data() as UserVoteData;
         }
 
-        if (currentVoteData.votesToday <= 0) {
-          throw new Error("You have no votes left for today.");
-        }
-
-        const imageVoteCount = currentVoteData.imageVotes[id] || 0;
-        if (imageVoteCount >= 2) {
-          throw new Error("You can only vote for the same image twice.");
-        }
-
-        // Increment image votes
-        const newImageData = { votes: imageDoc.data().votes + 1 };
-        transaction.update(imageRef, newImageData);
+        if (currentVoteData.votesToday <= 0) throw new Error("You have no votes left for today.");
         
-        // Decrement user's votes for the day and record the specific image vote
+        const imageVoteCount = currentVoteData.imageVotes[id] || 0;
+        if (imageVoteCount >= 2) throw new Error("You can only vote for the same image twice.");
+
+        transaction.update(imageRef, { votes: imageDoc.data().votes + 1 });
+        
         const newUserVoteData: UserVoteData = {
           ...currentVoteData,
           votesToday: currentVoteData.votesToday - 1,
-          lastVotedDate: today, // Ensure date is always set
-          imageVotes: {
-            ...currentVoteData.imageVotes,
-            [id]: imageVoteCount + 1,
-          },
+          lastVotedDate: today,
+          imageVotes: { ...currentVoteData.imageVotes, [id]: imageVoteCount + 1 },
         };
-        transaction.set(userVoteRef, newUserVoteData); // Use set to either create or overwrite
-        
-        // This will be reflected in the UI via the snapshot listener
+        transaction.set(userVoteRef, newUserVoteData);
       });
 
-      toast({
-        title: "Vote Cast!",
-        description: `Your vote has been counted.`,
-      });
+      toast({ title: "Vote Cast!", description: "Your vote has been counted." });
 
     } catch (error: any) {
       console.error("Error casting vote:", error);
-      toast({
-        variant: "destructive",
-        title: "Vote Failed",
-        description: error.message || "Could not cast your vote. Please try again.",
-      });
+      toast({ variant: "destructive", title: "Vote Failed", description: error.message || "Could not cast your vote." });
     } finally {
       setVotingImageId(null);
     }
@@ -228,21 +232,15 @@ function PicPickContent() {
       return;
     }
     setUploadOpen(false);
-    toast({
-      title: "Uploading Photo...",
-      description: "Please wait while your photo is being uploaded.",
-    });
+    toast({ title: "Uploading Photo...", description: "Please wait..." });
 
     try {
       const newImageDocRef = doc(collection(db, "images"));
-      const newImageId = newImageDocRef.id;
-
-      const storageRef = ref(storage, `images/${newImageId}.webp`);
-      
+      const storageRef = ref(storage, `images/${newImageDocRef.id}.webp`);
       const snapshot = await uploadString(storageRef, dataUrl, 'data_url');
       const downloadURL = await getDownloadURL(snapshot.ref);
       
-      const newImage: Omit<PicVoteImage, 'id'> = {
+      await setDoc(newImageDocRef, {
         name: photoName,
         firstName: user.displayName || "Anonymous",
         lastName: "",
@@ -250,21 +248,12 @@ function PicPickContent() {
         votes: 0,
         uploaderUid: user.uid,
         contestId: contestId,
-      };
-
-      await setDoc(newImageDocRef, newImage);
+      } as Omit<PicVoteImage, 'id'>);
       
-      toast({
-        title: "Photo Uploaded!",
-        description: `${photoName} is now in the running.`,
-      });
+      toast({ title: "Photo Uploaded!", description: `${photoName} is now in the running.` });
     } catch (error) {
       console.error("Error uploading image:", error);
-      toast({
-        variant: "destructive",
-        title: "Upload Failed",
-        description: "Could not upload your photo. Please try again.",
-      });
+      toast({ variant: "destructive", title: "Upload Failed", description: "Could not upload photo." });
     }
   };
 
@@ -277,14 +266,11 @@ function PicPickContent() {
     if (!user || !userVoteData) {
       return { votesLeft: 0, canVoteToday: false, hasVotedForImage: () => false };
     }
-
-    const votesLeft = userVoteData.votesToday;
-    const canVoteTodayResult = votesLeft > 0;
-
-    const hasVotedForImageFunc = (imageId: string) => (userVoteData.imageVotes?.[imageId] ?? 0) >= 2;
-
-    return { votesLeft, canVoteToday: canVoteTodayResult, hasVotedForImage: hasVotedForImageFunc };
-
+    return {
+      votesLeft: userVoteData.votesToday,
+      canVoteToday: userVoteData.votesToday > 0,
+      hasVotedForImage: (imageId: string) => (userVoteData.imageVotes?.[imageId] ?? 0) >= 2,
+    };
   }, [user, userVoteData]);
 
 
@@ -293,12 +279,11 @@ function PicPickContent() {
 
   const displayedPodium = useMemo(() => {
     if (podiumImages.length < 3) return podiumImages.map((image, index) => ({ image, rank: index }));
-    const podiumMap = [
-      { image: podiumImages[1], rank: 1 }, // 2nd place
-      { image: podiumImages[0], rank: 0 }, // 1st place
-      { image: podiumImages[2], rank: 2 }, // 3rd place
+    return [
+      { image: podiumImages[1], rank: 1 },
+      { image: podiumImages[0], rank: 0 },
+      { image: podiumImages[2], rank: 2 },
     ];
-    return podiumMap;
   }, [podiumImages]);
   
   if (!contestId) {
@@ -312,6 +297,21 @@ function PicPickContent() {
         </div>
     )
   }
+  
+  if (!accessGranted) {
+    return (
+      <PasswordPromptDialog
+        isOpen={isPasswordPromptOpen}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) router.push('/contests');
+          setIsPasswordPromptOpen(isOpen);
+        }}
+        onSubmit={handlePasswordSubmit}
+        contestName={contest?.name ?? "this contest"}
+      />
+    )
+  }
+
 
   return (
     <>
@@ -324,6 +324,12 @@ function PicPickContent() {
               </Link>
             </Button>
             <div className="flex items-center gap-2">
+              <Button asChild variant="outline" size="sm" href={`/leaderboard?contestId=${contestId}`}>
+                <Link href={`/leaderboard?contestId=${contestId}`}>
+                    <Trophy className="mr-2 h-4 w-4" />
+                    View Leaderboard
+                </Link>
+              </Button>
               <Button onClick={() => user ? setUploadOpen(true) : setSignInOpen(true)} size="sm">
                 <Upload className="mr-2 h-4 w-4" />
                 Upload Photo
@@ -377,7 +383,7 @@ function PicPickContent() {
               {images.length > 0 ? (
                   <div className="flex flex-col gap-8">
                     {podiumImages.length > 0 && (
-                        <div className="flex justify-center items-end gap-4 md:gap-8 pt-16 min-h-[320px]">
+                        <div className="flex justify-center items-end gap-4 md:gap-8 pt-16 pb-12 min-h-[320px] border-b">
                         {displayedPodium.map(({ image, rank }) => (
                             <ImageCard
                               key={image.id}
@@ -470,8 +476,3 @@ function HeaderWrapper() {
         </>
     );
 }
-
-    
-
-    
-
