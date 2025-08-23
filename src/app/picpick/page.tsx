@@ -75,26 +75,36 @@ function PicPickContent() {
   useEffect(() => {
     if (user && contestId) {
       const userVoteRef = doc(db, "users", user.uid, "user_votes", contestId);
-      const unsubscribeVotes = onSnapshot(userVoteRef, (doc) => {
-        if (doc.exists()) {
-          const data = doc.data() as UserVoteData;
-          const today = getToday();
+  
+      const unsubscribeVotes = onSnapshot(userVoteRef, async (docSnap) => {
+        const today = getToday();
+        if (docSnap.exists()) {
+          const data = docSnap.data() as UserVoteData;
           if (data.lastVotedDate !== today) {
-            data.votesToday = 4; // Reset votes for a new day
-            data.imageVotes = {}; // Reset image-specific votes
+            // It's a new day, reset the votes in Firestore and then update state
+            const resetData: UserVoteData = {
+              ...data,
+              votesToday: 4,
+              imageVotes: {},
+            };
+            await setDoc(userVoteRef, resetData, { merge: true });
+            setUserVoteData(resetData);
+          } else {
+            setUserVoteData(data);
           }
-          setUserVoteData(data);
         } else {
+          // No vote data exists, create it for the first time.
           const initialData: UserVoteData = {
             votesToday: 4,
             lastVotedDate: "1970-01-01",
             lastVotedWeekday: -1,
             imageVotes: {},
           };
-          setDoc(doc.ref, initialData);
+          await setDoc(userVoteRef, initialData);
           setUserVoteData(initialData);
         }
       });
+  
       return () => unsubscribeVotes();
     } else {
       setUserVoteData(null);
@@ -164,10 +174,10 @@ function PicPickContent() {
           currentVoteData = userVoteDoc.data() as UserVoteData;
         }
 
-        // Reset votes if last voted date is not today
+        // This check is now mostly a safeguard, as the listener should handle resets.
         if (currentVoteData.lastVotedDate !== today) {
           currentVoteData.votesToday = 4;
-          currentVoteData.imageVotes = {}; // Also reset image-specific votes
+          currentVoteData.imageVotes = {};
         }
 
         if (!isWeekday(currentDay)) {
@@ -468,3 +478,5 @@ function HeaderWrapper() {
         </>
     );
 }
+
+    
