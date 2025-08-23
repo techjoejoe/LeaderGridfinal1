@@ -11,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import Image from "next/image";
+import { Badge } from "@/components/ui/badge";
 
 type LeaderboardTableProps = {
   images: PicVoteImage[];
@@ -22,7 +23,7 @@ export function LeaderboardTable({ images }: LeaderboardTableProps) {
     if (rank === 0) return "🥇";
     if (rank === 1) return "🥈";
     if (rank === 2) return "🥉";
-    return rank + 1;
+    return <Badge variant="outline">{rank + 1}</Badge>;
   }
 
   return (
@@ -37,7 +38,11 @@ export function LeaderboardTable({ images }: LeaderboardTableProps) {
         <TableBody>
             {images.map((image, index) => (
             <TableRow key={image.id}>
-                <TableCell className="font-bold text-lg text-center px-6">{getMedal(index)}</TableCell>
+                <TableCell className="font-bold text-lg text-center px-6">
+                    <div className="flex items-center justify-center">
+                        {getMedal(index)}
+                    </div>
+                </TableCell>
                 <TableCell className="px-6 py-3">
                     <div className="flex items-center gap-3">
                     <Image src={image.url} alt={image.name} width={40} height={40} className="rounded-full object-cover" />
@@ -54,3 +59,4 @@ export function LeaderboardTable({ images }: LeaderboardTableProps) {
     </Table>
   );
 }
+
