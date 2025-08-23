@@ -12,7 +12,7 @@ import { PlusCircle } from "lucide-react";
 import { CreateContestDialog } from "@/components/create-contest-dialog";
 import { ContestList } from "@/components/contest-list";
 import { SignInDialog } from "@/components/sign-in-dialog";
-import type { Contest } from "@/lib/types";
+import type { Contest, ContestImageShape } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 
 
@@ -44,7 +44,7 @@ export default function ContestsPage() {
     return () => unsubscribe();
   }, []);
 
-  const handleCreateContest = async (contestName: string) => {
+  const handleCreateContest = async (contestName: string, imageShape: ContestImageShape) => {
     if (!user) {
       setSignInOpen(true);
       return;
@@ -57,6 +57,7 @@ export default function ContestsPage() {
         creatorName: user.displayName || "Anonymous",
         status: "active",
         createdAt: serverTimestamp(),
+        imageShape: imageShape,
       });
       toast({
         title: "Contest Created!",

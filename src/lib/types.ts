@@ -18,6 +18,8 @@ export type UserVoteData = {
   imageVotes: { [imageId: string]: number };
 };
 
+export type ContestImageShape = 'circular' | 'square' | 'original';
+
 export type Contest = {
     id: string;
     name: string;
@@ -25,6 +27,7 @@ export type Contest = {
     creatorName: string;
     status: 'active' | 'finished';
     createdAt: Timestamp;
+    imageShape: ContestImageShape;
 }
 
     

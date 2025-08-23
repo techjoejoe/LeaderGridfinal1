@@ -393,6 +393,7 @@ function PicPickContent() {
                               disabled={!user || !canVoteToday || hasVotedForImage(image.id)}
                               hasVoted={hasVotedForImage(image.id)}
                               isVoting={votingImageId === image.id}
+                              imageShape={contest?.imageShape}
                             />
                         ))}
                         </div>
@@ -408,6 +409,7 @@ function PicPickContent() {
                               disabled={!user || !canVoteToday || hasVotedForImage(image.id)}
                               hasVoted={hasVotedForImage(image.id)}
                               isVoting={votingImageId === image.id}
+                              imageShape={contest?.imageShape}
                             />
                         ))}
                         </div>
@@ -431,6 +433,7 @@ function PicPickContent() {
         onOpenChange={setUploadOpen}
         onUpload={handleUpload}
         uploaderName={user?.displayName ?? undefined}
+        imageShape={contest?.imageShape}
       />
     </>
   );

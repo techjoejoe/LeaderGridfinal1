@@ -20,15 +20,17 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Crop, Upload } from "lucide-react";
 import { getCroppedImg } from "@/lib/image-utils";
+import type { ContestImageShape } from "@/lib/types";
 
 type UploadDialogProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   onUpload: (photoName: string, dataUrl: string) => void;
   uploaderName?: string;
+  imageShape?: ContestImageShape;
 };
 
-export function UploadDialog({ isOpen, onOpenChange, onUpload, uploaderName }: UploadDialogProps) {
+export function UploadDialog({ isOpen, onOpenChange, onUpload, uploaderName, imageShape = 'circular' }: UploadDialogProps) {
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [photoName, setPhotoName] = useState("");
   const [currentUploaderName, setCurrentUploaderName] = useState("");
@@ -116,7 +118,7 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload, uploaderName }: U
       
       const compressedBlob = await imageCompression(croppedImageBlob, {
         maxSizeMB: 1,
-        maxWidthOrHeight: 512,
+        maxWidthOrHeight: 1024, // Increased resolution a bit
         useWebWorker: true,
         fileType: 'image/webp',
       });
@@ -142,13 +144,18 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload, uploaderName }: U
     onOpenChange(open);
   }
 
+  const getAspectRatio = () => {
+    if (imageShape === 'square' || imageShape === 'circular') return 1;
+    return 4/3; // Default for 'original' - can be adjusted
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={handleDialogClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="font-headline">Upload a Photo</DialogTitle>
           <DialogDescription>
-            Upload your photo. Pan and zoom to fit the image in the circle.
+            Upload your photo. Pan and zoom to fit the image in the frame.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -177,11 +184,11 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload, uploaderName }: U
                       image={imageSrc}
                       crop={crop}
                       zoom={zoom}
-                      aspect={1}
+                      aspect={getAspectRatio()}
                       onCropChange={setCrop}
                       onZoomChange={setZoom}
                       onCropComplete={onCropComplete}
-                      cropShape="round"
+                      cropShape={imageShape === 'circular' ? 'round' : 'rect'}
                       showGrid={false}
                     />
                  </div>

@@ -4,7 +4,7 @@
 import Image from "next/image";
 import { useState } from "react";
 import { Vote, Check, Loader2 } from "lucide-react";
-import type { PicVoteImage } from "@/lib/types";
+import type { PicVoteImage, ContestImageShape } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Sparkles } from "@/components/sparkles";
@@ -18,11 +18,18 @@ type ImageCardProps = {
   hasVoted: boolean;
   rank: number;
   isVoting: boolean;
+  imageShape?: ContestImageShape;
 };
 
-export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting }: ImageCardProps) {
+export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting, imageShape = 'circular' }: ImageCardProps) {
   const isPodium = rank < 3;
   const [showConfetti, setShowConfetti] = useState(false);
+
+  const shapeClasses = {
+    circular: 'rounded-full',
+    square: 'rounded-md',
+    original: 'rounded-lg'
+  };
 
   const podiumClasses = {
     container: cn("drop-shadow-lg", {
@@ -31,15 +38,21 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting }:
         "self-end": rank === 1 || rank === 2,
     }),
     imageContainer: cn(
-        "relative aspect-square rounded-full shadow-2xl transition-all p-1",
+        "relative shadow-2xl transition-all p-1",
+        shapeClasses[imageShape],
         {
-            "w-48 h-48 md:w-60 md:h-60": rank === 0, // 1st place
-            "w-36 h-36 md:w-44 md:h-44": rank === 1, // 2nd place
-            "w-32 h-32 md:w-36 md:h-36": rank === 2, // 3rd place
+            "w-48 h-48 md:w-60 md:h-60": rank === 0 && (imageShape === 'circular' || imageShape === 'square'),
+            "w-36 h-36 md:w-44 md:h-44": rank === 1 && (imageShape === 'circular' || imageShape === 'square'),
+            "w-32 h-32 md:w-36 md:h-36": rank === 2 && (imageShape === 'circular' || imageShape === 'square'),
+            "w-48 md:w-60": rank === 0 && imageShape === 'original',
+            "w-36 md:w-44": rank === 1 && imageShape === 'original',
+            "w-32 md:w-36": rank === 2 && imageShape === 'original',
             "overflow-visible": rank === 0,
+            "aspect-square": imageShape === 'circular' || imageShape === 'square',
+            "aspect-[4/5]": imageShape === 'original',
         }
     ),
-    imageBorder: cn("border-4 rounded-full w-full h-full", {
+    imageBorder: cn("border-4 w-full h-full", shapeClasses[imageShape], {
       "border-transparent": rank === 0,
       "border-silver dark:shadow-[0_0_15px_2px_hsl(var(--silver))]": rank === 1,
       "border-bronze dark:shadow-[0_0_15px_2px_hsl(var(--bronze))]": rank === 2,
@@ -47,8 +60,15 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting }:
   };
 
   const nonPodiumClasses = {
-      imageContainer: "w-32 h-32 md:w-36 md:h-36 rounded-full shadow-2xl p-1 drop-shadow-lg transition-all duration-300 dark:shadow-primary-foreground/10 dark:hover:shadow-primary-foreground/20",
-      imageBorder: "border-4 border-card rounded-full w-full h-full"
+      imageContainer: cn(
+        "shadow-2xl p-1 drop-shadow-lg transition-all duration-300 dark:shadow-primary-foreground/10 dark:hover:shadow-primary-foreground/20", 
+        shapeClasses[imageShape],
+        {
+          "w-32 h-32 md:w-36 md:h-36": (imageShape === 'circular' || imageShape === 'square'),
+          "w-32 md:w-36 aspect-[4/5]": imageShape === 'original'
+        }
+      ),
+      imageBorder: cn("border-4 border-card w-full h-full", shapeClasses[imageShape])
   };
 
   const handleVoteClick = () => {
@@ -75,7 +95,8 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting }:
       >
         <div className="absolute inset-0 z-0">
           <div className={cn(
-              "w-full h-full rounded-full",
+              "w-full h-full",
+              shapeClasses[imageShape],
               { "bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-700 dark:shadow-[0_0_25px_5px_hsl(var(--gold))]": rank === 0 }
           )} />
         </div>
@@ -83,7 +104,7 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting }:
           "relative",
            isPodium ? podiumClasses.imageBorder : nonPodiumClasses.imageBorder
         )}>
-            <div className={cn("w-full h-full rounded-full relative bg-card shadow-lg", { 'overflow-hidden': rank !== 0 })}>
+            <div className={cn("w-full h-full relative bg-card shadow-lg", shapeClasses[imageShape], { 'overflow-hidden': rank !== 0 || imageShape !== 'circular' })}>
                 {rank < 3 && (
                   <Sparkles
                     color={rank === 0 ? '#FFC700' : rank === 1 ? '#C0C0C0' : '#CD7F32'}
@@ -93,7 +114,7 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting }:
                     src={image.url}
                     alt={image.name ?? 'photo'}
                     fill
-                    className="object-cover rounded-full p-1"
+                    className={cn("object-cover p-1", shapeClasses[imageShape])}
                     sizes={imageSizes}
                     data-ai-hint={image.name.toLowerCase().split(' ').slice(0, 2).join(' ')}
                 />
@@ -114,4 +135,3 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting }:
     </div>
   );
 }
-
