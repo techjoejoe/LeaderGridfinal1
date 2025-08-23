@@ -98,7 +98,7 @@ export function CreateContestDialog({ isOpen, onOpenChange, onCreate }: CreateCo
                   htmlFor="original"
                   className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
                 >
-                   <div className="w-12 h-16 rounded-md bg-muted-foreground/20 mb-2 transform -skew-x-6 scale-y-75 origin-bottom"></div>
+                   <div className="w-10 h-12 rounded-md bg-muted-foreground/20 mb-2 transform scale-y-100 origin-bottom flex-shrink-0" style={{backgroundImage: 'linear-gradient(45deg, transparent 40%, hsl(var(--muted-foreground)/0.2) 40%, hsl(var(--muted-foreground)/0.2) 60%, transparent 60%)'}}></div>
                   Original
                 </Label>
               </div>

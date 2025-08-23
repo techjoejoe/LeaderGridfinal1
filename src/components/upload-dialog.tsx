@@ -82,8 +82,8 @@ export function UploadDialog({ isOpen, onOpenChange, onUpload, uploaderName, ima
       
       let imageDataUrl = await readFile(file);
       try {
-        const image = await createImage(imageDataUrl);
         if (imageShape === 'original') {
+          const image = await createImage(imageDataUrl);
           setAspectRatio(image.width / image.height);
         } else {
           setAspectRatio(1);

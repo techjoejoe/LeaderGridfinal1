@@ -25,29 +25,31 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting, i
   const isPodium = rank < 3;
   const [showConfetti, setShowConfetti] = useState(false);
 
-  const shapeClasses = {
-    circular: 'rounded-full',
-    square: 'rounded-md',
-    original: 'rounded-lg'
-  };
-
   const podiumContainerClasses = cn("drop-shadow-lg w-full", {
     "z-20 w-48 md:w-60": rank === 0,
     "z-10 w-36 md:w-44 self-end": rank === 1,
     "w-32 md:w-36 self-end": rank === 2,
-  });
-
-  const imageBorderClasses = cn("border-4 w-full h-full", shapeClasses[imageShape], {
-    "border-transparent": isPodium && rank === 0,
-    "border-silver dark:shadow-[0_0_15px_2px_hsl(var(--silver))]": isPodium && rank === 1,
-    "border-bronze dark:shadow-[0_0_15px_2px_hsl(var(--bronze))]": isPodium && rank === 2,
-    "border-card": !isPodium,
   });
   
   const handleVoteClick = () => {
     setShowConfetti(true);
     onVote(image.id);
   }
+
+  const imageContainerClasses = cn("relative w-full shadow-lg overflow-hidden", {
+    "rounded-full aspect-square": imageShape === 'circular',
+    "rounded-md aspect-square": imageShape === 'square',
+    "rounded-lg": imageShape === 'original'
+  });
+
+  const imageBorderClasses = cn("border-4 w-full h-full", {
+    "rounded-full": imageShape === 'circular',
+    "rounded-md": imageShape === 'square' || imageShape === 'original',
+    "border-transparent": isPodium && rank === 0,
+    "border-silver dark:shadow-[0_0_15px_2px_hsl(var(--silver))]": isPodium && rank === 1,
+    "border-bronze dark:shadow-[0_0_15px_2px_hsl(var(--bronze))]": isPodium && rank === 2,
+    "border-card": !isPodium,
+  });
 
   const imageSizes = isPodium 
     ? "(max-width: 768px) 30vw, 240px" 
@@ -67,19 +69,15 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting, i
       >
         <div className={cn(
           "absolute inset-0 z-0",
-          shapeClasses[imageShape],
-          { "bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-700 dark:shadow-[0_0_25px_5px_hsl(var(--gold))]": rank === 0 }
+          {
+            "rounded-full": imageShape === 'circular',
+            "rounded-md": imageShape === 'square',
+            "rounded-lg": imageShape === 'original',
+            "bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-700 dark:shadow-[0_0_25px_5px_hsl(var(--gold))]": rank === 0
+          }
         )} />
-        <div className={cn(
-          "relative h-full w-full p-1 shadow-2xl",
-          shapeClasses[imageShape]
-        )}>
-           <div className={cn(
-              "relative w-full bg-card shadow-lg", 
-              shapeClasses[imageShape], 
-              'overflow-hidden',
-              imageShape === 'original' ? 'aspect-auto' : 'aspect-square'
-            )}>
+        <div className={cn("relative h-full w-full p-1 shadow-2xl", imageBorderClasses)}>
+           <div className={cn(imageContainerClasses, "bg-card")}>
                 {rank < 3 && (
                   <Sparkles
                     color={rank === 0 ? '#FFC700' : rank === 1 ? '#C0C0C0' : '#CD7F32'}
@@ -89,7 +87,7 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting, i
                     src={image.url}
                     alt={image.name ?? 'photo'}
                     fill
-                    className={cn("object-cover", shapeClasses[imageShape])}
+                    className="object-cover"
                     sizes={imageSizes}
                     data-ai-hint={image.name.toLowerCase().split(' ').slice(0, 2).join(' ')}
                 />
@@ -110,4 +108,3 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting, i
     </div>
   );
 }
-
