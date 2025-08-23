@@ -36,7 +36,7 @@ export function DashboardCard({ icon: Icon, title, description, href, disabled =
         )}
     >
       <CardHeader className="flex-grow items-center">
-        <div className={cn("flex items-center gap-3 mb-2", title ? "justify-start" : "justify-center")}>
+        <div className={cn("flex items-center gap-3 mb-2", !title && "justify-center")}>
             {renderIcon()}
             {title && <CardTitle className="font-headline text-lg">{title}</CardTitle>}
         </div>
