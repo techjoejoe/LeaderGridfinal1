@@ -111,7 +111,7 @@ export function ImageCard({ image, onVote, disabled, hasVoted, rank, isVoting, i
             </div>
         </div>
       </div>
-      <div className="text-center w-36 relative">
+      <div className="text-center w-full px-2 relative">
         <p className="font-bold truncate text-sm" title={image.name}>{image.name}</p>
         <p className="text-xs text-muted-foreground truncate" title={`by ${image.firstName || 'Anonymous'}`}>by {image.firstName || 'Anonymous'}</p>
         <Button onClick={handleVoteClick} disabled={disabled || isVoting} size="sm" className="w-full mt-2" variant={"outline"}>
