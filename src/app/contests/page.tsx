@@ -26,9 +26,6 @@ export default function ContestsPage() {
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
-      if (!currentUser) {
-        setSignInOpen(true);
-      }
     });
     return () => unsubscribeAuth();
   }, []);
@@ -85,7 +82,7 @@ export default function ContestsPage() {
       <main className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-headline font-bold">Contests</h1>
-          <Button onClick={() => setCreateContestOpen(true)} disabled={!user}>
+          <Button onClick={() => user ? setCreateContestOpen(true) : setSignInOpen(true)} >
             <PlusCircle className="mr-2 h-4 w-4" />
             Create New Contest
           </Button>
@@ -114,3 +111,4 @@ export default function ContestsPage() {
     </>
   );
 }
+

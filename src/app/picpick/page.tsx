@@ -4,16 +4,14 @@
 import { useState, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams } from 'next/navigation';
 import { collection, onSnapshot, doc, updateDoc, setDoc, getDoc, runTransaction, query, where, getDocs } from "firebase/firestore";
-import { ref, uploadString, getDownloadURL } from "firebase/storage";
-import { db, storage, auth } from "@/lib/firebase";
+import { db, auth } from "@/lib/firebase";
 import type { PicVoteImage, UserVoteData, Contest } from "@/lib/types";
 import { Header } from "@/components/header";
 import { ImageCard } from "@/components/image-card";
-import { UploadDialog } from "@/components/upload-dialog";
 import { SignInDialog } from "@/components/sign-in-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Upload, HelpCircle, ArrowLeft } from "lucide-react";
+import { HelpCircle, ArrowLeft, Trophy } from "lucide-react";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { getToday, isWeekday } from "@/lib/date-utils";
 import {
@@ -35,7 +33,6 @@ function PicPickContent() {
   const [user, setUser] = useState<User | null>(null);
   const [userVoteData, setUserVoteData] = useState<UserVoteData | null>(null);
   
-  const [isUploadOpen, setUploadOpen] = useState(false);
   const [isSignInOpen, setSignInOpen] = useState(false);
 
   const { toast } = useToast();
@@ -208,65 +205,9 @@ function PicPickContent() {
     }
   };
 
-  const handleUpload = async (photoName: string, uploaderName: string, dataUrl: string) => {
-    if (!user) {
-      setSignInOpen(true);
-      return;
-    }
-    if (!contestId) return;
-
-    setUploadOpen(false);
-    toast({
-      title: "Uploading Photo...",
-      description: "Please wait while your photo is being uploaded.",
-    });
-
-    try {
-      const newImageDocRef = doc(collection(db, "images"));
-      const newImageId = newImageDocRef.id;
-
-      const storageRef = ref(storage, `images/${newImageId}.webp`);
-      
-      const snapshot = await uploadString(storageRef, dataUrl, 'data_url');
-      const downloadURL = await getDownloadURL(snapshot.ref);
-      
-      const newImage: Omit<PicVoteImage, 'id'> = {
-        name: photoName,
-        firstName: uploaderName || "Anonymous",
-        lastName: "",
-        url: downloadURL,
-        votes: 0,
-        uploaderUid: user.uid,
-        contestId: contestId,
-      };
-
-      await setDoc(newImageDocRef, newImage);
-      
-      toast({
-        title: "Photo Uploaded!",
-        description: `${photoName} is now in the running.`,
-      });
-    } catch (error) {
-      console.error("Error uploading image:", error);
-      toast({
-        variant: "destructive",
-        title: "Upload Failed",
-        description: "Could not upload your photo. Please try again.",
-      });
-    }
-  };
-
   const sortedImages = useMemo(() => {
     return [...images].sort((a, b) => b.votes - a.votes);
   }, [images]);
-
-  const onUploadClick = () => {
-    if (!user) {
-      setSignInOpen(true);
-    } else {
-      setUploadOpen(true);
-    }
-  };
 
   const { votesLeft, canVoteToday, hasVotedForImage } = useMemo(() => {
     const today = getToday();
@@ -314,11 +255,17 @@ function PicPickContent() {
   return (
     <>
       <div className="w-full">
-          <div className="mb-4">
+          <div className="flex justify-between items-center mb-4">
             <Button asChild variant="outline" size="sm">
               <Link href="/contests">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back to Contests
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/leaderboard?contestId=${contestId}`}>
+                <Trophy className="mr-2 h-4 w-4" />
+                View Leaderboard
               </Link>
             </Button>
           </div>
@@ -333,7 +280,7 @@ function PicPickContent() {
                 </AccordionTrigger>
                 <AccordionContent className="pt-2">
                   <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
-                    <li>Upload your best photo to enter the contest.</li>
+                    <li>Upload your best photo to enter the contest from the Contests page.</li>
                     <li>Vote for your favorite photos uploaded by others.</li>
                     <li>Voting is open on weekdays (Mon-Fri).</li>
                     <li>You get 4 votes to cast each day.</li>
@@ -350,25 +297,19 @@ function PicPickContent() {
               <div>
                 <h2 className="text-3xl font-headline font-bold">{contest?.name ?? 'PicPick'}</h2>
                 <p className="text-lg text-muted-foreground">
-                  {user ? `You have ${votesLeft} votes left today. Happy picking!` : "Vote for your favorite photo!"}
+                  {user ? `You have ${votesLeft} votes left today. Happy picking!` : "Sign in to vote for your favorite photo!"}
                 </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button onClick={onUploadClick} className="bg-accent text-accent-foreground hover:bg-accent/90">
-                  <Upload className="mr-2 h-4 w-4" />
-                  Upload Photo
-                </Button>
               </div>
             </div>
             
           </div>
           {loading ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 items-end">
-              {[...Array(5)].map((_, i) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 items-end">
+              {[...Array(8)].map((_, i) => (
                   <div key={i} className="flex flex-col items-center gap-3">
-                  <div className="rounded-full border-4 border-card shadow-lg aspect-square w-full bg-muted animate-pulse"></div>
-                  <div className="w-3/4 h-4 bg-muted animate-pulse rounded"></div>
-                      <div className="w-1/2 h-4 bg-muted animate-pulse rounded"></div>
+                    <Skeleton className="w-36 h-36 rounded-full" />
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-9 w-32" />
                   </div>
               ))}
               </div>
@@ -384,7 +325,7 @@ function PicPickContent() {
                               image={image}
                               rank={rank}
                               onVote={handleVote}
-                              disabled={!canVoteToday || hasVotedForImage(image.id)}
+                              disabled={!user || !canVoteToday || hasVotedForImage(image.id)}
                               hasVoted={hasVotedForImage(image.id)}
                               isVoting={votingImageId === image.id}
                             />
@@ -399,7 +340,7 @@ function PicPickContent() {
                               image={image}
                               rank={index + 3}
                               onVote={handleVote}
-                              disabled={!canVoteToday || hasVotedForImage(image.id)}
+                              disabled={!user || !canVoteToday || hasVotedForImage(image.id)}
                               hasVoted={hasVotedForImage(image.id)}
                               isVoting={votingImageId === image.id}
                             />
@@ -410,17 +351,12 @@ function PicPickContent() {
               ) : (
                   <div className="text-center py-16 border-2 border-dashed rounded-lg">
                   <h3 className="text-2xl font-bold font-headline">No photos yet!</h3>
-                  <p className="text-muted-foreground mt-2">Be the first to upload a picture to this contest.</p>
+                  <p className="text-muted-foreground mt-2">Be the first to upload a picture to this contest from the Contests page.</p>
                   </div>
               )}
               </>
           )}
       </div>
-      <UploadDialog
-        isOpen={isUploadOpen}
-        onOpenChange={setUploadOpen}
-        onUpload={handleUpload}
-      />
       <SignInDialog
         isOpen={isSignInOpen}
         onOpenChange={setSignInOpen}
@@ -464,4 +400,3 @@ function HeaderWrapper() {
         </>
     );
 }
-
