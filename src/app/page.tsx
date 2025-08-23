@@ -15,7 +15,7 @@ const dashboardTools = [
     description: "Spin a wheel to randomly select a name or item.",
     icon: (
       <Image
-        src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/randomizer.png?alt=media&token=fea43a6c-38f3-4db6-9e1c-d4a82d1cf4b4"
+        src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/randomizer.png?alt=media&token=1acfebed-1dfe-4651-af05-23b96d3c66e6"
         alt="Randomizer Wheel Logo"
         width={140}
         height={40}
