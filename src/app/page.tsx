@@ -2,14 +2,58 @@
 "use client";
 
 import { Header } from "@/components/header";
-import { Button } from "@/components/ui/button";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import Link from "next/link";
 import { useState, useEffect } from "react";
-import Image from "next/image";
 import { SignInDialog } from "@/components/sign-in-dialog";
-import { Sparkles } from "@/components/sparkles";
+import { DashboardCard } from "@/components/dashboard-card";
+import { PieChart, Trophy, Vote, Timer, Zap, HelpCircle } from "lucide-react";
+
+const dashboardTools = [
+  {
+    title: "Randomizer Wheel",
+    description: "Spin a wheel to randomly select a name or item.",
+    icon: PieChart,
+    href: "#",
+    disabled: true,
+  },
+  {
+    title: "Photo Contest",
+    description: "Run a photo contest and let users vote for the best one.",
+    icon: Trophy,
+    href: "/contests",
+    disabled: false,
+  },
+  {
+    title: "Live Poll",
+    description: "Create and run live polls to gather real-time feedback.",
+    icon: Vote,
+    href: "#",
+    disabled: true,
+  },
+  {
+    title: "Activity Timer",
+    description: "Set a countdown timer for activities and breaks.",
+    icon: Timer,
+    href: "#",
+    disabled: true,
+  },
+  {
+    title: "First to Buzz In",
+    description: "A virtual buzzer for trivia and quiz games.",
+    icon: Zap,
+    href: "#",
+    disabled: true,
+  },
+  {
+    title: "Quiz",
+    description: "Create and administer quizzes with automated scoring.",
+    icon: HelpCircle,
+    href: "#",
+    disabled: true,
+  },
+]
+
 
 export default function Home() {
   const [user, setUser] = useState<User | null>(null);
@@ -28,32 +72,22 @@ export default function Home() {
         user={user}
         onSignInClick={() => setSignInOpen(true)}
       />
-      <main className="container mx-auto px-4 py-8 md:py-16">
-        <div className="grid md:grid-cols-2 gap-12 items-center">
-          <div className="flex flex-col items-center md:items-start text-center md:text-left">
-            <h1 className="text-4xl md:text-6xl font-headline font-bold mb-4 leading-tight">
-              The Ultimate Photo Contest
-            </h1>
-            <p className="text-lg md:text-xl text-muted-foreground mb-8">
-              Upload your best shots, vote for your favorites, and climb the leaderboard to victory.
-            </p>
-            <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90">
-              <Link href="/contests">
-                Enter the Contest
-              </Link>
-            </Button>
-          </div>
-          <div className="relative aspect-square max-w-md mx-auto w-full">
-             <Sparkles color="#FFC700" className="z-10" />
-             <Image 
-                src="https://placehold.co/600x600.png"
-                alt="Photo contest winner holding a trophy"
-                fill
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                className="rounded-full object-cover shadow-lg border-8 border-card"
-                data-ai-hint="photo contest"
-             />
-          </div>
+      <main className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold font-headline">Trainer Dashboard</h1>
+          <p className="text-muted-foreground">Welcome back! Select a tool to get started.</p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {dashboardTools.map((tool) => (
+            <DashboardCard
+              key={tool.title}
+              title={tool.title}
+              description={tool.description}
+              icon={tool.icon}
+              href={tool.href}
+              disabled={tool.disabled}
+            />
+          ))}
         </div>
       </main>
       <SignInDialog
@@ -63,3 +97,4 @@ export default function Home() {
     </>
   );
 }
+
