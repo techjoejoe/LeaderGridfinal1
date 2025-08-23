@@ -3,20 +3,14 @@
 
 import { useState, useEffect } from "react";
 import type { Contest, PicVoteImage } from "@/lib/types";
-import { collection, query, where, onSnapshot, doc, setDoc } from "firebase/firestore";
-import { ref, uploadString, getDownloadURL } from "firebase/storage";
-import { db, storage, auth } from "@/lib/firebase";
-import { onAuthStateChanged, User } from "firebase/auth";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from 'date-fns';
 import Image from "next/image";
-import { Trophy, Upload } from "lucide-react";
-import { UploadDialog } from "@/components/upload-dialog";
-import { useToast } from "@/hooks/use-toast";
-import { SignInDialog } from "@/components/sign-in-dialog";
 
 type ContestListProps = {
   contests: Contest[];
@@ -82,66 +76,7 @@ function ContestWinnerDisplay({ contestId }: { contestId: string }) {
 }
 
 function ContestCard({ contest }: { contest: Contest }) {
-  const [isUploadOpen, setUploadOpen] = useState(false);
-  const [isSignInOpen, setSignInOpen] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
-  const { toast } = useToast();
-
-  useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-    });
-    return () => unsubscribeAuth();
-  }, []);
-
-  const handleUpload = async (photoName: string, uploaderName: string, dataUrl: string) => {
-    if (!user) {
-      setSignInOpen(true);
-      return;
-    }
-    setUploadOpen(false);
-    toast({
-      title: "Uploading Photo...",
-      description: "Please wait while your photo is being uploaded.",
-    });
-
-    try {
-      const newImageDocRef = doc(collection(db, "images"));
-      const newImageId = newImageDocRef.id;
-
-      const storageRef = ref(storage, `images/${newImageId}.webp`);
-      
-      const snapshot = await uploadString(storageRef, dataUrl, 'data_url');
-      const downloadURL = await getDownloadURL(snapshot.ref);
-      
-      const newImage: Omit<PicVoteImage, 'id'> = {
-        name: photoName,
-        firstName: uploaderName || user.displayName || "Anonymous",
-        lastName: "",
-        url: downloadURL,
-        votes: 0,
-        uploaderUid: user.uid,
-        contestId: contest.id,
-      };
-
-      await setDoc(newImageDocRef, newImage);
-      
-      toast({
-        title: "Photo Uploaded!",
-        description: `${photoName} is now in the running.`,
-      });
-    } catch (error) {
-      console.error("Error uploading image:", error);
-      toast({
-        variant: "destructive",
-        title: "Upload Failed",
-        description: "Could not upload your photo. Please try again.",
-      });
-    }
-  };
-
   return (
-    <>
       <Card className="flex flex-col transition-all hover:shadow-lg">
         <Link href={`/picpick?contestId=${contest.id}`} className="flex-grow flex flex-col">
           <CardHeader className="flex-grow">
@@ -160,22 +95,13 @@ function ContestCard({ contest }: { contest: Contest }) {
                 View Contest
               </Link>
             </Button>
-            <Button onClick={() => user ? setUploadOpen(true) : setSignInOpen(true)} className="w-full" variant="secondary">
-                <Upload className="mr-2 h-4 w-4" />
-                Add Photo
+            <Button asChild className="w-full" variant="secondary">
+               <Link href={`/leaderboard?contestId=${contest.id}`}>
+                View Leaderboard
+              </Link>
             </Button>
         </CardFooter>
       </Card>
-      <UploadDialog
-        isOpen={isUploadOpen}
-        onOpenChange={setUploadOpen}
-        onUpload={handleUpload}
-      />
-       <SignInDialog
-        isOpen={isSignInOpen}
-        onOpenChange={setSignInOpen}
-      />
-    </>
   );
 }
 

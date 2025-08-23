@@ -3,18 +3,20 @@
 
 import { useState, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { collection, onSnapshot, query, where, doc } from "firebase/firestore";
-import { db, auth } from "@/lib/firebase";
+import { collection, onSnapshot, query, where, doc, setDoc } from "firebase/firestore";
+import { ref, uploadString, getDownloadURL } from "firebase/storage";
+import { db, auth, storage } from "@/lib/firebase";
 import type { PicVoteImage, Contest } from "@/lib/types";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { Header } from "@/components/header";
 import { SignInDialog } from "@/components/sign-in-dialog";
 import { LeaderboardTable } from "@/components/leaderboard-table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Users, ArrowLeft } from "lucide-react";
+import { Users, ArrowLeft, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
+import { UploadDialog } from "@/components/upload-dialog";
 
 function LeaderboardContent() {
   const searchParams = useSearchParams();
@@ -23,7 +25,17 @@ function LeaderboardContent() {
   const [images, setImages] = useState<PicVoteImage[]>([]);
   const [contest, setContest] = useState<Contest | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isUploadOpen, setUploadOpen] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [isSignInOpen, setSignInOpen] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribeAuth();
+  }, []);
 
   useEffect(() => {
     if (!contestId) {
@@ -60,6 +72,52 @@ function LeaderboardContent() {
     };
   }, [contestId, toast]);
 
+  const handleUpload = async (photoName: string, uploaderName: string, dataUrl: string) => {
+    if (!user || !contestId) {
+      setSignInOpen(true);
+      return;
+    }
+    setUploadOpen(false);
+    toast({
+      title: "Uploading Photo...",
+      description: "Please wait while your photo is being uploaded.",
+    });
+
+    try {
+      const newImageDocRef = doc(collection(db, "images"));
+      const newImageId = newImageDocRef.id;
+
+      const storageRef = ref(storage, `images/${newImageId}.webp`);
+      
+      const snapshot = await uploadString(storageRef, dataUrl, 'data_url');
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      
+      const newImage: Omit<PicVoteImage, 'id'> = {
+        name: photoName,
+        firstName: uploaderName || user.displayName || "Anonymous",
+        lastName: "",
+        url: downloadURL,
+        votes: 0,
+        uploaderUid: user.uid,
+        contestId: contestId,
+      };
+
+      await setDoc(newImageDocRef, newImage);
+      
+      toast({
+        title: "Photo Uploaded!",
+        description: `${photoName} is now in the running.`,
+      });
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      toast({
+        variant: "destructive",
+        title: "Upload Failed",
+        description: "Could not upload your photo. Please try again.",
+      });
+    }
+  };
+
   const sortedImages = useMemo(() => {
     return [...images].sort((a, b) => b.votes - a.votes);
   }, [images]);
@@ -78,12 +136,16 @@ function LeaderboardContent() {
 
   return (
     <>
-      <div className="mb-4">
+      <div className="flex justify-between items-center mb-4">
         <Button asChild variant="outline" size="sm">
           <Link href="/contests">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Contests
           </Link>
+        </Button>
+        <Button onClick={() => user ? setUploadOpen(true) : setSignInOpen(true)} size="sm">
+            <Upload className="mr-2 h-4 w-4" />
+            Upload Photo
         </Button>
       </div>
       <div className="flex items-center gap-3 mb-4">
@@ -108,6 +170,15 @@ function LeaderboardContent() {
       ) : (
         <LeaderboardTable images={sortedImages} />
       )}
+       <UploadDialog
+        isOpen={isUploadOpen}
+        onOpenChange={setUploadOpen}
+        onUpload={handleUpload}
+      />
+       <SignInDialog
+        isOpen={isSignInOpen}
+        onOpenChange={setSignInOpen}
+      />
     </>
   );
 }

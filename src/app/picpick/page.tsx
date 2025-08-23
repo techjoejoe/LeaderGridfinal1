@@ -4,14 +4,16 @@
 import { useState, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams } from 'next/navigation';
 import { collection, onSnapshot, doc, updateDoc, setDoc, getDoc, runTransaction, query, where, getDocs } from "firebase/firestore";
-import { db, auth } from "@/lib/firebase";
+import { ref, uploadString, getDownloadURL } from "firebase/storage";
+import { db, auth, storage } from "@/lib/firebase";
 import type { PicVoteImage, UserVoteData, Contest } from "@/lib/types";
 import { Header } from "@/components/header";
 import { ImageCard } from "@/components/image-card";
 import { SignInDialog } from "@/components/sign-in-dialog";
+import { UploadDialog } from "@/components/upload-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { HelpCircle, ArrowLeft, Trophy } from "lucide-react";
+import { HelpCircle, ArrowLeft, Trophy, Upload } from "lucide-react";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { getToday, isWeekday } from "@/lib/date-utils";
 import {
@@ -34,6 +36,7 @@ function PicPickContent() {
   const [userVoteData, setUserVoteData] = useState<UserVoteData | null>(null);
   
   const [isSignInOpen, setSignInOpen] = useState(false);
+  const [isUploadOpen, setUploadOpen] = useState(false);
 
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -205,6 +208,53 @@ function PicPickContent() {
     }
   };
 
+  const handleUpload = async (photoName: string, uploaderName: string, dataUrl: string) => {
+    if (!user || !contestId) {
+      setSignInOpen(true);
+      return;
+    }
+    setUploadOpen(false);
+    toast({
+      title: "Uploading Photo...",
+      description: "Please wait while your photo is being uploaded.",
+    });
+
+    try {
+      const newImageDocRef = doc(collection(db, "images"));
+      const newImageId = newImageDocRef.id;
+
+      const storageRef = ref(storage, `images/${newImageId}.webp`);
+      
+      const snapshot = await uploadString(storageRef, dataUrl, 'data_url');
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      
+      const newImage: Omit<PicVoteImage, 'id'> = {
+        name: photoName,
+        firstName: uploaderName || user.displayName || "Anonymous",
+        lastName: "",
+        url: downloadURL,
+        votes: 0,
+        uploaderUid: user.uid,
+        contestId: contestId,
+      };
+
+      await setDoc(newImageDocRef, newImage);
+      
+      toast({
+        title: "Photo Uploaded!",
+        description: `${photoName} is now in the running.`,
+      });
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      toast({
+        variant: "destructive",
+        title: "Upload Failed",
+        description: "Could not upload your photo. Please try again.",
+      });
+    }
+  };
+
+
   const sortedImages = useMemo(() => {
     return [...images].sort((a, b) => b.votes - a.votes);
   }, [images]);
@@ -262,12 +312,18 @@ function PicPickContent() {
                 Back to Contests
               </Link>
             </Button>
-            <Button asChild variant="outline" size="sm">
-              <Link href={`/leaderboard?contestId=${contestId}`}>
-                <Trophy className="mr-2 h-4 w-4" />
-                View Leaderboard
-              </Link>
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button onClick={() => user ? setUploadOpen(true) : setSignInOpen(true)} size="sm">
+                <Upload className="mr-2 h-4 w-4" />
+                Upload Photo
+              </Button>
+              <Button asChild variant="outline" size="sm">
+                <Link href={`/leaderboard?contestId=${contestId}`}>
+                  <Trophy className="mr-2 h-4 w-4" />
+                  View Leaderboard
+                </Link>
+              </Button>
+            </div>
           </div>
           <div className="mb-8 p-4 border rounded-lg bg-card">
             <Accordion type="single" collapsible defaultValue="item-1">
@@ -351,7 +407,7 @@ function PicPickContent() {
               ) : (
                   <div className="text-center py-16 border-2 border-dashed rounded-lg">
                   <h3 className="text-2xl font-bold font-headline">No photos yet!</h3>
-                  <p className="text-muted-foreground mt-2">Be the first to upload a picture to this contest from the Contests page.</p>
+                  <p className="text-muted-foreground mt-2">Be the first to upload a picture to this contest.</p>
                   </div>
               )}
               </>
@@ -360,6 +416,11 @@ function PicPickContent() {
       <SignInDialog
         isOpen={isSignInOpen}
         onOpenChange={setSignInOpen}
+      />
+      <UploadDialog
+        isOpen={isUploadOpen}
+        onOpenChange={setUploadOpen}
+        onUpload={handleUpload}
       />
     </>
   );
