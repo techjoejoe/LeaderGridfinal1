@@ -21,8 +21,8 @@ const dashboardTools = [
         height={40}
       />
     ),
-    href: "#",
-    disabled: true,
+    href: "/randomizer",
+    disabled: false,
   },
   {
     description: "Run a photo contest and let users vote for the best one.",
