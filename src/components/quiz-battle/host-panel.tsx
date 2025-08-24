@@ -10,11 +10,20 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import type { QuizQuestion, QuizSettings, QuizSession } from '@/lib/types';
 import Papa from 'papaparse';
-import { Upload, Play, ChevronRight, BarChart, Users, Loader2 } from 'lucide-react';
+import { Upload, Play, ChevronRight, BarChart, Users, Loader2, HelpCircle } from 'lucide-react';
 import { Leaderboard } from './leaderboard';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { rtdb } from '@/lib/firebase';
 import { ref, onValue } from 'firebase/database';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 
 interface HostPanelProps {
@@ -129,7 +138,37 @@ export function HostPanel({ classId, user }: HostPanelProps) {
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <div>
-                        <Label htmlFor="csvFile" className="mb-2 block font-semibold">Upload Quiz CSV</Label>
+                        <div className="flex items-center justify-between mb-2">
+                            <Label htmlFor="csvFile" className="font-semibold">Upload Quiz CSV</Label>
+                             <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="outline" size="sm" className="gap-1.5 text-xs">
+                                        <HelpCircle className="h-3 w-3" />
+                                        Example Format
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                    <AlertDialogTitle>CSV File Format Guide</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        Your CSV file must contain a header row with the following columns. The order does not matter.
+                                        <ul className="list-disc pl-5 mt-2 space-y-1">
+                                            <li><span className="font-bold">question</span> (Required): The text for the question.</li>
+                                            <li><span className="font-bold">correctAnswer</span> (Required): The correct answer choice.</li>
+                                            <li><span className="font-bold">wrong1</span> (Required): At least one wrong answer choice.</li>
+                                            <li><span className="font-bold">wrong2</span> (Optional): A second wrong answer choice.</li>
+                                            <li><span className="font-bold">wrong3</span> (Optional): A third wrong answer choice.</li>
+                                            <li><span className="font-bold">imageUrl</span> (Optional): A direct URL to an image for the question.</li>
+                                        </ul>
+                                        <p className="mt-2">Example Row:<br/>
+                                        <code className="text-xs bg-muted p-1 rounded-sm">"What is the capital of France?",Paris,London,Berlin,Madrid,https://example.com/eiffel.jpg</code>
+                                        </p>
+                                    </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogAction>Got it!</AlertDialogAction>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        </div>
                         <Input id="csvFile" type="file" accept=".csv" ref={fileInputRef} onChange={handleFileUpload} className="hidden"/>
                         <Button variant="outline" onClick={() => fileInputRef.current?.click()} className="w-full">
                             <Upload className="mr-2 h-4 w-4"/> 
