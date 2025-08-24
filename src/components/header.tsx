@@ -28,16 +28,16 @@ export function Header({ user, onSignInClick }: HeaderProps) {
             <Image
                 src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/JoeODesignLogo.png?alt=media&token=98b4c8d8-90ef-4af9-bd40-5025052bb4c2"
                 alt="Joe O Design Logo"
-                width={180}
-                height={180}
+                width={150}
+                height={150}
                 className="dark:hidden"
                 priority
             />
             <Image
                 src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/JoeODesignLogo.png?alt=media&token=98b4c8d8-90ef-4af9-bd40-5025052bb4c2"
                 alt="Joe O Design Logo"
-                width={180}
-                height={180}
+                width={150}
+                height={150}
                 className="hidden dark:block"
                 priority
             />
