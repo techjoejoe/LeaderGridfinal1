@@ -107,14 +107,17 @@ export const onContestDeleted = functions.firestore
       });
     }
 
-    // 2. Delete all user vote data for this contest
-    const usersSnapshot = await db.collection("users").get();
-    functions.logger.log(`Checking ${usersSnapshot.size} users for vote data to delete.`);
-    
-    usersSnapshot.docs.forEach(userDoc => {
-      const userVoteRef = userDoc.ref.collection("user_votes").doc(contestId);
-      batch.delete(userVoteRef);
-    });
+    // 2. Delete all user vote data for this contest using a collection group query.
+    const votesQuery = db.collectionGroup("votes").where("contestId", "==", contestId);
+    const votesSnapshot = await votesQuery.get();
+     if (votesSnapshot.empty) {
+      functions.logger.log("No vote documents found for this contest.");
+    } else {
+      functions.logger.log(`Found ${votesSnapshot.size} vote documents to delete.`);
+      votesSnapshot.forEach((doc) => {
+        batch.delete(doc.ref);
+      });
+    }
 
     // 3. Commit all batched writes
     await batch.commit();

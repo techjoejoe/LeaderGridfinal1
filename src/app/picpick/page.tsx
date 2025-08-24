@@ -133,6 +133,7 @@ function PicPickContent() {
                 // Check if the daily votes need to be reset
                 if (data.lastVotedDate !== today) {
                     const resetData: UserVoteData = {
+                        contestId: contestId,
                         votesToday: 4,
                         imageVotes: {},
                         lastVotedDate: today,
@@ -145,6 +146,7 @@ function PicPickContent() {
             } else {
                 // If no vote data exists for this user in this contest, create it.
                 const initialData: UserVoteData = {
+                    contestId: contestId,
                     votesToday: 4,
                     lastVotedDate: today,
                     imageVotes: {},
@@ -212,7 +214,7 @@ function PicPickContent() {
         
         // If user has no vote doc or it's from a previous day, initialize new data
         if (!userVoteDoc.exists() || userVoteDoc.data().lastVotedDate !== today) {
-          currentVoteData = { votesToday: 4, lastVotedDate: today, imageVotes: {} };
+          currentVoteData = { contestId: contestId, votesToday: 4, lastVotedDate: today, imageVotes: {} };
         } else {
           currentVoteData = userVoteDoc.data() as UserVoteData;
         }
@@ -231,6 +233,7 @@ function PicPickContent() {
           votesToday: currentVoteData.votesToday - 1,
           lastVotedDate: today,
           imageVotes: { ...currentVoteData.imageVotes, [id]: imageVoteCount + 1 },
+          contestId: contestId, // Ensure contestId is present
         };
         transaction.set(userVoteRef, newUserVoteData);
       });

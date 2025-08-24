@@ -13,6 +13,7 @@ export type PicVoteImage = {
 };
 
 export type UserVoteData = {
+  contestId: string; // To be used in collectionGroup queries
   votesToday: number;
   lastVotedDate: string; // YYYY-MM-DD
   imageVotes: { [imageId: string]: number };
