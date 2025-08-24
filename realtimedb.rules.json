@@ -1,7 +1,22 @@
 
 {
   "rules": {
-    ".read": "true",
-    ".write": "true"
+    "live-polls": {
+      ".read": "true",
+      ".write": false,
+      "$sessionId": {
+         "polls": {
+           "$pollId": {
+              "options" : {
+                "$optionIndex": {
+                  "votes": {
+                    ".write": "true" 
+                  }
+                }
+              }
+           }
+         }
+       }
+    }
   }
 }
