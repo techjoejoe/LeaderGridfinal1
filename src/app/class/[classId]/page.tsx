@@ -88,7 +88,7 @@ export default function ClassDashboardPage() {
       disabled: false
     },
     { 
-      icon: <Image src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/LeaderGridMascotLogo.png?alt=media&token=98f67c05-c876-4426-9f91-26cdbc73bbf6" alt="Randomizer Wheel" width={225} height={225} data-ai-hint="randomizer wheel" />, 
+      icon: <Image src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/randomizer.png?alt=media&token=1acfebed-1dfe-4651-af05-23b96d3c66e6" alt="Randomizer Wheel" width={225} height={225} data-ai-hint="randomizer wheel" />, 
       description: "A spinning wheel to randomly select learners or topics.", 
       href: `/randomizer?classId=${classId}`,
       disabled: false
