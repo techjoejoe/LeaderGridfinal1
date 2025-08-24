@@ -1,4 +1,3 @@
-
 import type { Timestamp } from "firebase/firestore";
 
 export type PicVoteImage = {
@@ -79,4 +78,40 @@ export interface PollSession {
   activePollId?: string | null;
   isAcceptingVotes: boolean;
   createdAt: number; // timestamp
+}
+
+// Quiz Battle Types
+export interface QuizQuestion {
+  question: string;
+  correctAnswer: string;
+  answers: string[];
+  imageUrl?: string | null;
+}
+
+export interface QuizPlayer {
+  id: string;
+  name: string;
+  score: number;
+  lastPoints?: number;
+  answerTime?: number;
+}
+
+export interface QuizSettings {
+  timeLimit: number;
+  basePoints: number;
+  autoAdvance: boolean;
+  showLeaderboard: boolean;
+}
+
+export interface QuizSession {
+  id: string; // same as classId
+  roomCode: string;
+  hostUid: string;
+  settings: QuizSettings;
+  questions: QuizQuestion[];
+  currentQuestion: number;
+  gameState: 'waiting' | 'active' | 'results' | 'ended';
+  players: { [playerId: string]: QuizPlayer };
+  answers: { [playerId: string]: string }; // For the current question
+  createdAt: number;
 }

@@ -1,18 +1,21 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { Header } from "@/components/header";
 import { SignInDialog } from "@/components/sign-in-dialog";
 import { Button } from "@/components/ui/button";
-import { PlusCircle } from "lucide-react";
 import { useSearchParams } from "next/navigation";
+import { HostPanel } from "@/components/quiz-battle/host-panel";
+import { PlayerPanel } from "@/components/quiz-battle/player-panel";
+import { cn } from "@/lib/utils";
 
-export default function QuizBattlePage() {
+function QuizBattleComponent() {
   const [user, setUser] = useState<User | null>(null);
   const [isSignInOpen, setSignInOpen] = useState(false);
+  const [view, setView] = useState<'host' | 'player'>('host');
   const searchParams = useSearchParams();
   const classId = searchParams.get('classId');
 
@@ -23,41 +26,58 @@ export default function QuizBattlePage() {
     return () => unsubscribe();
   }, []);
 
-  const handleCreate = () => {
-    if (!user) {
-      setSignInOpen(true);
-    } else {
-      // Logic to create a new quiz will go here
-      alert("Navigate to quiz creation UI.");
-    }
-  };
-
   return (
     <>
-      <Header 
-        user={user}
-        onSignInClick={() => setSignInOpen(true)}
-      />
-      <main className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-headline font-bold">Quiz Battle</h1>
-          <Button onClick={handleCreate}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Create New Quiz
-          </Button>
-        </div>
-        
-        {/* This will be the list of existing quizzes for the class */}
-        <div className="text-center py-16 border-2 border-dashed rounded-lg">
-          <h3 className="text-2xl font-bold font-headline">No Quizzes Yet</h3>
-          <p className="text-muted-foreground mt-2">Create a new quiz to get started.</p>
-        </div>
-        
-      </main>
-      <SignInDialog
-        isOpen={isSignInOpen}
-        onOpenChange={setSignInOpen}
-      />
+      <style>{`
+        .quiz-battle-bg {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+      `}</style>
+      <div className="min-h-screen quiz-battle-bg">
+        <Header 
+          user={user}
+          onSignInClick={() => setSignInOpen(true)}
+        />
+        <main className="container mx-auto px-4 py-8">
+            <div className="text-center text-white mb-8">
+                <h1 className="text-4xl md:text-5xl font-bold text-shadow-lg">Quiz Battle</h1>
+                <p className="text-lg">Real-time Interactive Quiz Platform</p>
+            </div>
+
+             <div className="flex gap-2 justify-center mb-8">
+                <Button 
+                    onClick={() => setView('host')} 
+                    variant={view === 'host' ? 'secondary': 'outline'}
+                    className={cn(view === 'host' && "bg-white/90 text-primary hover:bg-white")}
+                    >
+                        Host View
+                </Button>
+                <Button 
+                    onClick={() => setView('player')} 
+                    variant={view === 'player' ? 'secondary': 'outline'}
+                    className={cn(view === 'player' && "bg-white/90 text-primary hover:bg-white")}
+                >
+                    Player View
+                </Button>
+            </div>
+          
+            {view === 'host' ? <HostPanel classId={classId} user={user} /> : <PlayerPanel />}
+
+        </main>
+        <SignInDialog
+          isOpen={isSignInOpen}
+          onOpenChange={setSignInOpen}
+        />
+      </div>
     </>
   );
+}
+
+
+export default function QuizBattlePage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <QuizBattleComponent />
+        </Suspense>
+    )
 }
