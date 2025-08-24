@@ -13,12 +13,16 @@ import { Confetti } from "@/components/confetti";
 import * as Tone from "tone";
 import { cn } from "@/lib/utils";
 import { Play, Pause, RotateCcw, Maximize, Minimize, Volume2, VolumeX } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+
 
 const ActivityTimer = () => {
+  const [mode, setMode] = useState<"countdown" | "schedule">("countdown");
   const [minutes, setMinutes] = useState(5);
   const [seconds, setSeconds] = useState(0);
-  const [totalSeconds, setTotalSeconds] = useState(300);
-  const [timeLeft, setTimeLeft] = useState(300);
+  const [scheduleTime, setScheduleTime] = useState("09:00");
+  const [endTime, setEndTime] = useState<number | null>(null);
+  const [timeLeft, setTimeLeft] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
@@ -29,17 +33,30 @@ const ActivityTimer = () => {
   const synth = useRef<Tone.Synth | null>(null);
 
   useEffect(() => {
-    // Initialize Tone.js synth
     if (typeof window !== "undefined") {
       synth.current = new Tone.Synth().toDestination();
-    }
 
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
+      const savedState = localStorage.getItem('activityTimerState');
+      if (savedState) {
+        const { endTime: savedEndTime, message: savedMessage } = JSON.parse(savedState);
+        const now = Date.now();
+        if (savedEndTime > now) {
+          setEndTime(savedEndTime);
+          setTimeLeft(Math.round((savedEndTime - now) / 1000));
+          setIsRunning(true);
+          if (savedMessage) setCustomMessage(savedMessage);
+        } else {
+          // Timer finished while user was away
+          setShowCelebration(true);
+          if (!isMaximized) setIsMaximized(true);
+          localStorage.removeItem('activityTimerState');
+        }
       }
+    }
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, []);
+  }, [isMaximized]);
 
   const playBeep = useCallback((note: string, duration: string) => {
     if (isMuted || !synth.current) return;
@@ -54,81 +71,89 @@ const ActivityTimer = () => {
   }, [isMuted]);
 
   useEffect(() => {
-    if (isRunning) {
+    if (isRunning && endTime) {
       intervalRef.current = setInterval(() => {
-        setTimeLeft((prevTime) => {
-          if (prevTime <= 1) {
-            clearInterval(intervalRef.current!);
-            setIsRunning(false);
-            setShowCelebration(true);
-            playBeep("C5", "0.5s");
-            setTimeout(() => {
-              if (synth.current) {
-                const now = Tone.now();
-                synth.current.triggerAttackRelease("C4", "8n", now);
-                synth.current.triggerAttackRelease("E4", "8n", now + 0.2);
-                synth.current.triggerAttackRelease("G4", "8n", now + 0.4);
-                synth.current.triggerAttackRelease("C5", "4n", now + 0.6);
-              }
-            }, 100); // Play completion sound shortly after final beep
-            if (!isMaximized) setIsMaximized(true);
-            return 0;
-          }
-          const newTime = prevTime - 1;
-          if (newTime <= 10 && newTime > 3) {
-            playBeep("C4", "0.1s");
-          } else if (newTime <= 3 && newTime > 0) {
-            playBeep("G4", "0.1s");
-          }
-          return newTime;
-        });
+        const now = Date.now();
+        const remaining = Math.round((endTime - now) / 1000);
+        
+        if (remaining <= 0) {
+          clearInterval(intervalRef.current!);
+          setIsRunning(false);
+          setShowCelebration(true);
+          playBeep("C5", "0.5s");
+          setTimeout(() => {
+            if (synth.current) {
+              const now = Tone.now();
+              synth.current.triggerAttackRelease("C4", "8n", now);
+              synth.current.triggerAttackRelease("E4", "8n", now + 0.2);
+              synth.current.triggerAttackRelease("G4", "8n", now + 0.4);
+              synth.current.triggerAttackRelease("C5", "4n", now + 0.6);
+            }
+          }, 100);
+          if (!isMaximized) setIsMaximized(true);
+          localStorage.removeItem('activityTimerState');
+          setTimeLeft(0);
+        } else {
+          setTimeLeft(remaining);
+          if (remaining <= 10 && remaining > 3) playBeep("C4", "0.1s");
+          else if (remaining <= 3 && remaining > 0) playBeep("G4", "0.1s");
+        }
       }, 1000);
     } else {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
+      if (intervalRef.current) clearInterval(intervalRef.current);
     }
 
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
+      if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [isRunning, playBeep, isMaximized]);
+  }, [isRunning, endTime, playBeep, isMaximized]);
 
   const handleStart = async () => {
     if (Tone.context.state !== 'running') {
       await Tone.start();
     }
-    const newTotalSeconds = minutes * 60 + seconds;
-    if (newTotalSeconds <= 0) return;
-    setTotalSeconds(newTotalSeconds);
-    setTimeLeft(newTotalSeconds);
+
+    let durationInSeconds = 0;
+    if (mode === 'countdown') {
+      durationInSeconds = minutes * 60 + seconds;
+    } else {
+      const now = new Date();
+      const [hours, mins] = scheduleTime.split(':').map(Number);
+      const targetTime = new Date();
+      targetTime.setHours(hours, mins, 0, 0);
+      if (targetTime < now) {
+        targetTime.setDate(targetTime.getDate() + 1); // schedule for tomorrow if time has passed
+      }
+      durationInSeconds = Math.round((targetTime.getTime() - now.getTime()) / 1000);
+    }
+
+    if (durationInSeconds <= 0) return;
+    
+    const newEndTime = Date.now() + durationInSeconds * 1000;
+    setEndTime(newEndTime);
+    setTimeLeft(durationInSeconds);
     setIsRunning(true);
     setShowCelebration(false);
+
+    localStorage.setItem('activityTimerState', JSON.stringify({ endTime: newEndTime, message: customMessage }));
   };
 
   const handlePause = () => {
     setIsRunning(false);
+    if(intervalRef.current) clearInterval(intervalRef.current);
+    localStorage.removeItem('activityTimerState');
   };
 
   const handleReset = () => {
     setIsRunning(false);
-    setTimeLeft(totalSeconds);
+    if(intervalRef.current) clearInterval(intervalRef.current);
     setShowCelebration(false);
     if(isMaximized && showCelebration) setIsMaximized(false);
+    setTimeLeft(0);
+    setEndTime(null);
+    localStorage.removeItem('activityTimerState');
   };
-
-  const handleMinutesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(e.target.value, 10);
-    setMinutes(Math.max(0, Math.min(59, value || 0)));
-  };
-
-  const handleSecondsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(e.target.value, 10);
-    setSeconds(Math.max(0, Math.min(59, value || 0)));
-  };
-
+  
   const formatTime = (time: number) => {
     const mins = Math.floor(time / 60);
     const secs = time % 60;
@@ -137,24 +162,33 @@ const ActivityTimer = () => {
 
   const getBorderColor = () => {
     if (showCelebration) return "border-green-400";
-    if (!isRunning) return "border-gray-500";
-    
+    if (!isRunning) return "border-gray-500/50";
     if (timeLeft <= 10) return "border-red-500";
     if (timeLeft <= 30) return "border-orange-500";
-    return "border-green-400";
+    return "border-transparent";
   };
   
+  const getBackgroundColor = () => {
+    if (!isRunning) return "";
+    if (showCelebration) return "";
+    if (timeLeft <= 10) return "";
+    if (timeLeft <= 30) return "";
+    return "bg-animated-gradient";
+  }
+
   const cardContent = (
       <>
         <div className={cn(
             "timer-display bg-glassmorphism w-full flex items-center justify-center rounded-lg text-white transition-all duration-500 border-2",
             isMaximized ? "h-full" : "h-48",
             getBorderColor(),
-            { "animate-pulse": isRunning && timeLeft <= 10 }
+            { "animate-pulse": isRunning && timeLeft <= 10 },
+            getBackgroundColor()
         )}>
             <h1 className={cn(
-                "font-mono font-bold tracking-tighter text-shadow-lg",
-                isMaximized ? "text-[15rem] leading-none" : "text-8xl"
+                "font-mono font-bold tracking-tighter",
+                isMaximized ? "text-[15rem] leading-none" : "text-8xl",
+                {"text-shadow-lg": !getBackgroundColor()}
             )}>
                 {formatTime(timeLeft)}
             </h1>
@@ -162,22 +196,33 @@ const ActivityTimer = () => {
 
         {!isMaximized && (
         <div className="p-6">
-            <div className="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                    <Label htmlFor="minutes">Minutes</Label>
-                    <Input id="minutes" type="number" value={minutes} onChange={handleMinutesChange} min="0" max="59" disabled={isRunning} className="bg-white/10" />
-                </div>
-                <div>
-                    <Label htmlFor="seconds">Seconds</Label>
-                    <Input id="seconds" type="number" value={seconds} onChange={handleSecondsChange} min="0" max="59" disabled={isRunning} className="bg-white/10" />
-                </div>
-            </div>
+            <Tabs value={mode} onValueChange={(value) => setMode(value as any)} className="w-full mb-4">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="countdown">Countdown</TabsTrigger>
+                <TabsTrigger value="schedule">Schedule</TabsTrigger>
+              </TabsList>
+              <TabsContent value="countdown" className="grid grid-cols-2 gap-4 mt-4">
+                  <div>
+                      <Label htmlFor="minutes">Minutes</Label>
+                      <Input id="minutes" type="number" value={minutes} onChange={(e) => setMinutes(Math.max(0, Math.min(59, parseInt(e.target.value) || 0)))} min="0" max="59" disabled={isRunning} className="bg-white/10" />
+                  </div>
+                  <div>
+                      <Label htmlFor="seconds">Seconds</Label>
+                      <Input id="seconds" type="number" value={seconds} onChange={(e) => setSeconds(Math.max(0, Math.min(59, parseInt(e.target.value) || 0)))} min="0" max="59" disabled={isRunning} className="bg-white/10" />
+                  </div>
+              </TabsContent>
+              <TabsContent value="schedule" className="mt-4">
+                  <Label htmlFor="scheduleTime">End Time</Label>
+                  <Input id="scheduleTime" type="time" value={scheduleTime} onChange={(e) => setScheduleTime(e.target.value)} disabled={isRunning} className="bg-white/10" />
+              </TabsContent>
+            </Tabs>
+
              <div className="mb-6">
                 <Label htmlFor="customMessage">Completion Message</Label>
                 <Input id="customMessage" value={customMessage} onChange={(e) => setCustomMessage(e.target.value)} placeholder="Time's Up! Please go back to your seats!" className="bg-white/10"/>
             </div>
-            <p className="text-sm text-muted-foreground text-center mb-4">
-              Set the time and press start. The timer will begin counting down.
+             <p className="text-sm text-muted-foreground text-center mb-4">
+              {mode === 'countdown' ? 'Set the duration and press start.' : `Timer will end at ${new Date(new Date().toDateString() + ' ' + scheduleTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}.`}
             </p>
         </div>
         )}
@@ -275,3 +320,5 @@ export default function TickrPage() {
     </>
   );
 }
+
+    
