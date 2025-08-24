@@ -1,10 +1,10 @@
 
 {
-  "firestore": {
-    "rules": "firestore.rules"
-  },
   "database": {
     "instance": "picvote-h2ow0-default-rtdb",
     "rules": "realtimedb.rules.json"
+  },
+  "firestore": {
+    "rules": "firestore.rules"
   }
 }
