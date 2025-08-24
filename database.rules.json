@@ -1,0 +1,8 @@
+{
+  "rules": {
+    "live-polls": {
+      ".read": true,
+      ".write": "auth != null"
+    }
+  }
+}
