@@ -6,6 +6,7 @@ import { onAuthStateChanged, User } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { doc, getDoc, setDoc, onSnapshot } from "firebase/firestore";
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { SignInDialog } from "@/components/sign-in-dialog";
 import { Button } from "@/components/ui/button";
 import { Settings, X, Share2, Monitor, Shuffle, Scale, Undo, Trash2, Upload, Volume2, VolumeX, Sun, Moon } from "lucide-react";
@@ -14,6 +15,7 @@ import Papa from "papaparse";
 import { Confetti } from "@/components/confetti";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import type { Class, UserData } from "@/lib/types";
 
 // Sound System using Web Audio API
 class SoundEffects {
@@ -82,6 +84,9 @@ type Winner = { name: string; time: string };
 type UndoState = { items: Item[], winners: Winner[] };
 
 const RandomizerWheel = () => {
+    const searchParams = useSearchParams();
+    const classId = searchParams.get('classId');
+
     const [user, setUser] = useState<User | null>(null);
     const [items, setItems] = useState<Item[]>([]);
     const [isSpinning, setIsSpinning] = useState(false);
@@ -111,8 +116,37 @@ const RandomizerWheel = () => {
         return () => unsubscribe();
     }, []);
 
+    // Load from class or from Firestore for generic wheel
     useEffect(() => {
-        if (user) {
+        if (classId && user) {
+            // Class mode: Load learners from class
+            const fetchClassLearners = async () => {
+                const classRef = doc(db, "classes", classId);
+                const classSnap = await getDoc(classRef);
+                if (classSnap.exists()) {
+                    const classData = classSnap.data() as Class;
+                    if (classData.trainerUid === user.uid) {
+                        const learnerUids = classData.learnerUids;
+                        if(learnerUids.length > 0) {
+                            const learnerPromises = learnerUids.map(uid => getDoc(doc(db, "users", uid)));
+                            const learnerDocs = await Promise.all(learnerPromises);
+                            const learnerItems = learnerDocs
+                                .map(docSnap => docSnap.data() as UserData)
+                                .filter(learner => learner && learner.displayName)
+                                .map(learner => ({
+                                    name: learner.displayName!,
+                                    color: teamColors[Math.floor(Math.random() * teamColors.length)]
+                                }));
+                            setItems(learnerItems);
+                        } else {
+                            setItems([]);
+                        }
+                    }
+                }
+            };
+            fetchClassLearners();
+        } else if (user) {
+            // Generic mode: Load from user's saved list
             const docRef = doc(db, "randomizer_lists", user.uid);
             const unsubscribe = onSnapshot(docRef, (docSnap) => {
                 if (docSnap.exists()) {
@@ -121,23 +155,20 @@ const RandomizerWheel = () => {
                     if(data.recentWinners) setRecentWinners(data.recentWinners);
                     if(data.settings) setSettings(s => ({...s, ...data.settings}));
                 } else {
-                    // No data for this user yet, maybe set initial state
                     setItems([]);
                     setRecentWinners([]);
                 }
-            }, (error) => {
-                console.error("Firestore snapshot error:", error);
-            });
+            }, (error) => console.error("Firestore snapshot error:", error));
             return () => unsubscribe();
         } else {
-            // Not signed in, use local state only
+            // Not signed in
             setItems([]);
             setRecentWinners([]);
         }
-    }, [user]);
+    }, [user, classId]);
 
     const saveStateToFirestore = useCallback(async (newState: { items?: Item[], recentWinners?: Winner[], settings?: Partial<typeof settings> }) => {
-        if (user) {
+        if (user && !classId) { // Only save to firestore for generic wheels
             try {
                 const docRef = doc(db, "randomizer_lists", user.uid);
                 const currentState = (await getDoc(docRef)).data() || {};
@@ -146,7 +177,7 @@ const RandomizerWheel = () => {
                 console.error("Could not save state to firestore", e);
             }
         }
-    }, [user]);
+    }, [user, classId]);
     
     const teamColorSets = [
         ['#FF6B6B', '#FF5252', '#FF7979', '#FF4444'], // Team 1 - Reds
@@ -175,6 +206,10 @@ const RandomizerWheel = () => {
     
         if (items.length === 0) {
             ctx.clearRect(0, 0, width, height);
+            ctx.textAlign = 'center';
+            ctx.fillStyle = 'var(--text-secondary)';
+            ctx.font = '16px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif';
+            ctx.fillText(classId ? "No learners in this class." : "Add items to get started.", width/2, height/2);
             return;
         }
     
@@ -206,7 +241,6 @@ const RandomizerWheel = () => {
             const text = item.name;
             const textRadius = radius * 0.6;
             
-            // Basic text wrapping
             const maxTextWidth = radius * 0.5;
             const words = text.split(' ');
             let line = '';
@@ -219,7 +253,7 @@ const RandomizerWheel = () => {
                 if (testWidth > maxTextWidth && n > 0) {
                     ctx.fillText(line, textRadius, y);
                     line = words[n] + ' ';
-                    y += 16; // line height
+                    y += 16;
                 } else {
                     line = testLine;
                 }
@@ -227,7 +261,7 @@ const RandomizerWheel = () => {
             ctx.fillText(line, textRadius, y);
             ctx.restore();
         });
-    }, [items]);
+    }, [items, classId]);
 
     useEffect(() => {
         drawWheel();
@@ -243,7 +277,7 @@ const RandomizerWheel = () => {
 
     const updateItems = (newItems: Item[]) => {
         setItems(newItems);
-        saveStateToFirestore({ items: newItems });
+        if(!classId) saveStateToFirestore({ items: newItems });
     };
 
     const addTextItems = useCallback(() => {
@@ -315,11 +349,11 @@ const RandomizerWheel = () => {
             const timeString = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
             const newWinners = [{ name: winnerText, time: timeString }, ...recentWinners.slice(0, 4)];
             setRecentWinners(newWinners);
-            saveStateToFirestore({ recentWinners: newWinners });
+            if(!classId) saveStateToFirestore({ recentWinners: newWinners });
             
             setIsSpinning(false);
         }, 8000);
-    }, [isSpinning, items, settings.removeWinner, settings.soundEnabled, currentRotation, recentWinners, saveStateToFirestore]);
+    }, [isSpinning, items, settings.soundEnabled, currentRotation, recentWinners, saveStateToFirestore, classId]);
 
     // Keyboard shortcuts
     useEffect(() => {
@@ -348,14 +382,14 @@ const RandomizerWheel = () => {
     // Load from URL params on mount
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
-        if (params.has('items')) {
+        if (params.has('items') && !classId) {
             try {
                 const sharedItems: Item[] = JSON.parse(atob(params.get('items')!));
                 setItems(sharedItems);
             } catch (e) { console.error('Failed to load shared items'); }
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [classId]);
 
     const clearItems = () => {
         saveUndoState();
@@ -418,6 +452,7 @@ const RandomizerWheel = () => {
             const encodedItems = btoa(JSON.stringify(items));
             const url = new URL(window.location.href);
             url.searchParams.set('items', encodedItems);
+            if (classId) url.searchParams.delete('classId');
             setShareLink(url.toString());
             setIsShareOpen(true);
         }
@@ -500,14 +535,16 @@ const RandomizerWheel = () => {
 
     const updateRecentWinners = (newWinners: Winner[]) => {
         setRecentWinners(newWinners);
-        saveStateToFirestore({ recentWinners: newWinners });
+        if (!classId) saveStateToFirestore({ recentWinners: newWinners });
     };
     
     const handleSettingChange = (key: keyof typeof settings, value: boolean) => {
         const newSettings = {...settings, [key]: value};
         setSettings(newSettings);
-        saveStateToFirestore({settings: newSettings});
+        if(!classId) saveStateToFirestore({settings: newSettings});
     }
+
+    const isClassMode = !!classId;
 
     return (
         <div className={cn("randomizer-page", isPresentationMode && "presentation-mode")}>
@@ -645,8 +682,8 @@ const RandomizerWheel = () => {
 
             <div className="container">
                 <div className="header">
-                    <h1 className="title">Decision Wheel Pro</h1>
-                    <p className="subtitle">Let chance make the choice</p>
+                    <h1 className="title">{isClassMode ? "Class Randomizer" : "Decision Wheel Pro"}</h1>
+                    <p className="subtitle">{isClassMode ? "Spin the wheel to select a learner." : "Let chance make the choice"}</p>
                     <button className="header-btn share-btn" onClick={generateShareLink} title="Share Wheel (S)">
                         <Share2 size={20}/>
                     </button>
@@ -658,7 +695,7 @@ const RandomizerWheel = () => {
                 <div className="main-content">
                     <div className="control-panel">
                         {/* Mode Section */}
-                        <div className="panel-section">
+                        <div className={cn("panel-section", isClassMode && "hidden")}>
                             <div className="section-title">Mode</div>
                             <div className="mode-toggle">
                                 <button className={cn('mode-btn', currentMode === 'normal' && 'active')} onClick={() => changeMode('normal')}>Normal</button>
@@ -681,14 +718,14 @@ const RandomizerWheel = () => {
                         </div>
 
                         {/* File Input */}
-                        <div className="panel-section">
+                        <div className={cn("panel-section", isClassMode && "hidden")}>
                             <div className="section-title">Import Data</div>
                             <input type="file" id="csvFile" accept=".csv" ref={fileInputRef} onChange={handleFileChange} style={{display: 'none'}}/>
                             <Button className="w-full justify-center gap-2" onClick={() => fileInputRef.current?.click()}><Upload size={14}/> Choose CSV</Button>
                         </div>
                         
                         {/* Items Input */}
-                        <div className="panel-section">
+                        <div className={cn("panel-section", isClassMode && "hidden")}>
                             <div className="section-title">Add Items</div>
                             {currentMode === 'normal' ? (
                                 <>
@@ -705,16 +742,16 @@ const RandomizerWheel = () => {
                         
                         {/* Current Items */}
                         <div className="panel-section">
-                            <div className="section-title"><span>Current Items</span><span>({items.length})</span></div>
+                            <div className="section-title"><span>{isClassMode ? "Learners" : "Current Items"}</span><span>({items.length})</span></div>
                             <div className="items-list">
-                                {items.length === 0 ? <div style={{textAlign: 'center', color: 'var(--text-muted)'}}>No items</div> :
+                                {items.length === 0 ? <div style={{textAlign: 'center', color: 'var(--text-muted)'}}>{isClassMode ? "No learners in this class." : "No items on the wheel."}</div> :
                                     items.map((item, index) => (
                                         <div key={index} className="item-row">
                                             <span>
                                                 {item.team && <span className={cn("team-badge", `team-${item.teamNumber}`)}>{item.team}</span>}
                                                 {item.name}
                                             </span>
-                                            <button className="remove-btn" onClick={() => removeItem(index)}>X</button>
+                                            {!isClassMode && <button className="remove-btn" onClick={() => removeItem(index)}>X</button>}
                                         </div>
                                     ))
                                 }
@@ -725,10 +762,10 @@ const RandomizerWheel = () => {
                                     </div>
                                 )}
                             </div>
-                            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '8px'}}>
+                             {!isClassMode && <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '8px'}}>
                                 <Button onClick={clearItems}><Trash2 size={14}/> Clear</Button>
                                 <Button onClick={undoLastAction}><Undo size={14}/> Undo</Button>
-                            </div>
+                            </div>}
                         </div>
 
                          {/* Settings Section */}
@@ -817,7 +854,9 @@ export default function RandomizerPage() {
         onSignInClick={() => setSignInOpen(true)}
       />
       <main>
-        <RandomizerWheel />
+        <Suspense fallback={<div className="text-center p-10">Loading Randomizer...</div>}>
+          <RandomizerWheel />
+        </Suspense>
       </main>
       <SignInDialog
         isOpen={isSignInOpen}
@@ -826,5 +865,3 @@ export default function RandomizerPage() {
     </>
   );
 }
-
-    
