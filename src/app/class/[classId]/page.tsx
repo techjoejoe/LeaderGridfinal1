@@ -124,7 +124,7 @@ export default function ClassDashboardPage() {
       disabled: false
     },
     { 
-      icon: <Image src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/Asklot.png?alt=media&token=e7b5515b-c687-4718-8dd5-26e0de49aa7a" alt="Parking Lot" width={225} height={225} data-ai-hint="parking lot" />,
+      icon: <Image src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/Askalot.png?alt=media&token=55945465-d98e-4f78-bc36-70cab6c7dae0" alt="Parking Lot" width={225} height={225} data-ai-hint="parking lot" />,
       description: "A digital space to 'park' questions or ideas for later.", 
       href: `/asklot?classId=${classId}`,
       disabled: false
