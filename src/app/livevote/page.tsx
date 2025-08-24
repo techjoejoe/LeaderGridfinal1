@@ -41,6 +41,7 @@ function LiveVoteContent() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
+      setLoading(true);
       if (classId) {
         if (currentUser) {
           const isAdmin = await verifyAdmin(currentUser, classId);
@@ -58,6 +59,7 @@ function LiveVoteContent() {
       } else {
         setView('no_session');
       }
+      setLoading(false);
     });
     return () => unsubscribe();
   }, [classId, sessionCode, router, toast, verifyAdmin]);
@@ -65,7 +67,6 @@ function LiveVoteContent() {
   // Listener for session data, separated from view logic
   useEffect(() => {
     if (view === 'loading' || view === 'no_session') {
-      setLoading(false);
       return;
     }
 
@@ -142,7 +143,7 @@ function LiveVoteContent() {
     }
   };
   
-  if (view === 'loading' || (loading && view !== 'no_session')) {
+  if (loading && view !== 'no_session') {
     return <div className="text-center p-10">Loading...</div>;
   }
 
