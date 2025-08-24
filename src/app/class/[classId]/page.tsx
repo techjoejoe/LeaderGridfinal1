@@ -112,7 +112,7 @@ export default function ClassDashboardPage() {
       disabled: true
     },
     { 
-      icon: <Image src="https://placehold.co/175x175.png" alt="Word Cloud" width={175} height={175} data-ai-hint="word cloud" />,
+      icon: <Image src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/wordstorm.png?alt=media&token=49348e7e-9ccc-48bc-b7ea-74c6d0bca7bd" alt="Word Cloud" width={175} height={175} data-ai-hint="word cloud" />,
       description: "Visualize real-time feedback with a dynamic word cloud.", 
       href: `/wordcloud?classId=${classId}`,
       disabled: true
