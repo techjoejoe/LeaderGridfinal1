@@ -156,7 +156,7 @@
   }
 
   .animate-confetti-burst {
-    animation: confetti-burst 0.8s ease-out forwards;
+    animation: confetti-burst 1.2s ease-out forwards;
   }
 
   @keyframes blob-float-1 {

@@ -4,24 +4,24 @@
 import { useState, useEffect, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 
-const PARTICLE_COUNT = 30;
-const COLORS = ["#FFC700", "#FFD700", "#FF8C00", "#FF4500", "#FF69B4", "#1E90FF"];
+const PARTICLE_COUNT = 80;
+const COLORS = ["#FFC700", "#FFD700", "#FF8C00", "#FF4500", "#FF69B4", "#1E90FF", "#32CD32", "#FFFFFF"];
 
 const randomNumber = (min: number, max: number) => Math.random() * (max - min) + min;
 
 const generateParticle = () => {
     const angle = randomNumber(0, 360);
-    const distance = randomNumber(50, 100);
+    const distance = randomNumber(150, 400);
     const radians = (angle * Math.PI) / 180;
   
     return {
       id: String(randomNumber(10000, 99999)),
       color: COLORS[Math.floor(randomNumber(0, COLORS.length))],
-      size: randomNumber(8, 14),
+      size: randomNumber(10, 20),
       style: {
         '--tx': `${Math.cos(radians) * distance}px`,
         '--ty': `${Math.sin(radians) * distance}px`,
-        animationDelay: `${randomNumber(0, 200)}ms`,
+        animationDelay: `${randomNumber(0, 300)}ms`,
       },
     };
 };
@@ -38,7 +38,7 @@ export const Confetti = ({ onAnimationComplete, className }: ConfettiProps) => {
     }, []);
 
     useEffect(() => {
-        const timer = setTimeout(onAnimationComplete, 1000); // Corresponds to animation duration
+        const timer = setTimeout(onAnimationComplete, 1200); // Corresponds to animation duration
         return () => clearTimeout(timer);
     }, [onAnimationComplete]);
 
