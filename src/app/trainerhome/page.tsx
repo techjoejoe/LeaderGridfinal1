@@ -15,13 +15,17 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
 
 function ClassCard({ classData }: { classData: Class }) {
   return (
     <Card className="flex flex-col transition-all hover:shadow-lg">
         <CardHeader className="flex-grow">
-            <CardTitle>{classData.name}</CardTitle>
-            <CardDescription>Invite Code: {classData.inviteCode}</CardDescription>
+            <div className="flex justify-between items-start">
+              <CardTitle>{classData.name}</CardTitle>
+              <Badge variant="outline">{classData.inviteCode}</Badge>
+            </div>
+            <CardDescription>Select this class to manage its activities.</CardDescription>
         </CardHeader>
         <CardFooter>
             <Button asChild className="w-full">
