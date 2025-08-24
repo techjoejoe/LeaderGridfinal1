@@ -353,7 +353,7 @@ const RandomizerWheel = () => {
             
             setIsSpinning(false);
         }, 8000);
-    }, [isSpinning, items, settings.soundEnabled, currentRotation, recentWinners, saveStateToFirestore, classId]);
+    }, [isSpinning, items, settings.soundEnabled, currentRotation, recentWinners, saveUndoState, classId]);
 
     // Keyboard shortcuts
     useEffect(() => {
@@ -854,9 +854,7 @@ export default function RandomizerPage() {
         onSignInClick={() => setSignInOpen(true)}
       />
       <main>
-        <Suspense fallback={<div className="text-center p-10">Loading Randomizer...</div>}>
-          <RandomizerWheel />
-        </Suspense>
+        <RandomizerWheel />
       </main>
       <SignInDialog
         isOpen={isSignInOpen}
@@ -865,3 +863,6 @@ export default function RandomizerPage() {
     </>
   );
 }
+export const dynamic = 'force-dynamic';
+
+    
