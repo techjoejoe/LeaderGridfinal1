@@ -396,6 +396,13 @@ export const createQuizSession = functions.https.onCall(async (data, context) =>
 
     await verifyClassTrainer(uid, classId);
 
+    // Validate that for every question, the correct answer is present in the answers array
+    for (const q of questions) {
+        if (!q.answers.includes(q.correctAnswer)) {
+            throw new functions.https.HttpsError('invalid-argument', `Question "${q.question}" is missing its correct answer from the list of possible answers.`);
+        }
+    }
+
     const roomCode = Math.floor(1000 + Math.random() * 9000).toString();
     const sessionRef = rtdb.ref(`quiz-battles/${roomCode}`);
 
@@ -447,7 +454,9 @@ export const joinQuizSession = functions.https.onCall(async (data, context) => {
 
     await sessionRef.child(`players/${playerId}`).set(newPlayer);
 
-    return { success: true, playerId, session };
+    return { success: true, playerId, session: sessionSnapshot.val() };
 });
+
+    
 
     
