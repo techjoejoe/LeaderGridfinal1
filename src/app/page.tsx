@@ -35,18 +35,18 @@ export default function HomePage() {
       <main className="container mx-auto px-4 py-8 flex flex-col justify-center items-center text-center" style={{ minHeight: 'calc(100vh - 80px)' }}>
         <div className="max-w-2xl">
            <Image
-                src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/JoeODesignLogo.png?alt=media&token=98b4c8d8-90ef-4af9-bd40-5025052bb4c2"
-                alt="Joe O Design Logo"
+                src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/LeaderGridMascotLogo.png?alt=media&token=98f67c05-c876-4426-9f91-26cdbc73bbf6"
+                alt="LeaderGrid Logo"
                 width={280}
-                height={80}
+                height={280}
                 className="dark:hidden mx-auto mb-6"
                 priority
             />
             <Image
-                src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/JoeODesignLogo.png?alt=media&token=98b4c8d8-90ef-4af9-bd40-5025052bb4c2"
-                alt="Joe O Design Logo"
+                src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/LeaderGridMascotLogo.png?alt=media&token=98f67c05-c876-4426-9f91-26cdbc73bbf6"
+                alt="LeaderGrid Logo"
                 width={280}
-                height={80}
+                height={280}
                 className="hidden dark:block mx-auto mb-6"
                 priority
             />

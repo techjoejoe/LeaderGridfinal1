@@ -6,7 +6,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { FirebaseAnalyticsProvider } from '@/components/firebase-analytics-provider';
 
 export const metadata: Metadata = {
-  title: 'PicPick',
+  title: 'LeaderGrid',
   description: 'Vote for your favorite pictures!',
 };
 
