@@ -136,13 +136,12 @@ const ActivityTimer = () => {
   };
 
   const getBackgroundColor = () => {
-    if (showCelebration) return "bg-green-500";
+    if (showCelebration) return "bg-animated-gradient";
     if (!isRunning) return "bg-gray-700";
     
-    const percentage = (timeLeft / totalSeconds) * 100;
     if (timeLeft <= 10) return "bg-red-500";
     if (timeLeft <= 30) return "bg-orange-500";
-    return "bg-green-500";
+    return "bg-animated-gradient";
   };
   
   const cardContent = (
