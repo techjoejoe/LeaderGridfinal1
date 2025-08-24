@@ -1,23 +1,61 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Randomizer lists can only be read/written by the owner.
-    match /randomizer_lists/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-
-    // Classes can be created by any authenticated user.
-    // They can only be read or modified by the user whose UID matches the trainerUid.
-    match /classes/{classId} {
-      allow read, update, delete: if request.auth != null && resource.data.trainerUid == request.auth.uid;
-      allow create: if request.auth != null;
-    }
-
-    // Default deny all other access
+    // Default deny all reads and writes
     match /{document=**} {
       allow read, write: if false;
+    }
+
+    // USER DATA
+    // Any authenticated user can create their own user document.
+    // Users can only read or write their own data.
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow create: if request.auth != null;
+    }
+    
+    // CLASSES
+    // Any authenticated user can create a class.
+    match /classes/{classId} {
+      // The trainer of the class can read, update, and delete it.
+      allow read, update, delete: if request.auth != null && resource.data.trainerUid == request.auth.uid;
+      // Any authenticated user with a valid invite code can create a class document (implicitly handled by joinClass function)
+      // but only a trainer can create one from the UI.
+      allow create: if request.auth != null;
+      // Learners in the class can read it
+      allow get: if request.auth != null && request.auth.uid in resource.data.learnerUids;
+    }
+
+    // CONTESTS
+    // Any authenticated user can create a contest.
+    match /contests/{contestId} {
+       // Anyone can read contest details.
+      allow read: if true;
+      // Any authenticated user can create a contest.
+      allow create: if request.auth != null;
+      // Only the creator can update or delete.
+      allow update, delete: if request.auth != null && resource.data.creatorUid == request.auth.uid;
+    }
+
+    // IMAGES
+    match /images/{imageId} {
+      // Anyone can read image data.
+      allow read: if true;
+      // Any authenticated user can upload an image.
+      allow create: if request.auth != null;
+      // Only the uploader can delete their image.
+      allow delete: if request.auth != null && resource.data.uploaderUid == request.auth.uid;
+      // Allow authenticated users to update votes
+      allow update: if request.auth != null;
+    }
+    
+    // USER VOTES (Subcollection)
+    match /users/{userId}/user_votes/{contestId} {
+        // A user can only read and write to their own voting records.
+        allow read, write: if request.auth != null && request.auth.uid == userId;
     }
   }
 }
