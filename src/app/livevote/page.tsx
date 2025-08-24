@@ -5,14 +5,14 @@ import React, { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth, db, rtdb } from "@/lib/firebase";
-import { ref, onValue, set, get, update, remove } from "firebase/database";
+import { ref, onValue, get } from "firebase/database";
 import { doc, getDoc } from "firebase/firestore";
 import { Header } from "@/components/header";
 import { SignInDialog } from "@/components/sign-in-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import type { Poll, PollSession } from "@/lib/types";
+import type { PollSession } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminDashboard } from "@/components/live-vote/admin-dashboard";
 import { VotingInterface } from "@/components/live-vote/voting-interface";
@@ -37,6 +37,7 @@ function LiveVoteContent() {
     return classSnap.exists() && classSnap.data().trainerUid === user.uid;
   }, []);
 
+  // Effect to determine the view based on URL params and auth state
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
@@ -61,66 +62,68 @@ function LiveVoteContent() {
     return () => unsubscribe();
   }, [classId, sessionCode, router, toast, verifyAdmin]);
 
-  // Listener for session data for both admin and voter
+  // Listener for session data, separated from view logic
   useEffect(() => {
-    let sessionId: string | null = classId;
+    if (view === 'loading' || view === 'no_session') {
+      setLoading(false);
+      return;
+    }
 
-    const findSessionIdByCode = async (code: string) => {
-      const sessionsRef = ref(rtdb, 'live-polls');
-      const snapshot = await get(sessionsRef);
-      if (snapshot.exists()) {
-        const allSessions = snapshot.val();
-        const matchingId = Object.keys(allSessions).find(id => allSessions[id].code === code);
-        return matchingId || null;
-      }
-      return null;
-    };
-
-    const setupListener = (id: string) => {
-      const sessionRef = ref(rtdb, `live-polls/${id}`);
-      const unsubscribe = onValue(sessionRef, (snapshot) => {
-        const data = snapshot.val();
-        setSessionData(data);
-        setLoading(false);
-        if (view === 'voter' && !data) {
-          toast({ variant: 'destructive', title: 'Session Not Found' });
-          setView('no_session');
-        }
-      });
-      return unsubscribe;
-    };
-
+    setLoading(true);
+    let sessionRefPath: string | null = null;
     let unsubscribe: (() => void) | undefined;
 
-    const initialize = async () => {
-      if (view === 'loading') return;
-      
-      setLoading(true);
+    const setupListener = (path: string) => {
+      const sessionRef = ref(rtdb, path);
+      unsubscribe = onValue(sessionRef, (snapshot) => {
+        const data = snapshot.val() as PollSession | null;
+        setSessionData(data);
+        if (view === 'voter' && !data) {
+          toast({ variant: 'destructive', title: 'Session Not Found' });
+          router.push('/livevote');
+        }
+        setLoading(false);
+      }, (error) => {
+        console.error('RTDB listener error:', error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not connect to the session.' });
+        setLoading(false);
+      });
+    };
 
+    const findAndListen = async () => {
       if (view === 'admin' && classId) {
-        unsubscribe = setupListener(classId);
+        sessionRefPath = `live-polls/${classId}`;
+        setupListener(sessionRefPath);
       } else if (view === 'voter' && sessionCode) {
-        sessionId = await findSessionIdByCode(sessionCode);
-        if (sessionId) {
-          unsubscribe = setupListener(sessionId);
+        const sessionsRef = ref(rtdb, 'live-polls');
+        const snapshot = await get(sessionsRef);
+        if (snapshot.exists()) {
+          const allSessions = snapshot.val();
+          const matchingId = Object.keys(allSessions).find(id => allSessions[id].code === sessionCode);
+          if (matchingId) {
+            sessionRefPath = `live-polls/${matchingId}`;
+            setupListener(sessionRefPath);
+          } else {
+            toast({ variant: 'destructive', title: 'Session Not Found' });
+            router.push('/livevote');
+            setLoading(false);
+          }
         } else {
-          setSessionData(null);
-          setView('no_session');
+          toast({ variant: 'destructive', title: 'Session Not Found' });
+          router.push('/livevote');
           setLoading(false);
         }
-      } else {
-        setLoading(false);
       }
     };
     
-    initialize();
+    findAndListen();
 
     return () => {
       if (unsubscribe) {
         unsubscribe();
       }
     };
-  }, [view, classId, sessionCode, toast]);
+  }, [view, classId, sessionCode, toast, router]);
 
 
   const createSession = async () => {
@@ -134,17 +137,18 @@ function LiveVoteContent() {
     } catch (error: any) {
         console.error("Error creating session:", error);
         toast({ variant: "destructive", title: "Error", description: error.message || "Could not create session."});
-        setLoading(false);
+    } finally {
+      // setLoading is handled by the listener
     }
   };
   
-  if (view === 'loading') {
+  if (view === 'loading' || (loading && view !== 'no_session')) {
     return <div className="text-center p-10">Loading...</div>;
   }
 
   const handleJoinSession = (code: string) => {
     if (code) {
-      router.push(`/livevote?sessionCode=${code}`);
+      router.push(`/livevote?sessionCode=${code.toUpperCase()}`);
     }
   }
 
@@ -170,7 +174,7 @@ function LiveVoteContent() {
             </CardHeader>
             <CardContent>
               <form onSubmit={(e) => { e.preventDefault(); handleJoinSession(e.currentTarget.sessionCode.value); }} className="flex gap-2">
-                <Input name="sessionCode" placeholder="Enter Session Code" />
+                <Input name="sessionCode" placeholder="Enter Session Code" className="uppercase" />
                 <Button type="submit">Join</Button>
               </form>
             </CardContent>
@@ -188,6 +192,8 @@ function LiveVoteContent() {
 
 export default function LiveVotePage() {
     const [user, setUser] = useState<User | null>(null);
+    const [isSignInOpen, setSignInOpen] = useState(false);
+
 
     useEffect(() => {
         const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
@@ -200,7 +206,7 @@ export default function LiveVotePage() {
         <Suspense fallback={<div className="text-center p-10">Loading Page...</div>}>
             <Header
                 user={user}
-                onSignInClick={() => {}} // SignInDialog is handled inside content
+                onSignInClick={() => setSignInOpen(true)}
             />
             <LiveVoteContent />
         </Suspense>
