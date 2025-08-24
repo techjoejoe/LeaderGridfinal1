@@ -96,44 +96,44 @@ export default function ClassDashboardPage() {
     { 
       icon: <Image src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/Livevote.png?alt=media&token=821a851e-8449-4ede-8005-9be175576be4" alt="Live Polls" width={225} height={225} data-ai-hint="live poll" />,
       description: "Engage your class with real-time polls and see instant results.", 
-      href: `/polls?classId=${classId}`,
-      disabled: true
+      href: `/livevote?classId=${classId}`,
+      disabled: false
     },
     { 
       icon: <Image src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/Quizbattle.png?alt=media&token=7c21bad4-b4a7-494b-85f4-aa70aaa20d7a" alt="Quizzes" width={225} height={225} data-ai-hint="quiz test" />, 
       description: "Test knowledge with fun, interactive quizzes and leaderboards.", 
-      href: `/quizzes?classId=${classId}`,
-      disabled: true 
+      href: `/quizbattle?classId=${classId}`,
+      disabled: false 
     },
     { 
       icon: <Image src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/Tickr.png?alt=media&token=0ea8fafc-822b-4cfc-bc88-6fbbd8959479" alt="Class Timer" width={225} height={225} data-ai-hint="timer clock" />,
       description: "A shared timer for activities, breaks, or presentations.", 
-      href: `/timer?classId=${classId}`,
-      disabled: true
+      href: `/tickr?classId=${classId}`,
+      disabled: false
     },
     { 
       icon: <Image src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/wordstorm.png?alt=media&token=49348e7e-9ccc-48bc-b7ea-74c6d0bca7bd" alt="Word Cloud" width={225} height={225} data-ai-hint="word cloud" />,
       description: "Visualize real-time feedback with a dynamic word cloud.", 
-      href: `/wordcloud?classId=${classId}`,
-      disabled: true
+      href: `/wordstorm?classId=${classId}`,
+      disabled: false
     },
     { 
       icon: <Image src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/Buzzin.png?alt=media&token=51d43b16-b050-4041-a3fd-6998ae60086e" alt="Buzzer" width={225} height={225} data-ai-hint="buzzer button" />,
       description: "A virtual buzzer system for class competitions and games.", 
-      href: `/buzzer?classId=${classId}`,
-      disabled: true
+      href: `/buzzin?classId=${classId}`,
+      disabled: false
     },
     { 
       icon: <Image src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/Asklot.png?alt=media&token=e7b5515b-c687-4718-8dd5-26e0de49aa7a" alt="Parking Lot" width={225} height={225} data-ai-hint="parking lot" />,
       description: "A digital space to 'park' questions or ideas for later.", 
-      href: `/parking-lot?classId=${classId}`,
-      disabled: true
+      href: `/asklot?classId=${classId}`,
+      disabled: false
     },
     { 
       icon: <Image src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/LeaderGridMascotLogo.png?alt=media&token=98f67c05-c876-4426-9f91-26cdbc73bbf6" alt="QR Code Points" width={225} height={225} data-ai-hint="qr code" />,
       description: "Award points to learners by scanning a unique QR code.", 
-      href: `/qrcode-points?classId=${classId}`,
-      disabled: true
+      href: `/leadergrid?classId=${classId}`,
+      disabled: false
     },
   ], [classId]);
 
