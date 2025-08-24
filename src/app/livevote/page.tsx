@@ -18,6 +18,8 @@ import { AdminDashboard } from "@/components/live-vote/admin-dashboard";
 import { VotingInterface } from "@/components/live-vote/voting-interface";
 import { getFunctions, httpsCallable } from "firebase/functions";
 
+export const dynamic = 'force-dynamic';
+
 function LiveVoteContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -67,6 +69,8 @@ function LiveVoteContent() {
   // Listener for session data, separated from view logic
   useEffect(() => {
     if (view === 'loading' || view === 'no_session') {
+      setSessionData(null);
+      setLoading(false);
       return;
     }
 
