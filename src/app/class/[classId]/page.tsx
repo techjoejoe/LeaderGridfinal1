@@ -82,7 +82,7 @@ export default function ClassDashboardPage() {
   
   const tools = useMemo(() => [
     { 
-      icon: <Image src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/LeaderGridMascotLogo.png?alt=media&token=98f67c05-c876-4426-9f91-26cdbc73bbf6" alt="PicPick Contest" width={175} height={175} />,
+      icon: <Image src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/logo-light.png?alt=media&token=576a43d9-43ef-4307-868f-130e212228c1" alt="PicPick Contest" width={175} height={175} />,
       description: "Run a photo contest where learners vote for their favorite images.", 
       href: `/contests?classId=${classId}`,
       disabled: false
