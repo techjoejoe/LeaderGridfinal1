@@ -47,6 +47,13 @@ function PicPickContent() {
   const [votingImageId, setVotingImageId] = useState<string | null>(null);
 
   useEffect(() => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribeAuth();
+  }, []);
+  
+  useEffect(() => {
     if (!contestId) {
       setLoading(false);
       return;
@@ -103,65 +110,59 @@ function PicPickContent() {
     }
   };
 
-  useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-    });
-    return () => unsubscribeAuth();
-  }, []);
 
+  // Set up listeners for user votes and images only after access is granted
   useEffect(() => {
-    if (user && contestId && accessGranted) {
-      const userVoteRef = doc(db, "users", user.uid, "user_votes", contestId);
-  
-      const unsubscribeVotes = onSnapshot(userVoteRef, async (docSnap) => {
-        const today = getToday();
-        if (docSnap.exists()) {
-          const data = docSnap.data() as UserVoteData;
-          if (data.lastVotedDate !== today) {
-            const resetData: UserVoteData = {
-              votesToday: 4,
-              imageVotes: {},
-              lastVotedDate: today,
-            };
-            await setDoc(userVoteRef, resetData);
-            setUserVoteData(resetData);
-          } else {
-            setUserVoteData(data);
-          }
-        } else {
-          const initialData: UserVoteData = {
-            votesToday: 4,
-            lastVotedDate: today,
-            imageVotes: {},
-          };
-          await setDoc(userVoteRef, initialData);
-          setUserVoteData(initialData);
-        }
-      }, (error) => {
-        console.error("Error fetching user vote data:", error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Could not fetch your voting data. Please refresh the page.",
-        });
-      });
-  
-      return () => unsubscribeVotes();
-    } else {
-      setUserVoteData(null);
-    }
-  }, [user, contestId, accessGranted, toast]);
-
-  useEffect(() => {
-    if (!contestId || !accessGranted) {
+    if (!accessGranted || !contestId) {
       setImages([]);
+      setUserVoteData(null);
       setLoading(false);
       return;
     }
+    
     setLoading(true);
+    
+    let unsubscribeVotes: () => void = () => {};
+    if (user) {
+        const userVoteRef = doc(db, "users", user.uid, "user_votes", contestId);
+        unsubscribeVotes = onSnapshot(userVoteRef, async (docSnap) => {
+            const today = getToday();
+            if (docSnap.exists()) {
+                const data = docSnap.data() as UserVoteData;
+                if (data.lastVotedDate !== today) {
+                    const resetData: UserVoteData = {
+                        votesToday: 4,
+                        imageVotes: {},
+                        lastVotedDate: today,
+                    };
+                    await setDoc(userVoteRef, resetData);
+                    setUserVoteData(resetData);
+                } else {
+                    setUserVoteData(data);
+                }
+            } else {
+                const initialData: UserVoteData = {
+                    votesToday: 4,
+                    lastVotedDate: today,
+                    imageVotes: {},
+                };
+                await setDoc(userVoteRef, initialData);
+                setUserVoteData(initialData);
+            }
+        }, (error) => {
+            console.error("Error fetching user vote data:", error);
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: "Could not fetch your voting data. Please refresh the page.",
+            });
+        });
+    } else {
+        setUserVoteData(null);
+    }
+
     const imagesQuery = query(collection(db, "images"), where("contestId", "==", contestId));
-    const unsubscribe = onSnapshot(imagesQuery, (snapshot) => {
+    const unsubscribeImages = onSnapshot(imagesQuery, (snapshot) => {
       const imagesData = snapshot.docs.map(
         (doc) => ({ ...doc.data(), id: doc.id } as PicVoteImage)
       );
@@ -177,8 +178,12 @@ function PicPickContent() {
       setLoading(false);
     });
 
-    return () => unsubscribe();
-  }, [contestId, toast, accessGranted]);
+    return () => {
+      unsubscribeVotes();
+      unsubscribeImages();
+    };
+  }, [user, contestId, accessGranted, toast]);
+
 
   const handleVote = async (id: string) => {
     if (!user) {
