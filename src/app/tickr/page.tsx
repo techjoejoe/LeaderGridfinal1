@@ -22,7 +22,7 @@ const ActivityTimer = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
-  const [customMessage, setCustomMessage] = useState("Time's Up! Great job!");
+  const [customMessage, setCustomMessage] = useState("Time's Up! Please go back to your seats!");
   const [isMuted, setIsMuted] = useState(false);
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -175,7 +175,7 @@ const ActivityTimer = () => {
             </div>
              <div className="mb-6">
                 <Label htmlFor="customMessage">Completion Message</Label>
-                <Input id="customMessage" value={customMessage} onChange={(e) => setCustomMessage(e.target.value)} placeholder="Time's Up! Great job!" />
+                <Input id="customMessage" value={customMessage} onChange={(e) => setCustomMessage(e.target.value)} placeholder="Time's Up! Please go back to your seats!" />
             </div>
             <p className="text-sm text-muted-foreground text-center mb-4">
               Set the time and press start. The timer will begin counting down.
