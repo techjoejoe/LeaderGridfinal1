@@ -104,7 +104,7 @@ export default function ClassDashboardPage() {
       icon: <Image src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/Quizbattle.png?alt=media&token=7c21bad4-b4a7-494b-85f4-aa70aaa20d7a" alt="Quizzes" width={225} height={225} data-ai-hint="quiz test" />, 
       description: "Test knowledge with fun, interactive quizzes and leaderboards.", 
       href: `/quizbattle?classId=${classId}`,
-      disabled: true 
+      disabled: false 
     },
     { 
       icon: <Image src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/Tickr.png?alt=media&token=0ea8fafc-822b-4cfc-bc88-6fbbd8959479" alt="Class Timer" width={225} height={225} data-ai-hint="timer clock" />,

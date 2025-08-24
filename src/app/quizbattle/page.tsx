@@ -8,10 +8,13 @@ import { Header } from "@/components/header";
 import { SignInDialog } from "@/components/sign-in-dialog";
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 
 export default function QuizBattlePage() {
   const [user, setUser] = useState<User | null>(null);
   const [isSignInOpen, setSignInOpen] = useState(false);
+  const searchParams = useSearchParams();
+  const classId = searchParams.get('classId');
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -24,7 +27,8 @@ export default function QuizBattlePage() {
     if (!user) {
       setSignInOpen(true);
     } else {
-      alert("This feature is not yet implemented.");
+      // Logic to create a new quiz will go here
+      alert("Navigate to quiz creation UI.");
     }
   };
 
@@ -43,9 +47,10 @@ export default function QuizBattlePage() {
           </Button>
         </div>
         
+        {/* This will be the list of existing quizzes for the class */}
         <div className="text-center py-16 border-2 border-dashed rounded-lg">
-          <h3 className="text-2xl font-bold font-headline">Coming Soon!</h3>
-          <p className="text-muted-foreground mt-2">Quiz Battle functionality is currently under construction.</p>
+          <h3 className="text-2xl font-bold font-headline">No Quizzes Yet</h3>
+          <p className="text-muted-foreground mt-2">Create a new quiz to get started.</p>
         </div>
         
       </main>
