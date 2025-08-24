@@ -40,7 +40,7 @@ export default function ContestsPage() {
     if (classId) {
       q = query(collection(db, "contests"), where("classId", "==", classId));
     } else {
-      q = query(collection(db, "contests"));
+      q = query(collection(db, "contests"), where("classId", "==", null));
     }
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -69,7 +69,7 @@ export default function ContestsPage() {
     }
 
     try {
-      const newContest: Omit<Contest, 'id' | 'createdAt'> = {
+      const newContestData: Omit<Contest, 'id' | 'createdAt'> = {
         name: contestName,
         creatorUid: user.uid,
         creatorName: user.displayName || "Anonymous",
@@ -80,16 +80,16 @@ export default function ContestsPage() {
       };
 
       if (password) {
-        newContest.hasPassword = true;
-        newContest.password = password;
+        newContestData.hasPassword = true;
+        newContestData.password = password;
       }
       
       if (classId) {
-        newContest.classId = classId;
+        newContestData.classId = classId;
       }
 
       await addDoc(collection(db, "contests"), {
-        ...newContest,
+        ...newContestData,
         createdAt: serverTimestamp(),
       });
 
