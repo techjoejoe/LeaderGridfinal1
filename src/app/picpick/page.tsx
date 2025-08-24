@@ -138,13 +138,20 @@ function PicPickContent() {
           await setDoc(userVoteRef, initialData);
           setUserVoteData(initialData);
         }
+      }, (error) => {
+        console.error("Error fetching user vote data:", error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Could not fetch your voting data. Please refresh the page.",
+        });
       });
   
       return () => unsubscribeVotes();
     } else {
       setUserVoteData(null);
     }
-  }, [user, contestId, accessGranted]);
+  }, [user, contestId, accessGranted, toast]);
 
   useEffect(() => {
     if (!contestId || !accessGranted) {
@@ -476,3 +483,5 @@ function HeaderWrapper() {
         </>
     );
 }
+
+    
