@@ -400,7 +400,7 @@ export const createQuizSession = functions.https.onCall(async (data, context) =>
     const sessionRef = rtdb.ref(`quiz-battles/${roomCode}`);
 
     const newSession: QuizSession = {
-        id: sessionRef.key!,
+        id: roomCode,
         roomCode,
         hostUid: uid,
         classId,
@@ -450,3 +450,4 @@ export const joinQuizSession = functions.https.onCall(async (data, context) => {
     return { success: true, playerId, session };
 });
 
+    
