@@ -20,9 +20,9 @@ import { VotingInterface } from "@/components/live-vote/voting-interface";
 
 function LiveVoteContent() {
   const searchParams = useSearchParams();
+  const router = useRouter(); // Moved from parent
   const classId = searchParams.get('classId');
   const sessionCode = searchParams.get('sessionCode');
-  const router = useRouter();
 
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -128,6 +128,12 @@ function LiveVoteContent() {
     return <div className="text-center p-10">Loading...</div>;
   }
 
+  const handleJoinSession = (code: string) => {
+    if (code) {
+      router.push(`/livevote?sessionCode=${code}`);
+    }
+  }
+
   return (
     <>
       <main className="container mx-auto px-4 py-8">
@@ -148,10 +154,10 @@ function LiveVoteContent() {
               <CardDescription>Enter a session code to participate or go to your class dashboard to start a new session.</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex gap-2">
-                <Input placeholder="Enter Session Code" onChange={(e) => router.replace(`/livevote?sessionCode=${e.target.value}`)} />
-                <Button>Join</Button>
-              </div>
+              <form onSubmit={(e) => { e.preventDefault(); handleJoinSession(e.currentTarget.sessionCode.value); }} className="flex gap-2">
+                <Input name="sessionCode" placeholder="Enter Session Code" />
+                <Button type="submit">Join</Button>
+              </form>
             </CardContent>
              <CardFooter>
                 <Button variant="outline" className="w-full" onClick={() => router.push('/trainerhome')}>Go to Trainer Dashboard</Button>
