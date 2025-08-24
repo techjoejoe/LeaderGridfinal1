@@ -8,7 +8,7 @@ import { useState, useEffect, useMemo } from "react";
 import { doc, onSnapshot } from "firebase/firestore";
 import { SignInDialog } from "@/components/sign-in-dialog";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Bell, Car, QrCode } from "lucide-react";
 import { DashboardCard } from "@/components/dashboard-card";
 import type { Class } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -118,19 +118,22 @@ export default function ClassDashboardPage() {
       disabled: true
     },
     { 
-      icon: <Image src="https://placehold.co/175x175.png" alt="Buzzer" width={175} height={175} data-ai-hint="buzzer button" />,
+      icon: Bell,
+      title: "Buzzer",
       description: "A virtual buzzer system for class competitions and games.", 
       href: `/buzzer?classId=${classId}`,
       disabled: true
     },
     { 
-      icon: <Image src="https://placehold.co/175x175.png" alt="Parking Lot" width={175} height={175} data-ai-hint="parking lot" />,
+      icon: Car,
+      title: "Parking Lot",
       description: "A digital space to 'park' questions or ideas for later.", 
       href: `/parking-lot?classId=${classId}`,
       disabled: true
     },
     { 
-      icon: <Image src="https://placehold.co/175x175.png" alt="QR Code Points" width={175} height={175} data-ai-hint="qrcode points" />,
+      icon: QrCode,
+      title: "QR Code Points",
       description: "Award points to learners by scanning a unique QR code.", 
       href: `/qrcode-points?classId=${classId}`,
       disabled: true
@@ -184,6 +187,7 @@ export default function ClassDashboardPage() {
                         <DashboardCard 
                             key={index}
                             icon={tool.icon}
+                            title={('title' in tool) ? tool.title : undefined}
                             description={tool.description}
                             href={tool.href}
                             disabled={tool.disabled}
