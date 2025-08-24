@@ -48,7 +48,7 @@ export function PlayerPanel() {
         }
     });
     return () => unsubscribe();
-  }, [roomCode, gameState, toast]);
+  }, [roomCode]);
 
 
   const handleJoin = async () => {
