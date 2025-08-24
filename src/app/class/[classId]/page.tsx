@@ -8,7 +8,7 @@ import { useState, useEffect, useMemo } from "react";
 import { doc, onSnapshot } from "firebase/firestore";
 import { SignInDialog } from "@/components/sign-in-dialog";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Car, QrCode } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { DashboardCard } from "@/components/dashboard-card";
 import type { Class } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -82,7 +82,7 @@ export default function ClassDashboardPage() {
   
   const tools = useMemo(() => [
     { 
-      icon: <Image src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/logo-light.png?alt=media&token=576a43d9-43ef-4307-868f-130e212228c1" alt="PicPick Contest" width={225} height={225} />,
+      icon: <Image src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/logo-light.png?alt=media&token=576a43d9-43ef-4307-868f-130e212228c1" alt="PicPick Contest" width={225} height={225} data-ai-hint="photo contest" />,
       description: "Run a photo contest where learners vote for their favorite images.", 
       href: `/class/${classId}/contests`,
       disabled: false
@@ -94,7 +94,7 @@ export default function ClassDashboardPage() {
       disabled: false
     },
     { 
-      icon: <Image src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/Livevote.png?alt=media&token=821a851e-8449-4ede-8005-9be175576be4" alt="Live Polls" width={225} height={225} data-ai-hint="live poll chart" />,
+      icon: <Image src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/Livevote.png?alt=media&token=821a851e-8449-4ede-8005-9be175576be4" alt="Live Polls" width={225} height={225} data-ai-hint="live poll" />,
       description: "Engage your class with real-time polls and see instant results.", 
       href: `/polls?classId=${classId}`,
       disabled: true
@@ -124,7 +124,7 @@ export default function ClassDashboardPage() {
       disabled: true
     },
     { 
-      icon: <Image src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/Asklot.png?alt=media&token=e7b5515b-c687-4718-8dd5-26e0de49aa7a" alt="Parking Lot" width={225} height={225} data-ai-hint="parking lot question" />,
+      icon: <Image src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/Asklot.png?alt=media&token=e7b5515b-c687-4718-8dd5-26e0de49aa7a" alt="Parking Lot" width={225} height={225} data-ai-hint="parking lot" />,
       description: "A digital space to 'park' questions or ideas for later.", 
       href: `/parking-lot?classId=${classId}`,
       disabled: true
@@ -173,7 +173,7 @@ export default function ClassDashboardPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
                     {[...Array(5)].map((_, i) => (
                         <Card key={i}>
-                            <CardHeader><Skeleton className="h-6 w-3/4" /><Skeleton className="h-4 w-1/2 mt-2" /></CardHeader>
+                            <CardHeader><Skeleton className="h-24 w-full" /><Skeleton className="h-4 w-1/2 mt-2" /></CardHeader>
                             <CardFooter><Skeleton className="h-10 w-full" /></CardFooter>
                         </Card>
                     ))}
@@ -184,7 +184,6 @@ export default function ClassDashboardPage() {
                         <DashboardCard 
                             key={index}
                             icon={tool.icon}
-                            title={('title' in tool) ? tool.title : undefined}
                             description={tool.description}
                             href={tool.href}
                             disabled={tool.disabled}
@@ -207,9 +206,3 @@ export default function ClassDashboardPage() {
     </>
   );
 }
-
-    
-
-    
-
-    

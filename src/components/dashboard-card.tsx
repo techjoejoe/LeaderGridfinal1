@@ -1,31 +1,21 @@
+
 "use client";
 
 import React from "react";
 import Link from "next/link";
-import { Card, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Card, CardHeader, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
 
 type DashboardCardProps = {
-    icon: LucideIcon | React.ReactNode;
-    title?: string;
+    icon: React.ReactNode;
     description: string;
     href: string;
     disabled?: boolean;
 }
 
-export function DashboardCard({ icon: Icon, title, description, href, disabled = false }: DashboardCardProps) {
-
-  const renderIcon = () => {
-    if (React.isValidElement(Icon)) {
-      // If it's already a React element (like an Image component), just return it
-      return Icon;
-    }
-    // Otherwise, assume it's a Lucide icon component
-    const IconComponent = Icon as LucideIcon;
-    return <IconComponent className="h-6 w-6 text-accent" />;
-  }
+export function DashboardCard({ icon: Icon, description, href, disabled = false }: DashboardCardProps) {
 
   const cardContent = (
     <Card 
@@ -34,12 +24,11 @@ export function DashboardCard({ icon: Icon, title, description, href, disabled =
             disabled ? "bg-muted/50 text-muted-foreground" : "hover:shadow-lg hover:-translate-y-1"
         )}
     >
-      <CardHeader className="items-center">
-        <div className={cn("flex items-center justify-center gap-3 mb-2")}>
-            {renderIcon()}
-            {title && <CardTitle className="font-headline text-lg">{title}</CardTitle>}
+      <CardHeader className="items-center flex-grow justify-center">
+        <div className={cn("flex items-center justify-center h-32 mb-4")}>
+            {Icon}
         </div>
-        <CardDescription>{description}</CardDescription>
+        <CardDescription className="px-2">{description}</CardDescription>
       </CardHeader>
       <CardFooter>
         <Button className="w-full" disabled={disabled} variant={disabled ? "outline" : "default"}>
@@ -51,7 +40,7 @@ export function DashboardCard({ icon: Icon, title, description, href, disabled =
 
   if (disabled) {
     return (
-        <div className="cursor-not-allowed h-full">
+        <div className="cursor-not-allowed h-full flex">
             {cardContent}
         </div>
     );
