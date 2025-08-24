@@ -1,0 +1,9 @@
+
+{
+  "rules": {
+    "live-polls": {
+      ".read": true,
+      ".write": false
+    }
+  }
+}
