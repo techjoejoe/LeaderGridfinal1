@@ -2,7 +2,7 @@
 import * as admin from "firebase-admin";
 import * as functions from "firebase-functions";
 import { getStorage } from "firebase-admin/storage";
-import type { Poll, PollSession } from "../../src/lib/types";
+import type { Poll, PollSession, QuizSession, QuizSettings, QuizQuestion, QuizPlayer } from "../../src/lib/types";
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -381,3 +381,72 @@ export const joinClass = functions.https.onCall(async (data, context) => {
         throw new functions.https.HttpsError('internal', 'An unexpected error occurred while trying to join the class.');
     }
 });
+
+
+// Quiz Battle Functions
+
+export const createQuizSession = functions.https.onCall(async (data, context) => {
+    const uid = context.auth?.uid;
+    if (!uid) throw new functions.https.HttpsError('unauthenticated', 'You must be logged in to host a quiz.');
+
+    const { classId, settings, questions } = data as { classId: string, settings: QuizSettings, questions: QuizQuestion[] };
+    if (!classId || !settings || !questions || questions.length === 0) {
+        throw new functions.https.HttpsError('invalid-argument', 'Missing required data to create a quiz session.');
+    }
+
+    await verifyClassTrainer(uid, classId);
+
+    const roomCode = Math.floor(1000 + Math.random() * 9000).toString();
+    const sessionRef = rtdb.ref(`quiz-battles/${roomCode}`);
+
+    const newSession: QuizSession = {
+        id: sessionRef.key!,
+        roomCode,
+        hostUid: uid,
+        classId,
+        settings,
+        questions,
+        currentQuestion: -1, // -1 means lobby, 0 is the first question
+        gameState: 'waiting',
+        players: {},
+        answers: {},
+        createdAt: Date.now(),
+    };
+
+    await sessionRef.set(newSession);
+
+    return { success: true, roomCode };
+});
+
+
+export const joinQuizSession = functions.https.onCall(async (data, context) => {
+    const { roomCode, playerName } = data as { roomCode: string, playerName: string };
+
+    if (!roomCode || !playerName) {
+        throw new functions.https.HttpsError('invalid-argument', 'Room code and player name are required.');
+    }
+
+    const sessionRef = rtdb.ref(`quiz-battles/${roomCode}`);
+    const sessionSnapshot = await sessionRef.get();
+
+    if (!sessionSnapshot.exists()) {
+        throw new functions.https.HttpsError('not-found', 'Quiz session not found.');
+    }
+
+    const session = sessionSnapshot.val() as QuizSession;
+    if (session.gameState !== 'waiting') {
+        throw new functions.https.HttpsError('failed-precondition', 'This quiz is no longer accepting players.');
+    }
+
+    const playerId = `player_${Math.random().toString(36).substring(2, 10)}`;
+    const newPlayer: QuizPlayer = {
+        id: playerId,
+        name: playerName,
+        score: 0,
+    };
+
+    await sessionRef.child(`players/${playerId}`).set(newPlayer);
+
+    return { success: true, playerId, session };
+});
+

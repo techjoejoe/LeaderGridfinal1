@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { User } from 'firebase/auth';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,10 +8,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import type { QuizQuestion, QuizSettings } from '@/lib/types';
+import type { QuizQuestion, QuizSettings, QuizSession } from '@/lib/types';
 import Papa from 'papaparse';
-import { Upload, Play, ChevronRight, BarChart, Users } from 'lucide-react';
+import { Upload, Play, ChevronRight, BarChart, Users, Loader2 } from 'lucide-react';
 import { Leaderboard } from './leaderboard';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { rtdb } from '@/lib/firebase';
+import { ref, onValue } from 'firebase/database';
 
 
 interface HostPanelProps {
@@ -27,10 +30,23 @@ export function HostPanel({ classId, user }: HostPanelProps) {
     autoAdvance: false,
     showLeaderboard: true,
   });
-  const [roomCode, setRoomCode] = useState<string | null>(null);
+  const [session, setSession] = useState<QuizSession | null>(null);
   const [gameState, setGameState] = useState<'setup' | 'lobby' | 'active' | 'ended'>('setup');
+  const [loading, setLoading] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (!session?.roomCode) return;
+    const sessionRef = ref(rtdb, `quiz-battles/${session.roomCode}`);
+    const unsubscribe = onValue(sessionRef, (snapshot) => {
+        if(snapshot.exists()){
+            setSession(snapshot.val());
+        }
+    });
+    return () => unsubscribe();
+  }, [session?.roomCode]);
+
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -41,19 +57,20 @@ export function HostPanel({ classId, user }: HostPanelProps) {
       skipEmptyLines: true,
       complete: (results) => {
         try {
-          const parsedQuestions = results.data.map((row: any) => {
+          const parsedQuestions: QuizQuestion[] = results.data.map((row: any, index: number) => {
             if (!row.question || !row.correctAnswer) {
-              throw new Error('CSV must have "question" and "correctAnswer" columns.');
+              throw new Error(`Row ${index + 2}: CSV must have "question" and "correctAnswer" columns.`);
             }
             const answers = [row.correctAnswer, row.wrong1, row.wrong2, row.wrong3]
-              .filter(Boolean)
+              .filter(ans => ans && String(ans).trim() !== '')
               .map(String);
             
             if (answers.length < 2) {
-              throw new Error(`Question "${row.question}" has fewer than 2 answers.`);
+              throw new Error(`Row ${index + 2}: Question "${row.question}" must have at least 2 answers (a correct one and at least one wrong one).`);
             }
 
             return {
+              id: index,
               question: String(row.question),
               correctAnswer: String(row.correctAnswer),
               answers,
@@ -64,25 +81,43 @@ export function HostPanel({ classId, user }: HostPanelProps) {
           toast({ title: "Success!", description: `Loaded ${parsedQuestions.length} questions.` });
         } catch (error: any) {
            toast({ variant: "destructive", title: "CSV Parsing Error", description: error.message });
+           setQuestions([]);
         }
       },
       error: (error: any) => {
         toast({ variant: "destructive", title: "Error reading file", description: error.message });
+        setQuestions([]);
       }
     });
   };
   
-  const handleStartQuiz = () => {
-    // In a real app, this would call a backend function to create a room
-    const newRoomCode = Math.floor(1000 + Math.random() * 9000).toString();
-    setRoomCode(newRoomCode);
-    setGameState('lobby');
-    toast({ title: "Quiz Room Created!", description: `Room code: ${newRoomCode}` });
+  const handleStartQuiz = async () => {
+    if (!classId || !user) return;
+    setLoading(true);
+    try {
+        const functions = getFunctions();
+        const createQuizSession = httpsCallable(functions, 'createQuizSession');
+        const result = await createQuizSession({ classId, settings, questions });
+        const { roomCode } = result.data as { roomCode: string };
+        setSession({ ...session!, roomCode, players: {}, hostUid: user.uid, id: '', classId, settings, questions, currentQuestion: -1, gameState: 'waiting', answers: {}, createdAt: Date.now() });
+        setGameState('lobby');
+        toast({ title: "Quiz Room Created!", description: `Room code: ${roomCode}` });
+    } catch (error: any) {
+        console.error(error);
+        toast({ variant: "destructive", title: "Error", description: "Could not create quiz session." });
+    } finally {
+        setLoading(false);
+    }
   };
   
   if (!user) {
     return <Card><CardHeader><CardTitle>Please Sign In</CardTitle><CardDescription>You must be signed in to host a quiz.</CardDescription></CardHeader></Card>
   }
+  if (!classId) {
+      return <Card><CardHeader><CardTitle>No Class Selected</CardTitle><CardDescription>Please go to a class dashboard to start a quiz.</CardDescription></CardHeader></Card>
+  }
+
+  const players = session?.players ? Object.values(session.players) : [];
 
   return (
     <div>
@@ -122,14 +157,15 @@ export function HostPanel({ classId, user }: HostPanelProps) {
                     </div>
                 </CardContent>
                 <CardFooter>
-                    <Button onClick={handleStartQuiz} disabled={questions.length === 0} className="w-full md:w-auto">
-                        <Play className="mr-2 h-4 w-4"/> Start Quiz
+                    <Button onClick={handleStartQuiz} disabled={questions.length === 0 || loading} className="w-full md:w-auto">
+                        {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Play className="mr-2 h-4 w-4"/>}
+                        {loading ? 'Creating Room...' : 'Start Quiz'}
                     </Button>
                 </CardFooter>
             </Card>
         )}
 
-        {gameState === 'lobby' && roomCode && (
+        {gameState === 'lobby' && session && (
             <Card>
                 <CardHeader>
                     <CardTitle>Lobby</CardTitle>
@@ -138,11 +174,17 @@ export function HostPanel({ classId, user }: HostPanelProps) {
                 <CardContent className="text-center space-y-4">
                      <div className="p-4 bg-primary/10 rounded-lg">
                         <Label>Room Code</Label>
-                        <p className="text-6xl font-bold tracking-widest text-primary">{roomCode}</p>
+                        <p className="text-6xl font-bold tracking-widest text-primary">{session.roomCode}</p>
                      </div>
                      <div className="p-4 bg-muted rounded-lg">
-                        <h3 className="font-semibold flex items-center justify-center gap-2"><Users className="h-5 w-5" /> Connected Players (0)</h3>
-                        <div className="mt-2 text-sm text-muted-foreground">Waiting for players to join...</div>
+                        <h3 className="font-semibold flex items-center justify-center gap-2"><Users className="h-5 w-5" /> Connected Players ({players.length})</h3>
+                        <div className="mt-2 text-sm text-muted-foreground flex flex-wrap gap-2 justify-center">
+                            {players.length > 0 ? (
+                                players.map(p => <span key={p.id} className="bg-background px-3 py-1 rounded-full">{p.name}</span>)
+                            ) : (
+                                "Waiting for players to join..."
+                            )}
+                        </div>
                      </div>
                 </CardContent>
                 <CardFooter className="flex justify-between">

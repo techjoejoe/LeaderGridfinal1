@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,22 +8,75 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Leaderboard } from './leaderboard';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { ref, onValue } from 'firebase/database';
+import { rtdb } from '@/lib/firebase';
+import type { QuizSession } from '@/lib/types';
+
 
 export function PlayerPanel() {
   const [playerName, setPlayerName] = useState('');
   const [roomCode, setRoomCode] = useState('');
+  const [session, setSession] = useState<QuizSession | null>(null);
+  const [playerId, setPlayerId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const [gameState, setGameState] = useState<'joining' | 'waiting' | 'playing' | 'ended'>('joining');
   const [question, setQuestion] = useState<any>(null);
   const { toast } = useToast();
 
-  const handleJoin = () => {
+  // Listen for game state changes
+   useEffect(() => {
+    if (!roomCode) return;
+    const sessionRef = ref(rtdb, `quiz-battles/${roomCode}`);
+    const unsubscribe = onValue(sessionRef, (snapshot) => {
+        if(snapshot.exists()){
+            const newSessionState = snapshot.val() as QuizSession;
+            setSession(newSessionState);
+            // Handle game state transitions based on server data
+            if(newSessionState.gameState === 'active' && gameState === 'waiting') {
+                setGameState('playing');
+            }
+             if(newSessionState.gameState === 'ended' && gameState !== 'ended') {
+                setGameState('ended');
+            }
+        } else if (gameState !== 'joining') {
+            // Session was deleted or not found after joining
+            toast({ variant: 'destructive', title: 'Session Ended', description: 'The host has ended the quiz session.' });
+            setGameState('joining');
+            setRoomCode('');
+            setSession(null);
+        }
+    });
+    return () => unsubscribe();
+  }, [roomCode, gameState, toast]);
+
+
+  const handleJoin = async () => {
     if (!playerName.trim() || !roomCode.trim()) {
       toast({ variant: 'destructive', title: 'Error', description: 'Please enter your name and a room code.' });
       return;
     }
-    setGameState('waiting');
-    // In a real app, this would emit a 'join-room' event to the server
-    toast({ title: `Welcome, ${playerName}!`, description: 'Waiting for the quiz to start.' });
+    setLoading(true);
+    try {
+        const functions = getFunctions();
+        const joinQuizSession = httpsCallable(functions, 'joinQuizSession');
+        const result = await joinQuizSession({ roomCode: roomCode.toUpperCase(), playerName });
+        const { success, playerId: pId, session: initialSession, message } = result.data as { success: boolean, playerId: string, session: QuizSession, message?: string};
+        
+        if (success) {
+            setPlayerId(pId);
+            setSession(initialSession);
+            setGameState('waiting');
+            toast({ title: `Welcome, ${playerName}!`, description: 'Waiting for the quiz to start.' });
+        } else {
+             throw new Error(message || "Could not join the room.");
+        }
+    } catch(error: any) {
+        console.error(error);
+        toast({ variant: 'destructive', title: 'Failed to Join', description: error.message });
+    } finally {
+        setLoading(false);
+    }
   };
   
   if (gameState === 'joining') {
@@ -44,7 +97,10 @@ export function PlayerPanel() {
           </div>
         </CardContent>
         <CardFooter>
-          <Button onClick={handleJoin} className="w-full">Join Quiz</Button>
+          <Button onClick={handleJoin} disabled={loading} className="w-full">
+            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            {loading ? 'Joining...' : 'Join Quiz'}
+          </Button>
         </CardFooter>
       </Card>
     );
@@ -86,11 +142,7 @@ export function PlayerPanel() {
 
   if (gameState === 'ended') {
     // Mock player data for display
-    const mockPlayers = [
-        { id: '1', name: playerName, score: 1850 },
-        { id: '2', name: 'Bob', score: 2200 },
-        { id: '3', name: 'Charlie', score: 1500 },
-    ];
+    const mockPlayers = session?.players ? Object.values(session.players) : [];
     return <Leaderboard players={mockPlayers} />;
   }
 
