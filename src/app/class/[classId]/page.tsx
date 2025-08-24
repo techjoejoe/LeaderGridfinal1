@@ -8,7 +8,7 @@ import { useState, useEffect, useMemo } from "react";
 import { doc, onSnapshot } from "firebase/firestore";
 import { SignInDialog } from "@/components/sign-in-dialog";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Bell, Car, QrCode } from "lucide-react";
+import { ArrowLeft, Car, QrCode } from "lucide-react";
 import { DashboardCard } from "@/components/dashboard-card";
 import type { Class } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -118,14 +118,13 @@ export default function ClassDashboardPage() {
       disabled: true
     },
     { 
-      icon: Bell,
-      title: "Buzzer",
+      icon: <Image src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/Buzzin.png?alt=media&token=51d43b16-b050-4041-a3fd-6998ae60086e" alt="Buzzer" width={225} height={225} data-ai-hint="buzzer button" />,
       description: "A virtual buzzer system for class competitions and games.", 
       href: `/buzzer?classId=${classId}`,
       disabled: true
     },
     { 
-      icon: Car,
+      icon: <Car className="h-6 w-6 text-accent"/>,
       title: "Parking Lot",
       description: "A digital space to 'park' questions or ideas for later.", 
       href: `/parking-lot?classId=${classId}`,
@@ -209,3 +208,5 @@ export default function ClassDashboardPage() {
     </>
   );
 }
+
+    
