@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter, useParams } from "next/navigation";
 import { Card, CardFooter, CardHeader } from "@/components/ui/card";
 import Image from "next/image";
+import { Badge } from "@/components/ui/badge";
 
 
 export default function ClassDashboardPage() {
@@ -153,7 +154,10 @@ export default function ClassDashboardPage() {
                     </>
                 ) : classData ? (
                     <>
-                        <h1 className="text-3xl font-bold font-headline">{classData.name}</h1>
+                        <div className="flex items-center gap-4 mb-2">
+                           <h1 className="text-3xl font-bold font-headline">{classData.name}</h1>
+                           <Badge variant="outline" className="text-base py-1 px-3">{classData.inviteCode}</Badge>
+                        </div>
                         <p className="text-muted-foreground">Select a tool to engage your class.</p>
                     </>
                 ) : (
