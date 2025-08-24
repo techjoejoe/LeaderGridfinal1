@@ -1,8 +1,37 @@
 {
   "rules": {
-    "live-polls": {
-      ".read": true,
-      ".write": false
+    "contests": {
+      "$contestId": {
+        ".read": true,
+        ".write": "request.auth != null && request.auth.uid == resource.data.creatorUid"
+      }
+    },
+    "images": {
+      "$imageId": {
+        ".read": true,
+        ".write": "request.auth != null"
+      }
+    },
+    "users": {
+      "$userId": {
+        ".write": "request.auth != null && request.auth.uid == $userId",
+        "user_votes": {
+          "$contestId": {
+            ".write": "request.auth != null && request.auth.uid == $userId"
+          }
+        }
+      }
+    },
+    "classes": {
+      "$classId": {
+        // Allow trainers to read/write their own class documents
+        ".read, .write": "request.auth != null && request.auth.uid == resource.data.trainerUid"
+      }
+    },
+    "randomizer_lists": {
+      "$userId": {
+        ".read, .write": "request.auth != null && request.auth.uid == $userId"
+      }
     }
   }
 }

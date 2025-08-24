@@ -157,7 +157,7 @@ export const scheduledContestCleanup = functions.pubsub.schedule('every 24 hours
 const verifyClassTrainer = async (uid: string, classId: string) => {
   const classRef = db.collection('classes').doc(classId);
   const classDoc = await classRef.get();
-  if (!classDoc.exists || classDoc.data()?.trainerUid !== uid) {
+  if (!classDoc.exists() || classDoc.data()?.trainerUid !== uid) {
     throw new functions.https.HttpsError('permission-denied', 'You are not authorized to perform this action.');
   }
 };
