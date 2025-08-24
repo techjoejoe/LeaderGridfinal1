@@ -108,13 +108,17 @@ export const onContestDeleted = functions.firestore
     }
 
     // 2. Delete all user vote data for this contest
-    const usersSnapshot = await db.collection("users").get();
-    functions.logger.log(`Checking ${usersSnapshot.size} users for vote data to delete.`);
-    
-    usersSnapshot.docs.forEach(userDoc => {
-      const userVoteRef = userDoc.ref.collection("user_votes").doc(contestId);
-      batch.delete(userVoteRef);
-    });
+    // This is more efficient than scanning all users.
+    const votesQuery = db.collection("contests").doc(contestId).collection("votes");
+    const votesSnapshot = await votesQuery.get();
+     if (votesSnapshot.empty) {
+      functions.logger.log("No vote documents found for this contest.");
+    } else {
+      functions.logger.log(`Found ${votesSnapshot.size} vote documents to delete.`);
+      votesSnapshot.forEach((doc) => {
+        batch.delete(doc.ref);
+      });
+    }
 
     // 3. Commit all batched writes
     await batch.commit();
@@ -352,3 +356,5 @@ export const joinClass = functions.https.onCall(async (data, context) => {
         throw new functions.https.HttpsError('internal', 'An unexpected error occurred while trying to join the class.');
     }
 });
+
+    

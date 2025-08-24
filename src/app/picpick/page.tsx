@@ -124,11 +124,13 @@ function PicPickContent() {
     
     let unsubscribeVotes: () => void = () => {};
     if (user) {
-        const userVoteRef = doc(db, "users", user.uid, "user_votes", contestId);
+        // Updated path to contest-specific user vote data
+        const userVoteRef = doc(db, "contests", contestId, "votes", user.uid);
         unsubscribeVotes = onSnapshot(userVoteRef, async (docSnap) => {
             const today = getToday();
             if (docSnap.exists()) {
                 const data = docSnap.data() as UserVoteData;
+                // Check if the daily votes need to be reset
                 if (data.lastVotedDate !== today) {
                     const resetData: UserVoteData = {
                         votesToday: 4,
@@ -141,6 +143,7 @@ function PicPickContent() {
                     setUserVoteData(data);
                 }
             } else {
+                // If no vote data exists for this user in this contest, create it.
                 const initialData: UserVoteData = {
                     votesToday: 4,
                     lastVotedDate: today,
@@ -196,7 +199,8 @@ function PicPickContent() {
 
     try {
       await runTransaction(db, async (transaction) => {
-        const userVoteRef = doc(db, "users", user.uid, "user_votes", contestId);
+        // Path to the user's vote data within the contest's "votes" subcollection
+        const userVoteRef = doc(db, "contests", contestId, "votes", user.uid);
         const imageRef = doc(db, "images", id);
         const userVoteDoc = await transaction.get(userVoteRef);
         const imageDoc = await transaction.get(imageRef);
@@ -206,6 +210,7 @@ function PicPickContent() {
         const today = getToday();
         let currentVoteData: UserVoteData;
         
+        // If user has no vote doc or it's from a previous day, initialize new data
         if (!userVoteDoc.exists() || userVoteDoc.data().lastVotedDate !== today) {
           currentVoteData = { votesToday: 4, lastVotedDate: today, imageVotes: {} };
         } else {
@@ -217,8 +222,10 @@ function PicPickContent() {
         const imageVoteCount = currentVoteData.imageVotes[id] || 0;
         if (imageVoteCount >= 2) throw new Error("You can only vote for the same image twice.");
 
+        // Increment the vote count on the image document
         transaction.update(imageRef, { votes: imageDoc.data().votes + 1 });
         
+        // Update the user's vote data for this contest
         const newUserVoteData: UserVoteData = {
           ...currentVoteData,
           votesToday: currentVoteData.votesToday - 1,
@@ -488,5 +495,7 @@ function HeaderWrapper() {
         </>
     );
 }
+
+    
 
     
