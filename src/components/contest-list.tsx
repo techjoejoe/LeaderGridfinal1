@@ -96,11 +96,17 @@ function ContestCard({ contest, user, onDeleteContest }: { contest: Contest, use
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isPasswordPromptOpen, setIsPasswordPromptOpen] = useState(false);
   const router = useRouter();
-  const isCreator = user?.uid === contest.creatorUid;
   const { toast } = useToast();
 
+  const isCreator = user?.uid === contest.creatorUid;
+  const isClassContest = !!contest.classId;
+  const viewUrl = isClassContest ? `/picpick?contestId=${contest.id}` : `/picpick?contestId=${contest.id}`;
+  const leaderboardUrl = isClassContest ? `/leaderboard?contestId=${contest.id}` : `/leaderboard?contestId=${contest.id}`;
+  const backUrl = isClassContest ? `/class/${contest.classId}/contests` : '/contests';
+
+
   const handleShare = () => {
-    const contestUrl = `${window.location.origin}/picpick?contestId=${contest.id}`;
+    const contestUrl = `${window.location.origin}${viewUrl}`;
     navigator.clipboard.writeText(contestUrl)
       .then(() => {
         toast({
@@ -118,12 +124,12 @@ function ContestCard({ contest, user, onDeleteContest }: { contest: Contest, use
       });
   };
 
-  const handleNavigation = () => {
+  const handleNavigation = (targetUrl: string) => {
     const sessionKey = `contest_access_${contest.id}`;
     if (contest.hasPassword && sessionStorage.getItem(sessionKey) !== 'granted') {
       setIsPasswordPromptOpen(true);
     } else {
-      router.push(`/picpick?contestId=${contest.id}`);
+      router.push(targetUrl);
     }
   };
 
@@ -134,7 +140,7 @@ function ContestCard({ contest, user, onDeleteContest }: { contest: Contest, use
       const sessionKey = `contest_access_${contest.id}`;
       sessionStorage.setItem(sessionKey, 'granted');
       setIsPasswordPromptOpen(false);
-      router.push(`/picpick?contestId=${contest.id}`);
+      router.push(viewUrl);
     } else {
       toast({
         variant: "destructive",
@@ -147,7 +153,7 @@ function ContestCard({ contest, user, onDeleteContest }: { contest: Contest, use
   return (
     <>
       <Card className="flex flex-col transition-all hover:shadow-lg">
-        <div onClick={handleNavigation} className="flex-grow flex flex-col cursor-pointer">
+        <div onClick={() => handleNavigation(viewUrl)} className="flex-grow flex flex-col cursor-pointer">
           <CardHeader className="flex-grow">
             <div className="flex justify-between items-start">
               <CardTitle>{contest.name}</CardTitle>
@@ -168,7 +174,7 @@ function ContestCard({ contest, user, onDeleteContest }: { contest: Contest, use
           <ContestWinnerDisplay contestId={contest.id} />
         </div>
         <CardFooter className="flex gap-2">
-            <Button onClick={handleNavigation} className="w-full">
+            <Button onClick={() => handleNavigation(viewUrl)} className="w-full">
               View Contest
             </Button>
             <Button 

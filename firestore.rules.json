@@ -17,38 +17,38 @@
         },
         
         "classes": {
-          // Any authenticated user can create a class
-          ".write": "auth != null",
+          // Any authenticated trainer can create a class
+          "create": "request.auth != null && request.resource.data.trainerUid == request.auth.uid",
           "$classId": {
             // Only the trainer or a learner in the class can read it
             ".read": "auth != null && (resource.data.trainerUid == auth.uid || auth.uid in resource.data.learnerUids)",
             // Only the trainer can update it
-            ".update": "auth != null && resource.data.trainerUid == auth.uid",
+            "update": "auth != null && resource.data.trainerUid == auth.uid",
             // No one can delete a class directly (should be done via a function)
-            ".delete": "false"
+            "delete": "false"
           }
         },
 
         "contests": {
-          // Any authenticated user can create a contest
-          ".write": "auth != null",
+          // Any authenticated trainer can create a contest
+          "create": "request.auth != null && request.resource.data.creatorUid == request.auth.uid",
           "$contestId": {
             // Anyone can read contest details
             ".read": "true",
             // Only the creator can update or delete
-            ".update": "auth != null && resource.data.creatorUid == auth.uid",
-            ".delete": "auth != null && resource.data.creatorUid == auth.uid"
+            "update": "auth != null && resource.data.creatorUid == auth.uid",
+            "delete": "auth != null && resource.data.creatorUid == auth.uid"
           }
         },
 
         "images": {
            // Any authenticated user can upload an image
-          ".write": "auth != null",
+          "create": "request.auth != null && request.resource.data.uploaderUid == request.auth.uid",
           "$imageId": {
             // Anyone can read image data
             ".read": "true",
             // Only the uploader can delete their image
-            ".delete": "auth != null && resource.data.uploaderUid == auth.uid"
+            "delete": "auth != null && resource.data.uploaderUid == auth.uid"
           }
         }
       }
