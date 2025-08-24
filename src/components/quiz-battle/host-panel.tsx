@@ -18,8 +18,10 @@ import { ref, onValue } from 'firebase/database';
 import {
   AlertDialog,
   AlertDialogAction,
+  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
+  AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
@@ -83,7 +85,7 @@ export function HostPanel({ classId, user }: HostPanelProps) {
               question: String(row.question),
               correctAnswer: String(row.correctAnswer),
               answers,
-              imageUrl: row.imageUrl ? String(row.imageUrl) : null,
+              imageUrl: row.imageUrl ? String(row.imageUrl) : undefined,
             };
           });
           setQuestions(parsedQuestions);
@@ -149,23 +151,25 @@ export function HostPanel({ classId, user }: HostPanelProps) {
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                     <AlertDialogHeader>
-                                    <AlertDialogTitle>CSV File Format Guide</AlertDialogTitle>
-                                    <AlertDialogDescription>
+                                      <AlertDialogTitle>CSV File Format Guide</AlertDialogTitle>
+                                      <AlertDialogDescription>
                                         Your CSV file must contain a header row with the following columns. The order does not matter.
-                                        <ul className="list-disc pl-5 mt-2 space-y-1">
-                                            <li><span className="font-bold">question</span> (Required): The text for the question.</li>
-                                            <li><span className="font-bold">correctAnswer</span> (Required): The correct answer choice.</li>
-                                            <li><span className="font-bold">wrong1</span> (Required): At least one wrong answer choice.</li>
-                                            <li><span className="font-bold">wrong2</span> (Optional): A second wrong answer choice.</li>
-                                            <li><span className="font-bold">wrong3</span> (Optional): A third wrong answer choice.</li>
-                                            <li><span className="font-bold">imageUrl</span> (Optional): A direct URL to an image for the question.</li>
-                                        </ul>
-                                        <p className="mt-2">Example Row:<br/>
-                                        <code className="text-xs bg-muted p-1 rounded-sm">"What is the capital of France?",Paris,London,Berlin,Madrid,https://example.com/eiffel.jpg</code>
-                                        </p>
-                                    </AlertDialogDescription>
+                                      </AlertDialogDescription>
+                                      <ul className="text-sm text-muted-foreground list-disc pl-5 mt-2 space-y-1">
+                                          <li><span className="font-bold">question</span> (Required): The text for the question.</li>
+                                          <li><span className="font-bold">correctAnswer</span> (Required): The correct answer choice.</li>
+                                          <li><span className="font-bold">wrong1</span> (Required): At least one wrong answer choice.</li>
+                                          <li><span className="font-bold">wrong2</span> (Optional): A second wrong answer choice.</li>
+                                          <li><span className="font-bold">wrong3</span> (Optional): A third wrong answer choice.</li>
+                                          <li><span className="font-bold">imageUrl</span> (Optional): A direct URL to an image for the question.</li>
+                                      </ul>
+                                      <p className="text-sm text-muted-foreground mt-2">Example Row:<br/>
+                                      <code className="text-xs bg-muted p-1 rounded-sm">"What is the capital of France?",Paris,London,Berlin,Madrid,https://example.com/eiffel.jpg</code>
+                                      </p>
                                     </AlertDialogHeader>
-                                    <AlertDialogAction>Got it!</AlertDialogAction>
+                                    <AlertDialogFooter>
+                                      <AlertDialogAction>Got it!</AlertDialogAction>
+                                    </AlertDialogFooter>
                                 </AlertDialogContent>
                             </AlertDialog>
                         </div>
