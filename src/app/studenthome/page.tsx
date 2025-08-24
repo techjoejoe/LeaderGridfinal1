@@ -100,9 +100,12 @@ export default function StudentHomePage() {
         if(docSnap.exists()){
             const data = docSnap.data() as UserData;
             setUserData(data);
-            if (data.role !== 'student') {
-              toast({ variant: "destructive", title: "Access Denied" });
-              router.push("/");
+            if (data.role === 'trainer') {
+              toast({ 
+                title: "Redirecting...",
+                description: "This page is for students. Redirecting you to the trainer dashboard."
+              });
+              router.push("/trainerhome");
             }
         }
       });
