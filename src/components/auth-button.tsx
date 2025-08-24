@@ -5,7 +5,7 @@ import { signOut, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LogIn, LogOut, LayoutDashboard, Shuffle, Trophy } from "lucide-react";
+import { LogIn, LogOut, LayoutDashboard, Shuffle, Trophy, Users } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -61,6 +61,12 @@ export function AuthButton({ user, onSignInClick }: AuthButtonProps) {
                     <Link href="/contests">
                         <Trophy className="mr-2 h-4 w-4" />
                         <span>PicPick Contests</span>
+                    </Link>
+                </DropdownMenuItem>
+                 <DropdownMenuItem asChild>
+                    <Link href="/studentlogin">
+                        <Users className="mr-2 h-4 w-4" />
+                        <span>Student Login</span>
                     </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
