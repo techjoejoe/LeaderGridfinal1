@@ -25,7 +25,13 @@ export default function ContestsPage() {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const searchParams = useSearchParams();
-  const classId = searchParams.get('classId');
+  const [classId, setClassId] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Store classId in state to avoid issues with useSearchParams during re-renders
+    const id = searchParams.get('classId');
+    setClassId(id);
+  }, [searchParams]);
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
@@ -36,14 +42,10 @@ export default function ContestsPage() {
 
   useEffect(() => {
     setLoading(true);
-    let q;
-    if (classId) {
-      q = query(collection(db, "contests"), where("classId", "==", classId));
-    } else {
-      // This logic will need to be refined if you want a global contest page.
-      // For now, it fetches contests NOT associated with any class.
-      q = query(collection(db, "contests"), where("classId", "==", null));
-    }
+    // This query will now correctly wait for classId to be set in state if it exists.
+    const q = classId
+      ? query(collection(db, "contests"), where("classId", "==", classId))
+      : query(collection(db, "contests"), where("classId", "==", null));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const contestsData = snapshot.docs.map(
@@ -69,9 +71,6 @@ export default function ContestsPage() {
       setSignInOpen(true);
       return;
     }
-    
-    // Explicitly get classId from searchParams here
-    const currentClassId = searchParams.get('classId');
 
     try {
       const newContestData: Omit<Contest, 'id' | 'createdAt'> = {
@@ -82,7 +81,8 @@ export default function ContestsPage() {
         imageShape: imageShape,
         startDate: Timestamp.fromDate(startDate),
         endDate: Timestamp.fromDate(endDate),
-        classId: currentClassId || undefined,
+        // Use the classId from state
+        classId: classId || undefined,
       };
 
       if (password) {
