@@ -135,25 +135,25 @@ const ActivityTimer = () => {
     return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
 
-  const getBackgroundColor = () => {
-    if (showCelebration) return "bg-animated-gradient";
-    if (!isRunning) return "bg-gray-700";
+  const getBorderColor = () => {
+    if (showCelebration) return "border-green-400";
+    if (!isRunning) return "border-gray-500";
     
-    if (timeLeft <= 10) return "bg-red-500";
-    if (timeLeft <= 30) return "bg-orange-500";
-    return "bg-animated-gradient";
+    if (timeLeft <= 10) return "border-red-500";
+    if (timeLeft <= 30) return "border-orange-500";
+    return "border-green-400";
   };
   
   const cardContent = (
       <>
         <div className={cn(
-            "timer-display w-full flex items-center justify-center rounded-lg text-white transition-all duration-500",
+            "timer-display bg-glassmorphism w-full flex items-center justify-center rounded-lg text-white transition-all duration-500 border-2",
             isMaximized ? "h-full" : "h-48",
-            getBackgroundColor(),
+            getBorderColor(),
             { "animate-pulse": isRunning && timeLeft <= 10 }
         )}>
             <h1 className={cn(
-                "font-mono font-bold tracking-tighter",
+                "font-mono font-bold tracking-tighter text-shadow-lg",
                 isMaximized ? "text-[15rem] leading-none" : "text-8xl"
             )}>
                 {formatTime(timeLeft)}
@@ -165,16 +165,16 @@ const ActivityTimer = () => {
             <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
                     <Label htmlFor="minutes">Minutes</Label>
-                    <Input id="minutes" type="number" value={minutes} onChange={handleMinutesChange} min="0" max="59" disabled={isRunning} />
+                    <Input id="minutes" type="number" value={minutes} onChange={handleMinutesChange} min="0" max="59" disabled={isRunning} className="bg-white/10" />
                 </div>
                 <div>
                     <Label htmlFor="seconds">Seconds</Label>
-                    <Input id="seconds" type="number" value={seconds} onChange={handleSecondsChange} min="0" max="59" disabled={isRunning} />
+                    <Input id="seconds" type="number" value={seconds} onChange={handleSecondsChange} min="0" max="59" disabled={isRunning} className="bg-white/10" />
                 </div>
             </div>
              <div className="mb-6">
                 <Label htmlFor="customMessage">Completion Message</Label>
-                <Input id="customMessage" value={customMessage} onChange={(e) => setCustomMessage(e.target.value)} placeholder="Time's Up! Please go back to your seats!" />
+                <Input id="customMessage" value={customMessage} onChange={(e) => setCustomMessage(e.target.value)} placeholder="Time's Up! Please go back to your seats!" className="bg-white/10"/>
             </div>
             <p className="text-sm text-muted-foreground text-center mb-4">
               Set the time and press start. The timer will begin counting down.
@@ -187,15 +187,15 @@ const ActivityTimer = () => {
             isMaximized ? "p-4 justify-center" : "px-6 pb-6 justify-between"
         )}>
              {!isRunning ? (
-                <Button onClick={handleStart} size={isMaximized ? "lg" : "default"} className="w-full bg-green-600 hover:bg-green-700 text-white">
+                <Button onClick={handleStart} size={isMaximized ? "lg" : "default"} className="w-full bg-green-600/80 hover:bg-green-700/80 text-white bg-glassmorphism">
                     <Play className="mr-2 h-5 w-5" /> Start
                 </Button>
             ) : (
-                <Button onClick={handlePause} size={isMaximized ? "lg" : "default"} className="w-full bg-orange-500 hover:bg-orange-600 text-white">
+                <Button onClick={handlePause} size={isMaximized ? "lg" : "default"} className="w-full bg-orange-500/80 hover:bg-orange-600/80 text-white bg-glassmorphism">
                     <Pause className="mr-2 h-5 w-5" /> Pause
                 </Button>
             )}
-            <Button onClick={handleReset} variant="outline" size={isMaximized ? "lg" : "default"} className="w-full">
+            <Button onClick={handleReset} variant="outline" size={isMaximized ? "lg" : "default"} className="w-full bg-white/10 hover:bg-white/20">
                 <RotateCcw className="mr-2 h-5 w-5" /> Reset
             </Button>
         </div>
@@ -205,7 +205,7 @@ const ActivityTimer = () => {
   return (
     <div className={cn(
         "relative w-full h-full flex flex-col items-center justify-center transition-all duration-300",
-        isMaximized && "fixed inset-0 bg-gradient-to-br from-blue-900 to-purple-900 z-50 p-4 overflow-hidden"
+        isMaximized && "fixed inset-0 bg-background z-50 p-4 overflow-hidden"
     )}>
         {isMaximized && (
           <div className="absolute inset-0 -z-10">
@@ -216,30 +216,30 @@ const ActivityTimer = () => {
         )}
 
         <div className="absolute top-4 right-4 z-50 flex gap-2">
-            <Button variant="ghost" size="icon" onClick={() => setIsMuted(!isMuted)}>
+            <Button variant="ghost" size="icon" onClick={() => setIsMuted(!isMuted)} className="bg-black/20 hover:bg-black/30">
                 {isMuted ? <VolumeX className="text-white"/> : <Volume2 className="text-white"/>}
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => setIsMaximized(!isMaximized)}>
-                {isMaximized ? <Minimize className="text-white"/> : <Maximize className="text-gray-500"/>}
+            <Button variant="ghost" size="icon" onClick={() => setIsMaximized(!isMaximized)} className="bg-black/20 hover:bg-black/30">
+                {isMaximized ? <Minimize className="text-white"/> : <Maximize className="text-gray-300"/>}
             </Button>
         </div>
 
         {showCelebration && isMaximized ? (
             <div className="w-full h-full flex flex-col items-center justify-center text-center text-white p-4">
                 <Confetti onAnimationComplete={() => {}} />
-                <h2 className="text-7xl font-bold mb-8 animate-pulse">{customMessage}</h2>
+                <h2 className="text-7xl font-bold mb-8 animate-pulse" style={{textShadow: '0 0 15px rgba(255,255,255,0.7)'}}>{customMessage}</h2>
                 <Button onClick={() => {
                     setShowCelebration(false);
                     setIsMaximized(false);
                     handleReset();
-                }} size="lg">
+                }} size="lg" className="bg-glassmorphism">
                     Start a New Timer
                 </Button>
             </div>
         ) : (
              <div className={cn(
                 "w-full transition-all duration-300 relative z-10",
-                isMaximized ? "h-full flex flex-col items-center justify-center" : "max-w-md bg-card rounded-xl shadow-lg overflow-hidden"
+                isMaximized ? "h-full flex flex-col items-center justify-center" : "max-w-md bg-glassmorphism rounded-xl overflow-hidden"
              )}>
                 {cardContent}
             </div>
