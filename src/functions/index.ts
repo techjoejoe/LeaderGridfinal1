@@ -45,12 +45,62 @@ export const deleteContest = functions.https.onCall(async (data, context) => {
         "You do not have permission to delete this contest."
       );
     }
-    
-    // Deleting the document will trigger the onDelete cloud function for cleanup.
-    await contestRef.delete();
 
-    functions.logger.log(`Successfully initiated deletion for contest ${contestId}`);
-    return { success: true, message: "Contest deletion process started." };
+    // All logic is now consolidated here to prevent race conditions.
+    functions.logger.log(`Starting cleanup and deletion for contest: ${contestId}`);
+
+    const bucket = getStorage().bucket();
+    const batch = db.batch();
+
+    // 1. Delete all images associated with the contest
+    const imagesQuery = db.collection("images").where("contestId", "==", contestId);
+    const imagesSnapshot = await imagesQuery.get();
+
+    if (!imagesSnapshot.empty) {
+      functions.logger.log(`Found ${imagesSnapshot.size} images to delete.`);
+      imagesSnapshot.forEach((doc) => {
+        const imageData = doc.data();
+        if (imageData.url) {
+          try {
+            const urlParts = imageData.url.split("/o/");
+            if (urlParts.length > 1) {
+              const filePathWithQuery = urlParts[1];
+              const filePath = decodeURIComponent(filePathWithQuery.split("?")[0]);
+              functions.logger.log(`Deleting from Storage: ${filePath}`);
+              const file = bucket.file(filePath);
+              file.delete().catch((err) => {
+                // Log error but don't fail the whole function if a file is already gone
+                if (err.code !== 404) {
+                  functions.logger.error(`Failed to delete file ${filePath} from storage`, err);
+                }
+              });
+            }
+          } catch (err) {
+            functions.logger.error("Error parsing image URL or deleting from storage", err);
+          }
+        }
+        batch.delete(doc.ref); // Add image doc deletion to batch
+      });
+    }
+
+    // 2. Delete all user vote data for this contest using a collection group query.
+    const votesQuery = db.collectionGroup("votes").where("contestId", "==", contestId);
+    const votesSnapshot = await votesQuery.get();
+     if (!votesSnapshot.empty) {
+      functions.logger.log(`Found ${votesSnapshot.size} vote documents to delete.`);
+      votesSnapshot.forEach((doc) => {
+        batch.delete(doc.ref); // Add vote doc deletion to batch
+      });
+    }
+    
+    // 3. Add the main contest document to the batch deletion
+    batch.delete(contestRef);
+
+    // 4. Commit all batched writes
+    await batch.commit();
+
+    functions.logger.log(`Successfully deleted contest ${contestId} and all associated data.`);
+    return { success: true, message: "Contest and all its data have been deleted." };
 
   } catch (error: any) {
     functions.logger.error(`Error deleting contest ${contestId}:`, error);
@@ -66,65 +116,7 @@ export const deleteContest = functions.https.onCall(async (data, context) => {
 
 
 // This function is triggered when a contest document is deleted.
-export const onContestDeleted = functions.firestore
-  .document("contests/{contestId}")
-  .onDelete(async (snap, context) => {
-    const { contestId } = context.params;
-    functions.logger.log(`Starting cleanup for contest: ${contestId}`);
-
-    const bucket = getStorage().bucket();
-    const batch = db.batch();
-
-    // 1. Delete all images associated with the contest
-    const imagesQuery = db.collection("images").where("contestId", "==", contestId);
-    const imagesSnapshot = await imagesQuery.get();
-
-    if (imagesSnapshot.empty) {
-      functions.logger.log("No images found for this contest.");
-    } else {
-      functions.logger.log(`Found ${imagesSnapshot.size} images to delete.`);
-      imagesSnapshot.forEach((doc) => {
-        const imageData = doc.data();
-        if (imageData.url) {
-          try {
-            const urlParts = imageData.url.split("/o/");
-            if (urlParts.length > 1) {
-              const filePathWithQuery = urlParts[1];
-              const filePath = decodeURIComponent(filePathWithQuery.split("?")[0]);
-              functions.logger.log(`Deleting from Storage: ${filePath}`);
-              const file = bucket.file(filePath);
-              file.delete().catch((err) => {
-                if (err.code !== 404) {
-                  functions.logger.error(`Failed to delete file ${filePath} from storage`, err);
-                }
-              });
-            }
-          } catch (err) {
-            functions.logger.error("Error parsing image URL or deleting from storage", err);
-          }
-        }
-        batch.delete(doc.ref);
-      });
-    }
-
-    // 2. Delete all user vote data for this contest
-    // This is more efficient than scanning all users.
-    const votesQuery = db.collection("contests").doc(contestId).collection("votes");
-    const votesSnapshot = await votesQuery.get();
-     if (votesSnapshot.empty) {
-      functions.logger.log("No vote documents found for this contest.");
-    } else {
-      functions.logger.log(`Found ${votesSnapshot.size} vote documents to delete.`);
-      votesSnapshot.forEach((doc) => {
-        batch.delete(doc.ref);
-      });
-    }
-
-    // 3. Commit all batched writes
-    await batch.commit();
-
-    functions.logger.log(`Successfully cleaned up contest ${contestId}`);
-  });
+// REMOVED to prevent race conditions. All logic is now in the `deleteContest` callable function.
 
 // Scheduled function to run daily and check for contests to delete
 export const scheduledContestCleanup = functions.pubsub.schedule('every 24 hours').onRun(async (context) => {
@@ -143,12 +135,45 @@ export const scheduledContestCleanup = functions.pubsub.schedule('every 24 hours
 
   functions.logger.log(`Found ${contestsToDelete.size} contests to delete.`);
 
-  const promises = contestsToDelete.docs.map(doc => {
-    functions.logger.log(`Deleting contest ${doc.id} which ended on ${doc.data().endDate.toDate()}`);
-    return doc.ref.delete(); // This will trigger the onContestDeleted function for each contest
+  // Use the new, robust deleteContest function
+  const deletePromises = contestsToDelete.docs.map(doc => {
+      functions.logger.log(`Calling deleteContest for contest ${doc.id} which ended on ${doc.data().endDate.toDate()}`);
+      // We are calling the function directly. Note: This will not have auth context.
+      // For scheduled cleanup, this is okay as it runs with admin privileges.
+      // Re-implementing the core logic here to be safe.
+      const contestId = doc.id;
+      const bucket = getStorage().bucket();
+      const batch = db.batch();
+
+      return db.collection("images").where("contestId", "==", contestId).get().then(imagesSnapshot => {
+          imagesSnapshot.forEach(imgDoc => {
+              const imageData = imgDoc.data();
+              if (imageData.url) {
+                  try {
+                      const urlParts = imageData.url.split("/o/");
+                      if (urlParts.length > 1) {
+                          const filePath = decodeURIComponent(urlParts[1].split("?")[0]);
+                          bucket.file(filePath).delete().catch(err => functions.logger.error(`Scheduled cleanup: Failed to delete file ${filePath}`, err));
+                      }
+                  } catch(err) {
+                      functions.logger.error(`Scheduled cleanup: Error parsing URL for ${imageData.url}`, err);
+                  }
+              }
+              batch.delete(imgDoc.ref);
+          });
+
+          return db.collectionGroup("votes").where("contestId", "==", contestId).get();
+      }).then(votesSnapshot => {
+          votesSnapshot.forEach(voteDoc => {
+              batch.delete(voteDoc.ref);
+          });
+          
+          batch.delete(doc.ref);
+          return batch.commit();
+      });
   });
 
-  await Promise.all(promises);
+  await Promise.all(deletePromises);
   
   functions.logger.log('Scheduled contest cleanup finished.');
   return null;
@@ -356,5 +381,3 @@ export const joinClass = functions.https.onCall(async (data, context) => {
         throw new functions.https.HttpsError('internal', 'An unexpected error occurred while trying to join the class.');
     }
 });
-
-    
