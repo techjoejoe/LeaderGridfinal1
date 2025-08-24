@@ -3,7 +3,8 @@
 
 import { useState, useEffect } from "react";
 import { signInWithEmailAndPassword, onAuthStateChanged, User, AuthError } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +14,7 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { KeyRound } from "lucide-react";
 import { SignInDialog } from "@/components/sign-in-dialog";
+import type { UserData } from "@/lib/types";
 
 export default function StudentLoginPage() {
   const [email, setEmail] = useState("");
@@ -26,11 +28,16 @@ export default function StudentLoginPage() {
   const [isSignInOpen, setSignInOpen] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
-        // Redirect if user is already logged in
-        router.push('/');
+        const userDocRef = doc(db, "users", currentUser.uid);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists() && userDoc.data().role === 'student') {
+            router.push('/studenthome');
+        } else {
+            router.push('/');
+        }
       }
     });
     return () => unsubscribe();
@@ -54,12 +61,21 @@ export default function StudentLoginPage() {
     setLoading(true);
     setError(null);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      toast({
-        title: "Login Successful",
-        description: "Welcome back!",
-      });
-      router.push('/');
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      // Check user role
+      const userDocRef = doc(db, "users", userCredential.user.uid);
+      const userDoc = await getDoc(userDocRef);
+      if (userDoc.exists() && (userDoc.data() as UserData).role === 'student') {
+        toast({
+            title: "Login Successful",
+            description: "Welcome back!",
+        });
+        router.push('/studenthome');
+      } else {
+        // If not a student, sign out and show error
+        await auth.signOut();
+        setError("This login is for students only. Please use the main Sign In if you are a trainer.");
+      }
     } catch (err) {
       setError(handleAuthError(err as AuthError));
     } finally {
@@ -79,7 +95,7 @@ export default function StudentLoginPage() {
             <CardHeader>
               <CardTitle className="font-headline text-2xl text-center">Student Login</CardTitle>
               <CardDescription className="text-center">
-                Enter your credentials to access the dashboard.
+                Enter your student credentials to access your classes.
               </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4">

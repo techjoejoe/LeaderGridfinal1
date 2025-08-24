@@ -8,7 +8,8 @@ import {
   updateProfile,
   AuthError,
 } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
+import { doc, setDoc, getDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -22,6 +23,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import type { UserData } from "@/lib/types";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 
 type SignInDialogProps = {
   isOpen: boolean;
@@ -30,7 +34,6 @@ type SignInDialogProps = {
   description?: string;
 };
 
-type View = "SIGN_IN" | "SIGN_UP";
 
 export function SignInDialog({ 
   isOpen, 
@@ -38,7 +41,7 @@ export function SignInDialog({
   title = "Welcome",
   description = "Sign in or create an account to continue."
 }: SignInDialogProps) {
-  const [view, setView] = useState<View>("SIGN_IN");
+  const [view, setView] = useState<'trainer' | 'student'>('trainer');
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -68,7 +71,13 @@ export function SignInDialog({
     setLoading(true);
     setError(null);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const userDoc = await getDoc(doc(db, "users", userCredential.user.uid));
+      if (!userDoc.exists() || (userDoc.data() as UserData).role !== view) {
+        await auth.signOut();
+        setError(`This login is for ${view}s only.`);
+        return;
+      }
       onOpenChange(false);
     } catch (err) {
       setError(handleAuthError(err as AuthError));
@@ -90,6 +99,14 @@ export function SignInDialog({
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       if (userCredential.user) {
         await updateProfile(userCredential.user, { displayName });
+        const userData: UserData = {
+          uid: userCredential.user.uid,
+          email: userCredential.user.email,
+          displayName: displayName,
+          role: view,
+          classIds: [],
+        };
+        await setDoc(doc(db, "users", userCredential.user.uid), userData);
       }
       toast({
         title: "Account Created!",
@@ -109,74 +126,93 @@ export function SignInDialog({
       setPassword("");
       setDisplayName("");
       setError(null);
-      setView("SIGN_IN");
     }
     onOpenChange(open);
   }
+
+  const renderForm = (isSignUp: boolean) => (
+     <form onSubmit={isSignUp ? handleSignUp : handleSignIn}>
+        <div className="grid gap-4 py-4">
+        {isSignUp && (
+            <div className="space-y-2">
+            <Label htmlFor={`${view}-displayName`}>Display Name</Label>
+            <Input 
+                id={`${view}-displayName`} 
+                value={displayName} 
+                onChange={(e) => setDisplayName(e.target.value)} 
+                placeholder="John Doe"
+                required 
+            />
+            </div>
+        )}
+        <div className="space-y-2">
+            <Label htmlFor={`${view}-email`}>Email</Label>
+            <Input 
+            id={`${view}-email`} 
+            type="email" 
+            value={email} 
+            onChange={(e) => setEmail(e.target.value)} 
+            placeholder="you@example.com" 
+            required 
+            />
+        </div>
+        <div className="space-y-2">
+            <Label htmlFor={`${view}-password`}>Password</Label>
+            <Input 
+            id={`${view}-password`} 
+            type="password" 
+            value={password} 
+            onChange={(e) => setPassword(e.target.value)} 
+            required 
+            />
+        </div>
+        {error && <p className="text-sm text-center text-destructive">{error}</p>}
+        </div>
+
+        <DialogFooter className="flex-col gap-2">
+        <Button type="submit" disabled={loading} className="w-full">
+            {loading ? "Loading..." : (isSignUp ? "Create Account" : "Sign In")}
+        </Button>
+        </DialogFooter>
+    </form>
+  )
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle className="font-headline text-center">{view === 'SIGN_IN' ? "Sign In" : "Create Account"}</DialogTitle>
+          <DialogTitle className="font-headline text-center">{title}</DialogTitle>
           <DialogDescription className="text-center">
             {description}
           </DialogDescription>
         </DialogHeader>
-        
-        <form onSubmit={view === 'SIGN_IN' ? handleSignIn : handleSignUp}>
-          <div className="grid gap-4 py-4">
-            {view === 'SIGN_UP' && (
-              <div className="space-y-2">
-                <Label htmlFor="displayName">Display Name</Label>
-                <Input 
-                  id="displayName" 
-                  value={displayName} 
-                  onChange={(e) => setDisplayName(e.target.value)} 
-                  placeholder="John Doe"
-                  required 
-                />
-              </div>
-            )}
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input 
-                id="email" 
-                type="email" 
-                value={email} 
-                onChange={(e) => setEmail(e.target.value)} 
-                placeholder="you@example.com" 
-                required 
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input 
-                id="password" 
-                type="password" 
-                value={password} 
-                onChange={(e) => setPassword(e.target.value)} 
-                required 
-              />
-            </div>
-            {error && <p className="text-sm text-center text-destructive">{error}</p>}
-          </div>
 
-          <DialogFooter className="flex-col gap-2">
-            <Button type="submit" disabled={loading} className="w-full">
-              {loading ? "Loading..." : (view === 'SIGN_IN' ? "Sign In" : "Create Account")}
-            </Button>
-            <Button 
-              type="button" 
-              variant="link" 
-              size="sm" 
-              onClick={() => setView(view === 'SIGN_IN' ? 'SIGN_UP' : 'SIGN_IN')}
-              className="text-muted-foreground"
-            >
-              {view === 'SIGN_IN' ? "Don't have an account? Sign Up" : "Already have an account? Sign In"}
-            </Button>
-          </DialogFooter>
-        </form>
+        <Tabs value={view} onValueChange={(v) => { setView(v as any); setError(null); }} className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="trainer">I'm a Trainer</TabsTrigger>
+                <TabsTrigger value="student">I'm a Student</TabsTrigger>
+            </TabsList>
+            <TabsContent value="trainer">
+                <Tabs defaultValue="signin" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="signin">Sign In</TabsTrigger>
+                        <TabsTrigger value="signup">Sign Up</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="signin">{renderForm(false)}</TabsContent>
+                    <TabsContent value="signup">{renderForm(true)}</TabsContent>
+                </Tabs>
+            </TabsContent>
+            <TabsContent value="student">
+                <Tabs defaultValue="signin" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="signin">Sign In</TabsTrigger>
+                        <TabsTrigger value="signup">Sign Up</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="signin">{renderForm(false)}</TabsContent>
+                    <TabsContent value="signup">{renderForm(true)}</TabsContent>
+                </Tabs>
+            </TabsContent>
+        </Tabs>
 
       </DialogContent>
     </Dialog>

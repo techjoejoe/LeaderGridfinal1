@@ -3,12 +3,14 @@
 
 import { useState, useEffect } from "react";
 import { onAuthStateChanged, User } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
+import { auth, db } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import { Header } from "@/components/header";
 import { SignInDialog } from "@/components/sign-in-dialog";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
+import type { UserData } from "@/lib/types";
 
 export default function HomePage() {
   const [user, setUser] = useState<User | null>(null);
@@ -16,11 +18,20 @@ export default function HomePage() {
   const router = useRouter();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
-        // Redirect logged-in users to the trainer dashboard
-        router.push('/trainerhome');
+        // Redirect based on role
+        const userDocRef = doc(db, "users", currentUser.uid);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+            const userData = userDoc.data() as UserData;
+            if (userData.role === 'trainer') {
+                router.push('/trainerhome');
+            } else {
+                router.push('/studenthome');
+            }
+        }
       }
     });
     return () => unsubscribe();

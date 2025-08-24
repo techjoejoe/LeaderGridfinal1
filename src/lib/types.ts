@@ -40,7 +40,7 @@ export type UserData = {
     uid: string;
     email: string | null;
     displayName: string | null;
-    role: 'trainer' | 'learner';
+    role: 'trainer' | 'student';
     classIds: string[]; // List of classes the user is a member of
 };
 
@@ -49,6 +49,7 @@ export type Class = {
     id: string;
     name: string;
     trainerUid: string;
+    trainerName?: string; // Denormalized for easy display
     learnerUids: string[];
     createdAt: Timestamp;
     inviteCode: string;
@@ -62,7 +63,7 @@ export interface PollOption {
 }
 
 export interface Poll {
-  id: string;
+  id:string;
   question: string;
   options: PollOption[];
   isActive: boolean;

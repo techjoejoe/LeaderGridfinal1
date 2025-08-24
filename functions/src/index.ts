@@ -305,3 +305,50 @@ export const submitVote = functions.https.onCall(async (data, context) => {
     
     return { success: true };
 });
+
+export const joinClass = functions.https.onCall(async (data, context) => {
+    const uid = context.auth?.uid;
+    if (!uid) throw new functions.https.HttpsError('unauthenticated', 'You must be logged in to join a class.');
+    
+    const { inviteCode } = data;
+    if (!inviteCode || typeof inviteCode !== 'string') {
+        throw new functions.https.HttpsError('invalid-argument', 'An invite code must be provided.');
+    }
+
+    const classesRef = db.collection('classes');
+    const classQuery = classesRef.where('inviteCode', '==', inviteCode).limit(1);
+
+    try {
+        const snapshot = await classQuery.get();
+        if (snapshot.empty) {
+            return { success: false, message: 'Invalid invite code. No class found.' };
+        }
+
+        const classDoc = snapshot.docs[0];
+        const classId = classDoc.id;
+        const classData = classDoc.data();
+
+        if (classData.trainerUid === uid) {
+            return { success: false, message: 'You cannot join a class you are training.' };
+        }
+
+        const studentRef = db.collection('users').doc(uid);
+
+        // Atomically add student to class and class to student
+        const classUpdatePromise = classDoc.ref.update({
+            learnerUids: admin.firestore.FieldValue.arrayUnion(uid)
+        });
+
+        const studentUpdatePromise = studentRef.update({
+            classIds: admin.firestore.FieldValue.arrayUnion(classId)
+        });
+        
+        await Promise.all([classUpdatePromise, studentUpdatePromise]);
+        
+        return { success: true, message: `Successfully joined "${classData.name}"!` };
+
+    } catch (error) {
+        functions.logger.error('Error joining class:', error);
+        throw new functions.https.HttpsError('internal', 'An unexpected error occurred while trying to join the class.');
+    }
+});

@@ -2,10 +2,12 @@
 "use client";
 
 import { signOut, User } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LogIn, LogOut, LayoutDashboard, Shuffle, Trophy, Users } from "lucide-react";
+import { LogIn, LogOut, LayoutDashboard, User as UserIcon } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
+import type { UserData } from "@/lib/types";
 
 type AuthButtonProps = {
   user: User | null;
@@ -22,6 +25,20 @@ type AuthButtonProps = {
 };
 
 export function AuthButton({ user, onSignInClick }: AuthButtonProps) {
+  const [userData, setUserData] = useState<UserData | null>(null);
+
+  useEffect(() => {
+    if (user) {
+      const userDocRef = doc(db, "users", user.uid);
+      getDoc(userDocRef).then(docSnap => {
+        if (docSnap.exists()) {
+          setUserData(docSnap.data() as UserData);
+        }
+      });
+    } else {
+      setUserData(null);
+    }
+  }, [user]);
 
   const handleSignOut = async () => {
     try {
@@ -30,6 +47,8 @@ export function AuthButton({ user, onSignInClick }: AuthButtonProps) {
       console.error("Error during sign-out:", error);
     }
   };
+
+  const dashboardLink = userData?.role === 'trainer' ? "/trainerhome" : "/studenthome";
 
   if (user) {
     return (
@@ -46,29 +65,19 @@ export function AuthButton({ user, onSignInClick }: AuthButtonProps) {
                 <DropdownMenuLabel>{user.displayName}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                  <DropdownMenuItem asChild>
-                    <Link href="/trainerhome">
+                    <Link href={dashboardLink}>
                         <LayoutDashboard className="mr-2 h-4 w-4" />
-                        <span>Trainer Home</span>
+                        <span>My Dashboard</span>
                     </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                    <Link href="/randomizer">
-                        <Shuffle className="mr-2 h-4 w-4" />
-                        <span>Randomizer</span>
-                    </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                    <Link href="/contests">
-                        <Trophy className="mr-2 h-4 w-4" />
-                        <span>PicPick Contests</span>
-                    </Link>
-                </DropdownMenuItem>
-                 <DropdownMenuItem asChild>
-                    <Link href="/studentlogin">
-                        <Users className="mr-2 h-4 w-4" />
-                        <span>Student Login</span>
-                    </Link>
-                </DropdownMenuItem>
+                {userData?.role === 'trainer' && (
+                  <DropdownMenuItem asChild>
+                      <Link href="/studentlogin">
+                          <UserIcon className="mr-2 h-4 w-4" />
+                          <span>Student View</span>
+                      </Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut}>
                     <LogOut className="mr-2 h-4 w-4" />
