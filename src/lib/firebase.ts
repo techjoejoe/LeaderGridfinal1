@@ -14,7 +14,7 @@ const firebaseConfig = {
   apiKey: 'AIzaSyD9PJNtR7WLhjCbDbhdCgK0Zn3Y4_d8l3E',
   authDomain: 'picvote-h2ow0.firebaseapp.com',
   messagingSenderId: '264559552753',
-  databaseURL: 'https://picvote-h2ow0-default-rtdb.firebaseio.com',
+  databaseURL: "https://picvote-h2ow0-default-rtdb.firebaseio.com",
 };
 
 const app = initializeApp(firebaseConfig);
