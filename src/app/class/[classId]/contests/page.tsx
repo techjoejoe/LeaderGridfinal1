@@ -8,21 +8,27 @@ import { getFunctions, httpsCallable } from "firebase/functions";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, ArrowLeft } from "lucide-react";
 import { CreateContestDialog } from "@/components/create-contest-dialog";
 import { ContestList } from "@/components/contest-list";
 import { SignInDialog } from "@/components/sign-in-dialog";
 import type { Contest, ContestImageShape } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
+import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 
 
-export default function ContestsPage() {
+export default function ClassContestsPage() {
   const [user, setUser] = useState<User | null>(null);
   const [isSignInOpen, setSignInOpen] = useState(false);
   const [isCreateContestOpen, setCreateContestOpen] = useState(false);
   const [contests, setContests] = useState<Contest[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const params = useParams<{ classId: string }>();
+  const classId = params.classId;
+  const router = useRouter();
+
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
@@ -32,9 +38,19 @@ export default function ContestsPage() {
   }, []);
 
   useEffect(() => {
+    if (!classId) {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Class ID is missing. Cannot load contests.",
+        });
+        setLoading(false);
+        router.push("/trainerhome");
+        return;
+    }
+    
     setLoading(true);
-    // This query now correctly fetches contests that are not associated with a class (public contests)
-    const q = query(collection(db, "contests"), where("classId", "==", null));
+    const q = query(collection(db, "contests"), where("classId", "==", classId));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const contestsData = snapshot.docs.map(
@@ -47,22 +63,30 @@ export default function ContestsPage() {
         toast({
             variant: "destructive",
             title: "Error",
-            description: "Could not fetch contests.",
+            description: "Could not fetch contests for this class.",
         });
         setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [toast]);
+  }, [classId, toast, router]);
 
   const handleCreateContest = async (contestName: string, imageShape: ContestImageShape, startDate: Date, endDate: Date, password?: string) => {
     if (!user) {
       setSignInOpen(true);
       return;
     }
+    if (!classId) {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Cannot create contest without a class ID.",
+        });
+        return;
+    }
 
     try {
-      const newContestData: Omit<Contest, 'id' | 'createdAt' | 'classId'> = {
+      const newContestData: Omit<Contest, 'id' | 'createdAt'> = {
         name: contestName,
         creatorUid: user.uid,
         creatorName: user.displayName || "Anonymous",
@@ -70,22 +94,22 @@ export default function ContestsPage() {
         imageShape: imageShape,
         startDate: Timestamp.fromDate(startDate),
         endDate: Timestamp.fromDate(endDate),
+        classId: classId,
       };
 
       if (password) {
-        (newContestData as Contest).hasPassword = true;
-        (newContestData as Contest).password = password;
+        newContestData.hasPassword = true;
+        newContestData.password = password;
       }
 
       await addDoc(collection(db, "contests"), {
         ...newContestData,
         createdAt: serverTimestamp(),
-        classId: null, // Explicitly set classId to null for public contests
       });
 
       toast({
         title: "Contest Created!",
-        description: `Your contest "${contestName}" is now active.`,
+        description: `Your contest "${contestName}" is now active for this class.`,
       });
       setCreateContestOpen(false);
     } catch (error) {
@@ -148,11 +172,19 @@ export default function ContestsPage() {
       />
       <main className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-headline font-bold">Public Contests</h1>
-          <Button onClick={() => user ? setCreateContestOpen(true) : setSignInOpen(true)} >
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Create New Contest
-          </Button>
+            <div>
+                <Button asChild variant="outline" size="sm" className="mb-2">
+                  <Link href={`/class/${classId}`}>
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back to Class
+                  </Link>
+                </Button>
+                <h1 className="text-3xl font-headline font-bold">Class Contests</h1>
+            </div>
+            <Button onClick={() => user ? setCreateContestOpen(true) : setSignInOpen(true)} >
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Create New Contest
+            </Button>
         </div>
         
         {user ? (
