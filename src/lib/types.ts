@@ -53,3 +53,28 @@ export type Class = {
     createdAt: Timestamp;
     inviteCode: string;
 };
+
+// Live Polling Types
+export interface PollOption {
+  id: string;
+  text: string;
+  votes: number;
+}
+
+export interface Poll {
+  id: string;
+  question: string;
+  options: PollOption[];
+  isActive: boolean;
+  createdAt: number; // timestamp
+}
+
+export interface PollSession {
+  id: string; // same as classId
+  code: string; // User-friendly code to join
+  adminUid: string; // trainer's uid
+  polls: { [pollId: string]: Poll };
+  activePollId?: string | null;
+  isAcceptingVotes: boolean;
+  createdAt: number; // timestamp
+}
