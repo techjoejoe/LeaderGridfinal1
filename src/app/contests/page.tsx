@@ -40,6 +40,8 @@ export default function ContestsPage() {
     if (classId) {
       q = query(collection(db, "contests"), where("classId", "==", classId));
     } else {
+      // This logic will need to be refined if you want a global contest page.
+      // For now, it fetches contests NOT associated with any class.
       q = query(collection(db, "contests"), where("classId", "==", null));
     }
 
@@ -67,6 +69,9 @@ export default function ContestsPage() {
       setSignInOpen(true);
       return;
     }
+    
+    // Explicitly get classId from searchParams here
+    const currentClassId = searchParams.get('classId');
 
     try {
       const newContestData: Omit<Contest, 'id' | 'createdAt'> = {
@@ -77,15 +82,12 @@ export default function ContestsPage() {
         imageShape: imageShape,
         startDate: Timestamp.fromDate(startDate),
         endDate: Timestamp.fromDate(endDate),
+        classId: currentClassId || undefined,
       };
 
       if (password) {
         newContestData.hasPassword = true;
         newContestData.password = password;
-      }
-      
-      if (classId) {
-        newContestData.classId = classId;
       }
 
       await addDoc(collection(db, "contests"), {
@@ -193,4 +195,3 @@ export default function ContestsPage() {
     </>
   );
 }
-
