@@ -132,8 +132,7 @@ export default function ClassDashboardPage() {
       disabled: true
     },
     { 
-      icon: QrCode,
-      title: "QR Code Points",
+      icon: <Image src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/LeaderGridMascotLogo.png?alt=media&token=98f67c05-c876-4426-9f91-26cdbc73bbf6" alt="QR Code Points" width={225} height={225} data-ai-hint="qr code" />,
       description: "Award points to learners by scanning a unique QR code.", 
       href: `/qrcode-points?classId=${classId}`,
       disabled: true
