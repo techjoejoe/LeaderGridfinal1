@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { collection, onSnapshot, addDoc, serverTimestamp, Timestamp } from "firebase/firestore";
+import { collection, onSnapshot, addDoc, serverTimestamp, Timestamp, query, where } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { onAuthStateChanged, User } from "firebase/auth";
@@ -14,6 +14,7 @@ import { ContestList } from "@/components/contest-list";
 import { SignInDialog } from "@/components/sign-in-dialog";
 import type { Contest, ContestImageShape } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
+import { useSearchParams } from "next/navigation";
 
 
 export default function ContestsPage() {
@@ -23,6 +24,8 @@ export default function ContestsPage() {
   const [contests, setContests] = useState<Contest[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const searchParams = useSearchParams();
+  const classId = searchParams.get('classId');
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
@@ -33,16 +36,31 @@ export default function ContestsPage() {
 
   useEffect(() => {
     setLoading(true);
-    const unsubscribe = onSnapshot(collection(db, "contests"), (snapshot) => {
+    let q;
+    if (classId) {
+      q = query(collection(db, "contests"), where("classId", "==", classId));
+    } else {
+      q = query(collection(db, "contests"));
+    }
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
       const contestsData = snapshot.docs.map(
         (doc) => ({ ...doc.data(), id: doc.id } as Contest)
       );
       setContests(contestsData.sort((a, b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0)));
       setLoading(false);
+    }, (error) => {
+        console.error("Error fetching contests:", error);
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Could not fetch contests.",
+        });
+        setLoading(false);
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [classId, toast]);
 
   const handleCreateContest = async (contestName: string, imageShape: ContestImageShape, startDate: Date, endDate: Date, password?: string) => {
     if (!user) {
@@ -64,6 +82,10 @@ export default function ContestsPage() {
       if (password) {
         newContest.hasPassword = true;
         newContest.password = password;
+      }
+      
+      if (classId) {
+        newContest.classId = classId;
       }
 
       await addDoc(collection(db, "contests"), {
@@ -171,3 +193,4 @@ export default function ContestsPage() {
     </>
   );
 }
+
