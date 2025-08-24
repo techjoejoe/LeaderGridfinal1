@@ -14,13 +14,13 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import type { Poll, PollSession } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, QrCode, Trash2, X, PlusCircle, ExternalLink, Presentation, Copy } from 'lucide-react';
 import { AdminDashboard } from "@/components/live-vote/admin-dashboard";
 import { VotingInterface } from "@/components/live-vote/voting-interface";
+import { getFunctions, httpsCallable } from "firebase/functions";
 
 function LiveVoteContent() {
   const searchParams = useSearchParams();
-  const router = useRouter(); // Moved from parent
+  const router = useRouter();
   const classId = searchParams.get('classId');
   const sessionCode = searchParams.get('sessionCode');
 
@@ -34,10 +34,7 @@ function LiveVoteContent() {
   const verifyAdmin = useCallback(async (user: User, classId: string) => {
     const classRef = doc(db, "classes", classId);
     const classSnap = await getDoc(classRef);
-    if (classSnap.exists() && classSnap.data().trainerUid === user.uid) {
-      return true;
-    }
-    return false;
+    return classSnap.exists() && classSnap.data().trainerUid === user.uid;
   }, []);
 
   useEffect(() => {
@@ -60,71 +57,88 @@ function LiveVoteContent() {
       } else {
         setView('no_session');
       }
-      setLoading(false);
     });
     return () => unsubscribe();
   }, [classId, sessionCode, router, toast, verifyAdmin]);
 
   // Listener for session data for both admin and voter
   useEffect(() => {
-    const sessionId = classId || sessionData?.id;
-    if (!sessionId) {
-      if (sessionCode) {
-        // If we are a voter, we need to find the session ID from the code first
-        const sessionsRef = ref(rtdb, 'live-polls');
-        get(sessionsRef).then(snapshot => {
-          if (snapshot.exists()) {
-            const allSessions = snapshot.val();
-            const matchingSessionId = Object.keys(allSessions).find(id => allSessions[id].code === sessionCode);
-            if (matchingSessionId) {
-              const sessionRef = ref(rtdb, `live-polls/${matchingSessionId}`);
-              onValue(sessionRef, (snapshot) => {
-                setSessionData(snapshot.val());
-              });
-            } else {
-              setView('no_session');
-            }
-          } else {
-            setView('no_session');
-          }
-        });
+    let sessionId: string | null = classId;
+
+    const findSessionIdByCode = async (code: string) => {
+      const sessionsRef = ref(rtdb, 'live-polls');
+      const snapshot = await get(sessionsRef);
+      if (snapshot.exists()) {
+        const allSessions = snapshot.val();
+        const matchingId = Object.keys(allSessions).find(id => allSessions[id].code === code);
+        return matchingId || null;
       }
-      return;
+      return null;
+    };
+
+    const setupListener = (id: string) => {
+      const sessionRef = ref(rtdb, `live-polls/${id}`);
+      const unsubscribe = onValue(sessionRef, (snapshot) => {
+        const data = snapshot.val();
+        setSessionData(data);
+        setLoading(false);
+        if (view === 'voter' && !data) {
+          toast({ variant: 'destructive', title: 'Session Not Found' });
+          setView('no_session');
+        }
+      });
+      return unsubscribe;
+    };
+
+    let unsubscribe: (() => void) | undefined;
+
+    const initialize = async () => {
+      if (view === 'loading') return;
+      
+      setLoading(true);
+
+      if (view === 'admin' && classId) {
+        unsubscribe = setupListener(classId);
+      } else if (view === 'voter' && sessionCode) {
+        sessionId = await findSessionIdByCode(sessionCode);
+        if (sessionId) {
+          unsubscribe = setupListener(sessionId);
+        } else {
+          setSessionData(null);
+          setView('no_session');
+          setLoading(false);
+        }
+      } else {
+        setLoading(false);
+      }
     };
     
-    const sessionRef = ref(rtdb, `live-polls/${sessionId}`);
-    const unsubscribe = onValue(sessionRef, (snapshot) => {
-      const data = snapshot.val();
-      setSessionData(data);
-      if (view === 'admin' && !data) {
-        // Admin view but no session yet, this is fine
-      } else if (view === 'voter' && !data) {
-        toast({ variant: 'destructive', title: 'Session Not Found' });
-        setView('no_session');
-      }
-    });
+    initialize();
 
-    return () => unsubscribe();
-  }, [classId, sessionCode, toast, view, sessionData?.id]);
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [view, classId, sessionCode, toast]);
 
 
   const createSession = async () => {
     if (!user || !classId) return;
-    const sessionCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-    const sessionRef = ref(rtdb, `live-polls/${classId}`);
-    const newSession: PollSession = {
-      id: classId,
-      code: sessionCode,
-      adminUid: user.uid,
-      polls: {},
-      isAcceptingVotes: true,
-      createdAt: Date.now(),
-    };
-    await set(sessionRef, newSession);
-    setSessionData(newSession);
+    setLoading(true);
+    try {
+        const functions = getFunctions();
+        const createPollSession = httpsCallable(functions, 'createPollSession');
+        await createPollSession({ classId: classId });
+        // The listener will automatically pick up the new session data
+    } catch (error: any) {
+        console.error("Error creating session:", error);
+        toast({ variant: "destructive", title: "Error", description: error.message || "Could not create session."});
+        setLoading(false);
+    }
   };
   
-  if (loading || view === 'loading') {
+  if (view === 'loading') {
     return <div className="text-center p-10">Loading...</div>;
   }
 
@@ -142,6 +156,7 @@ function LiveVoteContent() {
             classId={classId}
             session={sessionData}
             onCreateSession={createSession}
+            loading={loading}
           />
         )}
         {view === 'voter' && sessionCode && (

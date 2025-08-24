@@ -9,8 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { PlusCircle, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { ref, update } from "firebase/database";
-import { rtdb } from '@/lib/firebase';
+import { getFunctions, httpsCallable } from "firebase/functions";
 
 type PollCreatorProps = {
   session: PollSession;
@@ -19,6 +18,7 @@ type PollCreatorProps = {
 export function PollCreator({ session }: PollCreatorProps) {
   const [question, setQuestion] = useState('');
   const [options, setOptions] = useState<string[]>(['', '']);
+  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
   const handleOptionChange = (index: number, value: string) => {
@@ -51,29 +51,26 @@ export function PollCreator({ session }: PollCreatorProps) {
       return;
     }
 
-    const newPollId = `poll_${Date.now()}`;
-    const newPoll: Poll = {
-      id: newPollId,
-      question,
-      options: filledOptions.map((opt, index) => ({
-        id: String.fromCharCode(65 + index), // A, B, C...
-        text: opt,
-        votes: 0,
-      })),
-      isActive: false,
-      createdAt: Date.now(),
-    };
+    setLoading(true);
 
     try {
-      const sessionRef = ref(rtdb, `live-polls/${session.id}/polls/${newPollId}`);
-      await update(ref(rtdb, `live-polls/${session.id}/polls`), { [newPollId]: newPoll });
+      const functions = getFunctions();
+      const createPollCallable = httpsCallable(functions, 'createPoll');
+      
+      await createPollCallable({ 
+        sessionId: session.id,
+        question,
+        options: filledOptions,
+      });
       
       toast({ title: 'Poll Created!', description: `"${question}" is ready to be activated.` });
       setQuestion('');
       setOptions(['', '']);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating poll:", error);
-      toast({ variant: 'destructive', title: 'Error', description: 'Could not create the poll.' });
+      toast({ variant: 'destructive', title: 'Error', description: error.message || 'Could not create the poll.' });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -98,14 +95,14 @@ export function PollCreator({ session }: PollCreatorProps) {
                 placeholder={`Option ${index + 1}`}
               />
               {options.length > 2 && (
-                <Button variant="ghost" size="icon" onClick={() => removeOption(index)}>
+                <Button variant="ghost" size="icon" onClick={() => removeOption(index)} disabled={loading}>
                   <X className="h-4 w-4" />
                 </Button>
               )}
             </div>
           ))}
           {options.length < 5 && (
-            <Button variant="outline" size="sm" onClick={addOption}>
+            <Button variant="outline" size="sm" onClick={addOption} disabled={loading}>
               <PlusCircle className="mr-2 h-4 w-4" />
               Add Option
             </Button>
@@ -113,7 +110,7 @@ export function PollCreator({ session }: PollCreatorProps) {
         </div>
       </CardContent>
       <CardFooter>
-        <Button onClick={handleSubmit}>Create Poll</Button>
+        <Button onClick={handleSubmit} disabled={loading}>{loading ? 'Creating...' : 'Create Poll'}</Button>
       </CardFooter>
     </Card>
   );

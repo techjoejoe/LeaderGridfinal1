@@ -7,9 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { PollCreator } from './poll-creator';
 import { PollList } from './poll-list';
-import { QrCode, Presentation, Copy, ExternalLink } from 'lucide-react';
+import { QrCode, Presentation, Copy, ExternalLink, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import QRCode from 'qrcode.react';
+import { getFunctions, httpsCallable } from "firebase/functions";
 import {
   Dialog,
   DialogContent,
@@ -22,11 +23,21 @@ type AdminDashboardProps = {
   classId: string;
   session: PollSession | null;
   onCreateSession: () => void;
+  loading: boolean;
 };
 
-export function AdminDashboard({ classId, session, onCreateSession }: AdminDashboardProps) {
+export function AdminDashboard({ classId, session, onCreateSession, loading }: AdminDashboardProps) {
   const [isQrModalOpen, setQrModalOpen] = useState(false);
   const { toast } = useToast();
+
+  if (loading) {
+     return (
+      <div className="text-center">
+        <Loader2 className="mx-auto h-12 w-12 animate-spin" />
+        <p className="text-muted-foreground mt-4">Loading Session...</p>
+      </div>
+    );
+  }
 
   if (!session) {
     return (

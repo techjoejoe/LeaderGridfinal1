@@ -2,9 +2,11 @@
 import * as admin from "firebase-admin";
 import * as functions from "firebase-functions";
 import { getStorage } from "firebase-admin/storage";
+import type { Poll, PollSession } from "../../src/lib/types";
 
 admin.initializeApp();
 const db = admin.firestore();
+const rtdb = admin.database();
 
 export const deleteContest = functions.https.onCall(async (data, context) => {
   const contestId = data.contestId;
@@ -146,4 +148,160 @@ export const scheduledContestCleanup = functions.pubsub.schedule('every 24 hours
   
   functions.logger.log('Scheduled contest cleanup finished.');
   return null;
+});
+
+
+// Live Polling Cloud Functions
+
+// Helper to verify if user is the trainer of a class
+const verifyClassTrainer = async (uid: string, classId: string) => {
+  const classRef = db.collection('classes').doc(classId);
+  const classDoc = await classRef.get();
+  if (!classDoc.exists || classDoc.data()?.trainerUid !== uid) {
+    throw new functions.https.HttpsError('permission-denied', 'You are not authorized to perform this action.');
+  }
+};
+
+export const createPollSession = functions.https.onCall(async (data, context) => {
+  const uid = context.auth?.uid;
+  if (!uid) throw new functions.https.HttpsError('unauthenticated', 'You must be logged in.');
+
+  const { classId } = data;
+  if (!classId) throw new functions.https.HttpsError('invalid-argument', 'Class ID is required.');
+  
+  await verifyClassTrainer(uid, classId);
+
+  const sessionRef = rtdb.ref(`live-polls/${classId}`);
+  const sessionCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+  const newSession: PollSession = {
+    id: classId,
+    code: sessionCode,
+    adminUid: uid,
+    polls: {},
+    isAcceptingVotes: true,
+    createdAt: Date.now(),
+  };
+
+  await sessionRef.set(newSession);
+  return { success: true, sessionId: classId };
+});
+
+export const createPoll = functions.https.onCall(async (data, context) => {
+  const uid = context.auth?.uid;
+  if (!uid) throw new functions.https.HttpsError('unauthenticated', 'You must be logged in.');
+  
+  const { sessionId, question, options } = data;
+  if (!sessionId || !question || !options || !Array.isArray(options) || options.length < 2) {
+    throw new functions.https.HttpsError('invalid-argument', 'Invalid poll data provided.');
+  }
+  
+  await verifyClassTrainer(uid, sessionId);
+
+  const pollId = `poll_${Date.now()}`;
+  const newPoll: Poll = {
+    id: pollId,
+    question,
+    options: options.map((opt, index) => ({
+      id: String.fromCharCode(65 + index), // A, B, C...
+      text: opt,
+      votes: 0,
+    })),
+    isActive: false,
+    createdAt: Date.now(),
+  };
+
+  const pollRef = rtdb.ref(`live-polls/${sessionId}/polls/${pollId}`);
+  await pollRef.set(newPoll);
+
+  return { success: true, pollId };
+});
+
+export const togglePollActive = functions.https.onCall(async (data, context) => {
+  const uid = context.auth?.uid;
+  if (!uid) throw new functions.https.HttpsError('unauthenticated', 'You must be logged in.');
+
+  const { sessionId, pollId, isActive } = data;
+  if (!sessionId || !pollId || typeof isActive !== 'boolean') {
+    throw new functions.https.HttpsError('invalid-argument', 'Invalid data provided.');
+  }
+  
+  await verifyClassTrainer(uid, sessionId);
+
+  const sessionRef = rtdb.ref(`live-polls/${sessionId}`);
+  const updates: any = {};
+
+  if (isActive) {
+    // Deactivate any currently active poll
+    const pollsSnapshot = await rtdb.ref(`live-polls/${sessionId}/polls`).get();
+    if(pollsSnapshot.exists()) {
+        const polls = pollsSnapshot.val();
+        for (const pId in polls) {
+            if (polls[pId].isActive) {
+                updates[`/polls/${pId}/isActive`] = false;
+            }
+        }
+    }
+    updates[`/polls/${pollId}/isActive`] = true;
+    updates['activePollId'] = pollId;
+  } else {
+    updates[`/polls/${pollId}/isActive`] = false;
+    updates['activePollId'] = null;
+  }
+
+  await sessionRef.update(updates);
+  return { success: true };
+});
+
+export const deletePoll = functions.https.onCall(async (data, context) => {
+  const uid = context.auth?.uid;
+  if (!uid) throw new functions.https.HttpsError('unauthenticated', 'You must be logged in.');
+
+  const { sessionId, pollId } = data;
+  if (!sessionId || !pollId) {
+    throw new functions.https.HttpsError('invalid-argument', 'Invalid data provided.');
+  }
+
+  await verifyClassTrainer(uid, sessionId);
+
+  const pollRef = rtdb.ref(`live-polls/${sessionId}/polls/${pollId}`);
+  await pollRef.remove();
+  
+  // If the deleted poll was active, clear the activePollId
+  const sessionRef = rtdb.ref(`live-polls/${sessionId}`);
+  const activePollIdSnapshot = await sessionRef.child('activePollId').get();
+  if (activePollIdSnapshot.exists() && activePollIdSnapshot.val() === pollId) {
+      await sessionRef.update({ activePollId: null });
+  }
+
+  return { success: true };
+});
+
+export const submitVote = functions.https.onCall(async (data, context) => {
+    // Note: This function allows unauthenticated calls for voters.
+    // In a real-world app, you'd add more robust duplicate vote prevention (e.g., IP address tracking).
+    const { sessionId, pollId, optionId } = data;
+    if (!sessionId || !pollId || !optionId) {
+        throw new functions.https.HttpsError('invalid-argument', 'Missing required vote data.');
+    }
+
+    const sessionRef = rtdb.ref(`live-polls/${sessionId}`);
+    const sessionSnapshot = await sessionRef.get();
+    if (!sessionSnapshot.exists()) {
+        throw new functions.https.HttpsError('not-found', 'Session not found.');
+    }
+    
+    const poll = sessionSnapshot.child(`polls/${pollId}`).val() as Poll;
+    if (!poll || !poll.isActive) {
+        throw new functions.https.HttpsError('failed-precondition', 'This poll is not active.');
+    }
+
+    const optionIndex = poll.options.findIndex(o => o.id === optionId);
+    if (optionIndex === -1) {
+        throw new functions.https.HttpsError('not-found', 'Invalid option selected.');
+    }
+    
+    const optionRef = rtdb.ref(`live-polls/${sessionId}/polls/${pollId}/options/${optionIndex}/votes`);
+    await optionRef.set(admin.database.ServerValue.increment(1));
+    
+    return { success: true };
 });

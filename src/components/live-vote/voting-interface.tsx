@@ -5,8 +5,7 @@ import React, { useState, useEffect } from 'react';
 import type { Poll, PollSession } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ref, update, increment } from "firebase/database";
-import { rtdb } from '@/lib/firebase';
+import { getFunctions, httpsCallable } from "firebase/functions";
 import { useToast } from '@/hooks/use-toast';
 import { ResultsDisplay } from './results-display';
 import { CheckCircle } from 'lucide-react';
@@ -18,6 +17,7 @@ type VotingInterfaceProps = {
 
 export function VotingInterface({ session, sessionCode }: VotingInterfaceProps) {
   const [votedPolls, setVotedPolls] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -30,17 +30,15 @@ export function VotingInterface({ session, sessionCode }: VotingInterfaceProps) 
 
   const handleVote = async (pollId: string, optionId: string) => {
     if (!session || votedPolls.includes(pollId)) return;
+    setLoading(true);
 
     try {
-      const voteRef = ref(rtdb, `live-polls/${session.id}/polls/${pollId}/options`);
-      
-      const poll = session.polls[pollId];
-      const optionIndex = poll.options.findIndex(o => o.id === optionId);
-      
-      if (optionIndex === -1) throw new Error("Option not found");
-      
-      await update(ref(rtdb, `live-polls/${session.id}/polls/${pollId}/options/${optionIndex}`), {
-        votes: increment(1)
+      const functions = getFunctions();
+      const submitVoteCallable = httpsCallable(functions, 'submitVote');
+      await submitVoteCallable({
+          sessionId: session.id,
+          pollId: pollId,
+          optionId: optionId
       });
       
       const newVotedPolls = [...votedPolls, pollId];
@@ -48,9 +46,11 @@ export function VotingInterface({ session, sessionCode }: VotingInterfaceProps) 
       localStorage.setItem(`live-vote-history-${sessionCode}`, JSON.stringify(newVotedPolls));
 
       toast({ title: 'Vote Cast!', description: 'Thank you for your participation.' });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error casting vote:", error);
-      toast({ variant: 'destructive', title: 'Error', description: 'Could not cast your vote.' });
+      toast({ variant: 'destructive', title: 'Error', description: error.message || 'Could not cast your vote.' });
+    } finally {
+        setLoading(false);
     }
   };
 
@@ -107,6 +107,7 @@ export function VotingInterface({ session, sessionCode }: VotingInterfaceProps) 
                 onClick={() => handleVote(activePoll.id, option.id)}
                 className="h-auto py-4 text-base"
                 variant="outline"
+                disabled={loading}
               >
                 {option.text}
               </Button>

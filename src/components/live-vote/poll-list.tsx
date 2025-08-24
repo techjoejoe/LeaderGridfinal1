@@ -1,13 +1,12 @@
 
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import type { Poll, PollSession } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Trash2 } from 'lucide-react';
-import { ref, update, remove } from "firebase/database";
-import { rtdb } from '@/lib/firebase';
+import { getFunctions, httpsCallable } from "firebase/functions";
 import { useToast } from '@/hooks/use-toast';
 import { ResultsDisplay } from './results-display';
 
@@ -17,55 +16,46 @@ type PollListProps = {
 
 export function PollList({ session }: PollListProps) {
   const { toast } = useToast();
+  const [loadingPollId, setLoadingPollId] = useState<string | null>(null);
+
   const polls = session.polls ? Object.values(session.polls).sort((a, b) => b.createdAt - a.createdAt) : [];
 
   const handleToggleActivate = async (poll: Poll) => {
-    const sessionRef = ref(rtdb, `live-polls/${session.id}`);
+    setLoadingPollId(poll.id);
     try {
-      // If we are activating a new poll, deactivate any currently active poll
-      if (!poll.isActive) {
-        // Deactivate all other polls first
-        const updates: { [key: string]: any } = {
-          activePollId: poll.id
-        };
-        polls.forEach(p => {
-          if (p.isActive) {
-            updates[`/polls/${p.id}/isActive`] = false;
-          }
-        });
-         updates[`/polls/${poll.id}/isActive`] = true;
-        await update(sessionRef, updates);
-      } else {
-        // Deactivating the current poll
-        await update(sessionRef, {
-          activePollId: null,
-          [`/polls/${poll.id}/isActive`]: false
-        });
-      }
-    } catch (error) {
+      const functions = getFunctions();
+      const togglePollActiveCallable = httpsCallable(functions, 'togglePollActive');
+      await togglePollActiveCallable({
+        sessionId: session.id,
+        pollId: poll.id,
+        isActive: !poll.isActive
+      });
+    } catch (error: any) {
       console.error("Error toggling poll activation:", error);
-      toast({ variant: 'destructive', title: 'Error', description: 'Could not update poll status.' });
+      toast({ variant: 'destructive', title: 'Error', description: error.message || 'Could not update poll status.' });
+    } finally {
+        setLoadingPollId(null);
     }
   };
 
   const handleDeletePoll = async (pollId: string) => {
-    if (window.confirm('Are you sure you want to delete this poll? This cannot be undone.')) {
-      const pollRef = ref(rtdb, `live-polls/${session.id}/polls/${pollId}`);
-      try {
-        await remove(pollRef);
-
-        // If the deleted poll was active, clear the activePollId
-        if (session.activePollId === pollId) {
-            const sessionRef = ref(rtdb, `live-polls/${session.id}`);
-            await update(sessionRef, { activePollId: null });
+     if (window.confirm('Are you sure you want to delete this poll? This cannot be undone.')) {
+        setLoadingPollId(pollId);
+        try {
+            const functions = getFunctions();
+            const deletePollCallable = httpsCallable(functions, 'deletePoll');
+            await deletePollCallable({
+                sessionId: session.id,
+                pollId,
+            });
+            toast({ title: 'Poll Deleted' });
+        } catch (error: any) {
+            console.error("Error deleting poll:", error);
+            toast({ variant: 'destructive', title: 'Error', description: error.message || 'Could not delete the poll.' });
+        } finally {
+            setLoadingPollId(null);
         }
-
-        toast({ title: 'Poll Deleted' });
-      } catch (error) {
-        console.error("Error deleting poll:", error);
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not delete the poll.' });
-      }
-    }
+     }
   };
 
   return (
@@ -87,10 +77,11 @@ export function PollList({ session }: PollListProps) {
                     <Button
                       variant={poll.isActive ? "default" : "outline"}
                       onClick={() => handleToggleActivate(poll)}
+                      disabled={loadingPollId === poll.id}
                     >
-                      {poll.isActive ? "Deactivate" : "Activate"}
+                      {loadingPollId === poll.id ? '...' : (poll.isActive ? "Deactivate" : "Activate")}
                     </Button>
-                    <Button variant="destructive" size="icon" onClick={() => handleDeletePoll(poll.id)}>
+                    <Button variant="destructive" size="icon" onClick={() => handleDeletePoll(poll.id)} disabled={loadingPollId === poll.id}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
