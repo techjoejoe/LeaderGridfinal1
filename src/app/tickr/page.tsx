@@ -206,8 +206,16 @@ const ActivityTimer = () => {
   return (
     <div className={cn(
         "relative w-full h-full flex flex-col items-center justify-center transition-all duration-300",
-        isMaximized && "fixed inset-0 bg-gradient-to-br from-blue-900 to-purple-900 z-50 p-4"
+        isMaximized && "fixed inset-0 bg-gradient-to-br from-blue-900 to-purple-900 z-50 p-4 overflow-hidden"
     )}>
+        {isMaximized && (
+          <div className="absolute inset-0 -z-10">
+            <div className="absolute top-0 left-0 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob-1"></div>
+            <div className="absolute top-0 right-0 w-72 h-72 bg-yellow-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob-2"></div>
+            <div className="absolute bottom-0 left-1/4 w-72 h-72 bg-pink-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob-1 animation-delay-4000"></div>
+          </div>
+        )}
+
         <div className="absolute top-4 right-4 z-50 flex gap-2">
             <Button variant="ghost" size="icon" onClick={() => setIsMuted(!isMuted)}>
                 {isMuted ? <VolumeX className="text-white"/> : <Volume2 className="text-white"/>}
@@ -231,7 +239,7 @@ const ActivityTimer = () => {
             </div>
         ) : (
              <div className={cn(
-                "w-full transition-all duration-300",
+                "w-full transition-all duration-300 relative z-10",
                 isMaximized ? "h-full flex flex-col items-center justify-center" : "max-w-md bg-card rounded-xl shadow-lg overflow-hidden"
              )}>
                 {cardContent}
