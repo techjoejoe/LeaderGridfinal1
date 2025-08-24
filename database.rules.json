@@ -1,8 +1,56 @@
 {
   "rules": {
-    "live-polls": {
-      ".read": "true",
-      ".write": "false"
-    }
+    "databases": [{
+      "database": "(default)",
+      "rules": {
+        // Default deny all reads and writes
+        ".read": "false",
+        ".write": "false",
+
+        "users": {
+          // Any authenticated user can create their own user document
+          "$uid": {
+            ".read": "auth != null && auth.uid == $uid",
+            ".write": "auth != null && auth.uid == $uid"
+          }
+        },
+        
+        "classes": {
+          // Any authenticated user can create a class
+          ".write": "auth != null",
+          "$classId": {
+            // Only the trainer or a learner in the class can read it
+            ".read": "auth != null && (resource.data.trainerUid == auth.uid || auth.uid in resource.data.learnerUids)",
+            // Only the trainer can update it
+            ".update": "auth != null && resource.data.trainerUid == auth.uid",
+            // No one can delete a class directly (should be done via a function)
+            ".delete": "false"
+          }
+        },
+
+        "contests": {
+          // Any authenticated user can create a contest
+          ".write": "auth != null",
+          "$contestId": {
+            // Anyone can read contest details
+            ".read": "true",
+            // Only the creator can update or delete
+            ".update": "auth != null && resource.data.creatorUid == auth.uid",
+            ".delete": "auth != null && resource.data.creatorUid == auth.uid"
+          }
+        },
+
+        "images": {
+           // Any authenticated user can upload an image
+          ".write": "auth != null",
+          "$imageId": {
+            // Anyone can read image data
+            ".read": "true",
+            // Only the uploader can delete their image
+            ".delete": "auth != null && resource.data.uploaderUid == auth.uid"
+          }
+        }
+      }
+    }]
   }
 }
