@@ -4,14 +4,14 @@
 import { useState, useEffect } from "react";
 import type { Contest, PicVoteImage } from "@/lib/types";
 import { User } from "firebase/auth";
-import { collection, query, onSnapshot, where, doc, getDoc } from "firebase/firestore";
+import { collection, query, onSnapshot, where, doc, getDoc, limit, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useRouter } from 'next/navigation';
 import { Skeleton } from "@/components/ui/skeleton";
-import { format, formatDistanceToNow } from 'date-fns';
+import { format } from 'date-fns';
 import Image from "next/image";
 import { Trash2, Share2, Calendar, Lock } from "lucide-react";
 import {
@@ -34,65 +34,10 @@ type ContestListProps = {
   onDeleteContest: (contestId: string) => void;
 };
 
-function ContestWinnerDisplay({ contestId }: { contestId: string }) {
-  const [winners, setWinners] = useState<PicVoteImage[]>([]);
-  const [loading, setLoading] = useState(true);
+type ContestWithWinners = Contest & { winners?: PicVoteImage[] };
 
-  useEffect(() => {
-    const imagesQuery = query(
-      collection(db, "images"),
-      where("contestId", "==", contestId)
-    );
-    const unsubscribe = onSnapshot(imagesQuery, (snapshot) => {
-      const allImages = snapshot.docs.map(doc => ({...doc.data(), id: doc.id} as PicVoteImage));
-      const sortedWinners = allImages.sort((a, b) => b.votes - a.votes).slice(0, 3);
-      setWinners(sortedWinners);
-      setLoading(false);
-    });
-    return () => unsubscribe();
-  }, [contestId]);
 
-  const getMedal = (rank: number) => {
-    if (rank === 0) return "🥇";
-    if (rank === 1) return "🥈";
-    if (rank === 2) return "🥉";
-    return null;
-  }
-
-  if (loading) {
-    return (
-        <div className="flex items-center justify-center gap-4 p-4">
-            <Skeleton className="h-12 w-12 rounded-full" />
-            <Skeleton className="h-12 w-12 rounded-full" />
-            <Skeleton className="h-12 w-12 rounded-full" />
-        </div>
-    );
-  }
-  
-  if (winners.length === 0) return null;
-
-  return (
-    <CardContent>
-        <div className="flex items-end justify-center gap-4">
-            {winners.map((winner, index) => (
-                <div key={winner.id} className="flex flex-col items-center text-center">
-                    <span className="text-2xl">{getMedal(index)}</span>
-                    <Image
-                        src={winner.url}
-                        alt={winner.name}
-                        width={index === 0 ? 64 : 48}
-                        height={index === 0 ? 64 : 48}
-                        className="rounded-full object-cover border-2 border-card"
-                    />
-                    <p className="text-xs font-semibold mt-1 truncate max-w-16">{winner.name}</p>
-                </div>
-            ))}
-        </div>
-    </CardContent>
-  )
-}
-
-function ContestCard({ contest, user, onDeleteContest }: { contest: Contest, user: User | null, onDeleteContest: (contestId: string) => void }) {
+function ContestCard({ contest, user, onDeleteContest }: { contest: ContestWithWinners, user: User | null, onDeleteContest: (contestId: string) => void }) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isPasswordPromptOpen, setIsPasswordPromptOpen] = useState(false);
   const router = useRouter();
@@ -100,10 +45,14 @@ function ContestCard({ contest, user, onDeleteContest }: { contest: Contest, use
 
   const isCreator = user?.uid === contest.creatorUid;
   const isClassContest = !!contest.classId;
-  const viewUrl = isClassContest ? `/picpick?contestId=${contest.id}` : `/picpick?contestId=${contest.id}`;
-  const leaderboardUrl = isClassContest ? `/leaderboard?contestId=${contest.id}` : `/leaderboard?contestId=${contest.id}`;
-  const backUrl = isClassContest ? `/class/${contest.classId}/contests` : '/contests';
+  const viewUrl = `/picpick?contestId=${contest.id}`;
 
+  const getMedal = (rank: number) => {
+    if (rank === 0) return "🥇";
+    if (rank === 1) return "🥈";
+    if (rank === 2) return "🥉";
+    return null;
+  }
 
   const handleShare = () => {
     const contestUrl = `${window.location.origin}${viewUrl}`;
@@ -171,7 +120,25 @@ function ContestCard({ contest, user, onDeleteContest }: { contest: Contest, use
               </div>
             )}
           </CardHeader>
-          <ContestWinnerDisplay contestId={contest.id} />
+           {contest.winners && contest.winners.length > 0 && (
+            <CardContent>
+                <div className="flex items-end justify-center gap-4">
+                    {contest.winners.map((winner, index) => (
+                        <div key={winner.id} className="flex flex-col items-center text-center">
+                            <span className="text-2xl">{getMedal(index)}</span>
+                            <Image
+                                src={winner.url}
+                                alt={winner.name}
+                                width={index === 0 ? 64 : 48}
+                                height={index === 0 ? 64 : 48}
+                                className="rounded-full object-cover border-2 border-card"
+                            />
+                            <p className="text-xs font-semibold mt-1 truncate max-w-16">{winner.name}</p>
+                        </div>
+                    ))}
+                </div>
+            </CardContent>
+           )}
         </div>
         <CardFooter className="flex gap-2">
             <Button onClick={() => handleNavigation(viewUrl)} className="w-full">
@@ -226,6 +193,44 @@ function ContestCard({ contest, user, onDeleteContest }: { contest: Contest, use
 
 
 export function ContestList({ contests, loading, user, onDeleteContest }: ContestListProps) {
+  const [contestsWithWinners, setContestsWithWinners] = useState<ContestWithWinners[]>([]);
+
+  useEffect(() => {
+    const unsubscribers = contests.map(contest => {
+      const q = query(
+        collection(db, "images"),
+        where("contestId", "==", contest.id),
+        orderBy("votes", "desc"),
+        limit(3)
+      );
+
+      return onSnapshot(q, (snapshot) => {
+        const winners = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as PicVoteImage));
+        
+        setContestsWithWinners(prevContests => {
+          const newContests = [...prevContests];
+          const contestIndex = newContests.findIndex(c => c.id === contest.id);
+          const updatedContest = { ...contest, winners };
+          
+          if (contestIndex > -1) {
+            newContests[contestIndex] = updatedContest;
+          } else {
+            newContests.push(updatedContest);
+          }
+          // Sort by creation date after update
+          return newContests.sort((a, b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0));
+        });
+      });
+    });
+
+    // When contests list changes, update our internal state
+    setContestsWithWinners(contests.map(c => ({...c, winners: []})));
+
+    return () => {
+      unsubscribers.forEach(unsub => unsub());
+    };
+  }, [contests]);
+  
   if (loading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -262,7 +267,7 @@ export function ContestList({ contests, loading, user, onDeleteContest }: Contes
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {contests.map((contest) => (
+      {contestsWithWinners.map((contest) => (
         <div key={contest.id} className="flex flex-col">
             <ContestCard contest={contest} user={user} onDeleteContest={onDeleteContest} />
         </div>
