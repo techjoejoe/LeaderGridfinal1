@@ -456,7 +456,3 @@ export const joinQuizSession = functions.https.onCall(async (data, context) => {
 
     return { success: true, playerId, session: sessionSnapshot.val() };
 });
-
-    
-
-    
