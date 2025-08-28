@@ -41,6 +41,7 @@ function JoinClassCard({ onJoin }: { onJoin: (code: string) => void }) {
         e.preventDefault();
         if(inviteCode.trim()) {
             onJoin(inviteCode.trim().toUpperCase());
+            setInviteCode("");
         }
     }
     
@@ -116,22 +117,32 @@ export default function StudentHomePage() {
 
   useEffect(() => {
     if (user && userData && userData.classIds && userData.classIds.length > 0) {
-        const q = query(collection(db, "classes"), where("id", "in", userData.classIds));
+        // Firestore doesn't support 'in' queries with more than 30 items.
+        // If this becomes a limitation, we'd need to fetch docs one by one or denormalize data.
+        const classIdsToQuery = userData.classIds.slice(0, 30);
+        const q = query(collection(db, "classes"), where("__name__", "in", classIdsToQuery));
         const unsubscribeClasses = onSnapshot(q, async (querySnapshot) => {
             const classesData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Class));
             
             // Get trainer names
-            const trainerIds = [...new Set(classesData.map(c => c.trainerUid))];
-            const trainerDocs = await getDocs(query(collection(db, "users"), where("uid", "in", trainerIds)));
-            const trainerMap = new Map(trainerDocs.docs.map(d => [d.id, d.data().displayName]));
-            
-            const classesWithTrainerNames = classesData.map(c => ({
-              ...c,
-              trainerName: trainerMap.get(c.trainerUid) || "Unknown Trainer"
-            }));
-
-            setJoinedClasses(classesWithTrainerNames);
+            if (classesData.length > 0) {
+                const trainerIds = [...new Set(classesData.map(c => c.trainerUid))];
+                const trainerDocs = await getDocs(query(collection(db, "users"), where("uid", "in", trainerIds)));
+                const trainerMap = new Map(trainerDocs.docs.map(d => [d.id, d.data().displayName]));
+                
+                const classesWithTrainerNames = classesData.map(c => ({
+                  ...c,
+                  trainerName: trainerMap.get(c.trainerUid) || "Unknown Trainer"
+                }));
+    
+                setJoinedClasses(classesWithTrainerNames);
+            } else {
+                setJoinedClasses([]);
+            }
             setLoading(false);
+        }, (error) => {
+          console.error("Error fetching classes:", error);
+          setLoading(false);
         });
         return () => unsubscribeClasses();
     } else if (user) {
@@ -216,3 +227,4 @@ export default function StudentHomePage() {
     </>
   );
 }
+

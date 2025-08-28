@@ -321,7 +321,9 @@ export const submitVote = functions.https.onCall(async (data, context) => {
 
 export const joinClass = functions.https.onCall(async (data, context) => {
     const uid = context.auth?.uid;
-    if (!uid) throw new functions.https.HttpsError('unauthenticated', 'You must be logged in to join a class.');
+    if (!uid) {
+        throw new functions.https.HttpsError('unauthenticated', 'You must be logged in to join a class.');
+    }
     
     const { inviteCode } = data;
     if (!inviteCode || typeof inviteCode !== 'string') {
@@ -344,19 +346,22 @@ export const joinClass = functions.https.onCall(async (data, context) => {
         if (classData.trainerUid === uid) {
             return { success: false, message: 'You cannot join a class you are training.' };
         }
+        
+        if (classData.learnerUids?.includes(uid)) {
+            return { success: false, message: 'You are already a member of this class.' };
+        }
 
         const studentRef = db.collection('users').doc(uid);
 
-        // Atomically add student to class and class to student
-        const classUpdatePromise = classDoc.ref.update({
-            learnerUids: admin.firestore.FieldValue.arrayUnion(uid)
+        // Atomically add student to class and class to student using a transaction
+        await db.runTransaction(async (transaction) => {
+            transaction.update(classDoc.ref, {
+                learnerUids: admin.firestore.FieldValue.arrayUnion(uid)
+            });
+            transaction.set(studentRef, {
+                classIds: admin.firestore.FieldValue.arrayUnion(classId)
+            }, { merge: true }); // Use set with merge to create the field if it doesn't exist
         });
-
-        const studentUpdatePromise = studentRef.update({
-            classIds: admin.firestore.FieldValue.arrayUnion(classId)
-        });
-        
-        await Promise.all([classUpdatePromise, studentUpdatePromise]);
         
         return { success: true, message: `Successfully joined "${classData.name}"!` };
 
@@ -441,4 +446,3 @@ export const joinQuizSession = functions.https.onCall(async (data, context) => {
     return { success: true, playerId, session: sessionSnapshot.val() };
 });
 
-    
