@@ -255,22 +255,29 @@ function PicPickContent() {
     }
     setUploadOpen(false);
     toast({ title: "Uploading Photo...", description: "Please wait..." });
-
+  
     try {
-      const newImageDocRef = doc(collection(db, "images"));
-      const storageRef = ref(storage, `images/${newImageDocRef.id}.webp`);
+      // Use the contestId and a random string to create a unique path
+      const newImageId = doc(collection(db, "images")).id;
+      const storagePath = `images/${contestId}/${newImageId}.webp`;
+      const storageRef = ref(storage, storagePath);
+      
       const snapshot = await uploadString(storageRef, dataUrl, 'data_url');
       const downloadURL = await getDownloadURL(snapshot.ref);
       
-      await setDoc(newImageDocRef, {
+      const newImage: Omit<PicVoteImage, 'id'> = {
         name: photoName,
         firstName: user.displayName || "Anonymous",
         lastName: "",
         url: downloadURL,
+        storagePath: storagePath, // Store the direct path
         votes: 0,
         uploaderUid: user.uid,
         contestId: contestId,
-      } as Omit<PicVoteImage, 'id'>);
+      };
+
+      // Use the same ID for the firestore document
+      await setDoc(doc(db, "images", newImageId), newImage);
       
       toast({ title: "Photo Uploaded!", description: `${photoName} is now in the running.` });
     } catch (error) {
@@ -498,7 +505,5 @@ function HeaderWrapper() {
         </>
     );
 }
-
-    
 
     

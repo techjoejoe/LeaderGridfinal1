@@ -2,7 +2,7 @@
 import * as admin from "firebase-admin";
 import * as functions from "firebase-functions";
 import { getStorage } from "firebase-admin/storage";
-import type { Poll, PollSession } from "../../src/lib/types";
+import type { Poll, PollSession, QuizSession, QuizSettings, QuizQuestion, QuizPlayer } from "../../src/lib/types";
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -45,12 +45,57 @@ export const deleteContest = functions.https.onCall(async (data, context) => {
         "You do not have permission to delete this contest."
       );
     }
-    
-    // Deleting the document will trigger the onDelete cloud function for cleanup.
-    await contestRef.delete();
 
-    functions.logger.log(`Successfully initiated deletion for contest ${contestId}`);
-    return { success: true, message: "Contest deletion process started." };
+    // All logic is now consolidated here to prevent race conditions.
+    functions.logger.log(`Starting cleanup and deletion for contest: ${contestId}`);
+
+    const bucket = getStorage().bucket();
+    const batch = db.batch();
+
+    // 1. Delete all images associated with the contest
+    const imagesQuery = db.collection("images").where("contestId", "==", contestId);
+    const imagesSnapshot = await imagesQuery.get();
+
+    if (!imagesSnapshot.empty) {
+      functions.logger.log(`Found ${imagesSnapshot.size} images to delete.`);
+      imagesSnapshot.forEach((doc) => {
+        const imageData = doc.data();
+        if (imageData.storagePath) {
+          try {
+            functions.logger.log(`Deleting from Storage: ${imageData.storagePath}`);
+            const file = bucket.file(imageData.storagePath);
+            file.delete().catch((err) => {
+              // Log error but don't fail the whole function if a file is already gone
+              if (err.code !== 404) {
+                functions.logger.error(`Failed to delete file ${imageData.storagePath} from storage`, err);
+              }
+            });
+          } catch (err) {
+            functions.logger.error("Error parsing image URL or deleting from storage", err);
+          }
+        }
+        batch.delete(doc.ref); // Add image doc deletion to batch
+      });
+    }
+
+    // 2. Delete all user vote data for this contest using a collection group query.
+    const votesQuery = db.collectionGroup("votes").where("contestId", "==", contestId);
+    const votesSnapshot = await votesQuery.get();
+     if (!votesSnapshot.empty) {
+      functions.logger.log(`Found ${votesSnapshot.size} vote documents to delete.`);
+      votesSnapshot.forEach((doc) => {
+        batch.delete(doc.ref); // Add vote doc deletion to batch
+      });
+    }
+    
+    // 3. Add the main contest document to the batch deletion
+    batch.delete(contestRef);
+
+    // 4. Commit all batched writes
+    await batch.commit();
+
+    functions.logger.log(`Successfully deleted contest ${contestId} and all associated data.`);
+    return { success: true, message: "Contest and all its data have been deleted." };
 
   } catch (error: any) {
     functions.logger.error(`Error deleting contest ${contestId}:`, error);
@@ -66,64 +111,7 @@ export const deleteContest = functions.https.onCall(async (data, context) => {
 
 
 // This function is triggered when a contest document is deleted.
-export const onContestDeleted = functions.firestore
-  .document("contests/{contestId}")
-  .onDelete(async (snap, context) => {
-    const { contestId } = context.params;
-    functions.logger.log(`Starting cleanup for contest: ${contestId}`);
-
-    const bucket = getStorage().bucket();
-    const batch = db.batch();
-
-    // 1. Delete all images associated with the contest
-    const imagesQuery = db.collection("images").where("contestId", "==", contestId);
-    const imagesSnapshot = await imagesQuery.get();
-
-    if (imagesSnapshot.empty) {
-      functions.logger.log("No images found for this contest.");
-    } else {
-      functions.logger.log(`Found ${imagesSnapshot.size} images to delete.`);
-      imagesSnapshot.forEach((doc) => {
-        const imageData = doc.data();
-        if (imageData.url) {
-          try {
-            const urlParts = imageData.url.split("/o/");
-            if (urlParts.length > 1) {
-              const filePathWithQuery = urlParts[1];
-              const filePath = decodeURIComponent(filePathWithQuery.split("?")[0]);
-              functions.logger.log(`Deleting from Storage: ${filePath}`);
-              const file = bucket.file(filePath);
-              file.delete().catch((err) => {
-                if (err.code !== 404) {
-                  functions.logger.error(`Failed to delete file ${filePath} from storage`, err);
-                }
-              });
-            }
-          } catch (err) {
-            functions.logger.error("Error parsing image URL or deleting from storage", err);
-          }
-        }
-        batch.delete(doc.ref);
-      });
-    }
-
-    // 2. Delete all user vote data for this contest using a collection group query.
-    const votesQuery = db.collectionGroup("votes").where("contestId", "==", contestId);
-    const votesSnapshot = await votesQuery.get();
-     if (votesSnapshot.empty) {
-      functions.logger.log("No vote documents found for this contest.");
-    } else {
-      functions.logger.log(`Found ${votesSnapshot.size} vote documents to delete.`);
-      votesSnapshot.forEach((doc) => {
-        batch.delete(doc.ref);
-      });
-    }
-
-    // 3. Commit all batched writes
-    await batch.commit();
-
-    functions.logger.log(`Successfully cleaned up contest ${contestId}`);
-  });
+// REMOVED to prevent race conditions. All logic is now in the `deleteContest` callable function.
 
 // Scheduled function to run daily and check for contests to delete
 export const scheduledContestCleanup = functions.pubsub.schedule('every 24 hours').onRun(async (context) => {
@@ -142,12 +130,34 @@ export const scheduledContestCleanup = functions.pubsub.schedule('every 24 hours
 
   functions.logger.log(`Found ${contestsToDelete.size} contests to delete.`);
 
-  const promises = contestsToDelete.docs.map(doc => {
-    functions.logger.log(`Deleting contest ${doc.id} which ended on ${doc.data().endDate.toDate()}`);
-    return doc.ref.delete(); // This will trigger the onContestDeleted function for each contest
+  const deletePromises = contestsToDelete.docs.map(async (doc) => {
+    const contestId = doc.id;
+    functions.logger.log(`Cleaning up contest ${contestId} which ended on ${doc.data().endDate.toDate()}`);
+    const bucket = getStorage().bucket();
+    const batch = db.batch();
+
+    // The logic from deleteContest is replicated here for scheduled execution
+    const imagesQuery = db.collection("images").where("contestId", "==", contestId);
+    const imagesSnapshot = await imagesQuery.get();
+    imagesSnapshot.forEach(imgDoc => {
+      const imageData = imgDoc.data();
+      if (imageData.storagePath) {
+        bucket.file(imageData.storagePath).delete().catch(err => functions.logger.error(`Scheduled cleanup: Failed to delete file ${imageData.storagePath}`, err));
+      }
+      batch.delete(imgDoc.ref);
+    });
+
+    const votesQuery = db.collectionGroup("votes").where("contestId", "==", contestId);
+    const votesSnapshot = await votesQuery.get();
+    votesSnapshot.forEach(voteDoc => {
+      batch.delete(voteDoc.ref);
+    });
+
+    batch.delete(doc.ref);
+    return batch.commit();
   });
 
-  await Promise.all(promises);
+  await Promise.all(deletePromises);
   
   functions.logger.log('Scheduled contest cleanup finished.');
   return null;
@@ -355,3 +365,80 @@ export const joinClass = functions.https.onCall(async (data, context) => {
         throw new functions.https.HttpsError('internal', 'An unexpected error occurred while trying to join the class.');
     }
 });
+
+
+// Quiz Battle Functions
+
+export const createQuizSession = functions.https.onCall(async (data, context) => {
+    const uid = context.auth?.uid;
+    if (!uid) throw new functions.https.HttpsError('unauthenticated', 'You must be logged in to host a quiz.');
+
+    const { classId, settings, questions } = data as { classId: string, settings: QuizSettings, questions: QuizQuestion[] };
+    if (!classId || !settings || !questions || questions.length === 0) {
+        throw new functions.https.HttpsError('invalid-argument', 'Missing required data to create a quiz session.');
+    }
+
+    await verifyClassTrainer(uid, classId);
+
+    // Validate that for every question, the correct answer is present in the answers array
+    for (const q of questions) {
+        if (!q.answers.includes(q.correctAnswer)) {
+            throw new functions.https.HttpsError('invalid-argument', `Question "${q.question}" is missing its correct answer from the list of possible answers.`);
+        }
+    }
+
+    const roomCode = Math.floor(1000 + Math.random() * 9000).toString();
+    const sessionRef = rtdb.ref(`quiz-battles/${roomCode}`);
+
+    const newSession: QuizSession = {
+        id: roomCode,
+        roomCode,
+        hostUid: uid,
+        classId,
+        settings,
+        questions,
+        currentQuestion: -1, // -1 means lobby, 0 is the first question
+        gameState: 'waiting',
+        players: {},
+        answers: {},
+        createdAt: Date.now(),
+    };
+
+    await sessionRef.set(newSession);
+
+    return { success: true, roomCode };
+});
+
+
+export const joinQuizSession = functions.https.onCall(async (data, context) => {
+    const { roomCode, playerName } = data as { roomCode: string, playerName: string };
+
+    if (!roomCode || !playerName) {
+        throw new functions.https.HttpsError('invalid-argument', 'Room code and player name are required.');
+    }
+
+    const sessionRef = rtdb.ref(`quiz-battles/${roomCode}`);
+    const sessionSnapshot = await sessionRef.get();
+
+    if (!sessionSnapshot.exists()) {
+        throw new functions.https.HttpsError('not-found', 'Quiz session not found.');
+    }
+
+    const session = sessionSnapshot.val() as QuizSession;
+    if (session.gameState !== 'waiting') {
+        throw new functions.https.HttpsError('failed-precondition', 'This quiz is no longer accepting players.');
+    }
+
+    const playerId = `player_${Math.random().toString(36).substring(2, 10)}`;
+    const newPlayer: QuizPlayer = {
+        id: playerId,
+        name: playerName,
+        score: 0,
+    };
+
+    await sessionRef.child(`players/${playerId}`).set(newPlayer);
+
+    return { success: true, playerId, session: sessionSnapshot.val() };
+});
+
+    
