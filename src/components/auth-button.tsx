@@ -48,7 +48,11 @@ export function AuthButton({ user, onSignInClick }: AuthButtonProps) {
     }
   };
 
-  const dashboardLink = userData?.role === 'trainer' ? "/trainerhome" : "/studenthome";
+  const dashboardLink = userData?.role === 'trainer' 
+    ? "/trainerhome" 
+    : userData?.role === 'manager'
+    ? "/managerhome"
+    : "/studenthome";
 
   if (user) {
     return (

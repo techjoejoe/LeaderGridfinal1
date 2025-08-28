@@ -42,8 +42,9 @@ export type UserData = {
     uid: string;
     email: string | null;
     displayName: string | null;
-    role: 'trainer' | 'student';
-    classIds: string[]; // List of classes the user is a member of
+    role: 'trainer' | 'student' | 'manager';
+    classIds?: string[]; // List of classes the user is a member of (for students)
+    managedTrainerUids?: string[]; // List of trainer UIDs this manager oversees
 };
 
 // Represents a Class document in the 'classes' collection
@@ -56,6 +57,17 @@ export type Class = {
     createdAt: Timestamp;
     inviteCode: string;
 };
+
+// Represents a Note on a student
+export type StudentNote = {
+    id: string;
+    studentUid: string;
+    trainerUid:string;
+    trainerName: string;
+    classId: string;
+    note: string;
+    createdAt: Timestamp;
+}
 
 // Live Polling Types
 export interface PollOption {
@@ -119,5 +131,3 @@ export interface QuizSession {
   answers: { [playerId: string]: string }; // For the current question
   createdAt: number;
 }
-
-    

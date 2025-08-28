@@ -8,7 +8,7 @@ import { useState, useEffect, useMemo } from "react";
 import { doc, onSnapshot } from "firebase/firestore";
 import { SignInDialog } from "@/components/sign-in-dialog";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Users } from "lucide-react";
 import { DashboardCard } from "@/components/dashboard-card";
 import type { Class } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -82,6 +82,12 @@ export default function ClassDashboardPage() {
   }, [user, classId, toast, router]);
   
   const tools = useMemo(() => [
+     { 
+      icon: <Users className="h-24 w-24 text-primary" />,
+      description: "View and manage your class roster and student notes.", 
+      href: `/class/${classId}/roster`,
+      disabled: false
+    },
     { 
       icon: <Image src="https://firebasestorage.googleapis.com/v0/b/picvote-h2ow0.firebasestorage.app/o/logo-light.png?alt=media&token=576a43d9-43ef-4307-868f-130e212228c1" alt="PicPick Contest" width={225} height={225} data-ai-hint="photo contest" />,
       description: "Run a photo contest where learners vote for their favorite images.", 

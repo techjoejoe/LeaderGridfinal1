@@ -28,6 +28,8 @@ export default function HomePage() {
             const userData = userDoc.data() as UserData;
             if (userData.role === 'trainer') {
                 router.push('/trainerhome');
+            } else if (userData.role === 'manager') {
+                router.push('/managerhome');
             } else {
                 router.push('/studenthome');
             }

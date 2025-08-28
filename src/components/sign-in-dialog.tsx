@@ -41,7 +41,7 @@ export function SignInDialog({
   title = "Welcome",
   description = "Sign in or create an account to continue."
 }: SignInDialogProps) {
-  const [view, setView] = useState<'trainer' | 'student'>('trainer');
+  const [view, setView] = useState<'trainer' | 'student' | 'manager'>('trainer');
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -104,8 +104,10 @@ export function SignInDialog({
           email: userCredential.user.email,
           displayName: displayName,
           role: view,
-          classIds: [],
         };
+        if (view === 'student') userData.classIds = [];
+        if (view === 'manager') userData.managedTrainerUids = [];
+
         await setDoc(doc(db, "users", userCredential.user.uid), userData);
       }
       toast({
@@ -188,9 +190,10 @@ export function SignInDialog({
         </DialogHeader>
 
         <Tabs value={view} onValueChange={(v) => { setView(v as any); setError(null); }} className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="trainer">I'm a Trainer</TabsTrigger>
-                <TabsTrigger value="student">I'm a Student</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="trainer">Trainer</TabsTrigger>
+                <TabsTrigger value="student">Student</TabsTrigger>
+                <TabsTrigger value="manager">Manager</TabsTrigger>
             </TabsList>
             <TabsContent value="trainer">
                 <Tabs defaultValue="signin" className="w-full">
@@ -203,6 +206,16 @@ export function SignInDialog({
                 </Tabs>
             </TabsContent>
             <TabsContent value="student">
+                <Tabs defaultValue="signin" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="signin">Sign In</TabsTrigger>
+                        <TabsTrigger value="signup">Sign Up</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="signin">{renderForm(false)}</TabsContent>
+                    <TabsContent value="signup">{renderForm(true)}</TabsContent>
+                </Tabs>
+            </TabsContent>
+            <TabsContent value="manager">
                 <Tabs defaultValue="signin" className="w-full">
                     <TabsList className="grid w-full grid-cols-2">
                         <TabsTrigger value="signin">Sign In</TabsTrigger>
